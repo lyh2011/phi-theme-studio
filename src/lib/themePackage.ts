@@ -5,6 +5,12 @@ import YAML from 'yaml'
 import { z } from 'zod'
 import { hydrateAsset, mimeFromPath, revokeAssets, safeAssetPath } from './assets'
 import {
+  DIFFICULTY_COLOR_CSS,
+  GENERATED_DIFFICULTY_COLORS_END,
+  GENERATED_DIFFICULTY_COLORS_START,
+} from './difficultyColors'
+import { collectCustomClassNames, templateForProject } from '../editor/customElements'
+import {
   DEFAULT_DRAFT,
   DIFFICULTY_KEYS,
   RATING_KEYS,
@@ -52,6 +58,7 @@ export interface ExportThemeInput {
   assets: PackageAsset[]
   css: string
   customTemplate: string
+  templateSource?: string
   projectData: ProjectData
 }
 
@@ -185,6 +192,20 @@ export function rewriteCssUrls(css: string, mapUrl: (url: string) => string) {
 
 export function cleanImportedCss(css: string) {
   const root = postcss.parse(css)
+  let generatedDifficultyColors = false
+  root.each((node) => {
+    if (node.type === 'comment' && node.text.trim() === GENERATED_DIFFICULTY_COLORS_START) {
+      generatedDifficultyColors = true
+      node.remove()
+      return
+    }
+    if (node.type === 'comment' && node.text.trim() === GENERATED_DIFFICULTY_COLORS_END) {
+      generatedDifficultyColors = false
+      node.remove()
+      return
+    }
+    if (generatedDifficultyColors) node.remove()
+  })
   root.walkAtRules('import', (rule) => {
     const value = rule.params.replace(/['"\s]/g, '')
     if (value.endsWith('b19.css') || value.endsWith('common.css')) rule.remove()
@@ -351,6 +372,78 @@ export function mapProjectAssetUrls(projectData: ProjectData, replacements: Map<
   return mapStringsDeep(projectData, replacements) as ProjectData
 }
 
+function normalizedTemplate(value: string) {
+  return value.replace(/\r\n/g, '\n').trim()
+}
+
+const CUSTOM_CLASS_RE = /(^|[^A-Za-z0-9_-])\.?(phi-custom-(?:text|rect|circle|line|triangle|image)-[A-Za-z0-9_-]+)(?=$|[^A-Za-z0-9_-])/g
+
+function referencedCustomClasses(selector: string) {
+  return [...selector.matchAll(CUSTOM_CLASS_RE)].map((match) => match[2])
+}
+
+function cleanOrphanedCustomCss(css: string, projectData: ProjectData) {
+  const liveClasses = collectCustomClassNames(projectData)
+  const root = postcss.parse(css)
+  root.walkRules((rule) => {
+    const referenced = referencedCustomClasses(rule.selector)
+    if (referenced.length && referenced.some((className) => !liveClasses.has(className))) rule.remove()
+  })
+  return root.toString().trim()
+}
+
+function cleanOrphanedCustomProjectStyles(projectData: ProjectData) {
+  const value = projectData as ProjectData & { styles?: unknown[] }
+  if (!Array.isArray(value.styles)) return projectData
+  const liveClasses = collectCustomClassNames(projectData)
+  value.styles = value.styles.filter((style) => {
+    if (!style || typeof style !== 'object') return true
+    const record = style as { selectors?: unknown[]; selectorsAdd?: unknown }
+    const selectors = [
+      ...(Array.isArray(record.selectors) ? record.selectors : []),
+      ...(typeof record.selectorsAdd === 'string' ? [record.selectorsAdd] : []),
+    ]
+    const referenced = selectors.flatMap((selector) => {
+      if (typeof selector === 'string') return referencedCustomClasses(selector)
+      if (selector && typeof selector === 'object' && 'name' in selector) {
+        const name = (selector as { name?: unknown }).name
+        return typeof name === 'string' ? referencedCustomClasses(name) : []
+      }
+      return []
+    })
+    return !referenced.length || referenced.every((className) => liveClasses.has(className))
+  })
+  return projectData
+}
+
+export function validateThemeTemplate(template: string, assetPaths: ReadonlySet<string>) {
+  const safeTemplate = template.trimEnd()
+  const normalized = safeTemplate.trim()
+  if (!normalized) return ''
+  if (new TextEncoder().encode(safeTemplate).byteLength > MAX_TEXT_SIZE) {
+    throw new Error('b19.art 超过 5 MB')
+  }
+
+  const attributePattern = /\b(?:src|href|poster)\s*=\s*(["'])([\s\S]*?)\1/gi
+  for (const match of normalized.matchAll(attributePattern)) {
+    const value = match[2].trim()
+    if (/^(?:blob|javascript|data\s*:\s*text\/html):/i.test(value)) {
+      throw new Error(`b19.art 包含不可打包的资源 URL：${value}`)
+    }
+    const baseUrl = '{{themeInfo.baseUrl}}'
+    if (!value.startsWith(baseUrl)) continue
+    const path = value.slice(baseUrl.length)
+    // Dynamic ArtTemplate expressions are opaque administrator source. Static
+    // package references can still be checked against the files in this ZIP.
+    if (/[{}]/.test(path)) continue
+    if (!safeAssetPath(path)) {
+      throw new Error(`b19.art 资源路径不安全：${path || '空路径'}`)
+    }
+    if (!assetPaths.has(path)) throw new Error(`b19.art 引用了主题包中不存在的资源：${path}`)
+  }
+  return safeTemplate
+}
+
 export function validateTheme(input: Omit<ExportThemeInput, 'projectData'>): ValidationIssue[] {
   const issues: ValidationIssue[] = []
   const id = input.draft.id.trim()
@@ -390,6 +483,11 @@ export function validateTheme(input: Omit<ExportThemeInput, 'projectData'>): Val
   } catch (error) {
     issues.push({ level: 'error', message: error instanceof Error ? error.message : String(error) })
   }
+  try {
+    validateThemeTemplate(input.customTemplate, assetPaths)
+  } catch (error) {
+    issues.push({ level: 'error', message: error instanceof Error ? error.message : String(error) })
+  }
   const bytes = input.assets.reduce((total, asset) => total + asset.bytes.byteLength, 0)
   if (bytes > MAX_ZIP_SIZE) issues.push({ level: 'error', message: '资源总大小超过 50 MB' })
   else if (bytes > 15 * 1024 * 1024) issues.push({ level: 'warning', message: '资源包超过 15 MB，Bot 首次渲染可能较慢' })
@@ -412,9 +510,19 @@ export async function exportThemePackage(input: ExportThemeInput) {
     [`./${asset.path}`, asset.path],
   ]))
   const safeCss = validateThemeCss(input.css, urlToPath)
-  const exportedCss = rewriteCssUrls(safeCss, (url) => urlToPath.get(url) || url)
+  const assetPaths = new Set(input.assets.map((asset) => asset.path))
+  const safeTemplate = validateThemeTemplate(input.customTemplate, assetPaths)
   const safeProjectData = validateStudioProjectData(input.projectData)
-  const projectData = mapStringsDeep(safeProjectData, urlToPath) as ProjectData
+  const projectData = cleanOrphanedCustomProjectStyles(
+    mapStringsDeep(safeProjectData, urlToPath) as ProjectData,
+  )
+  const exportedCss = rewriteCssUrls(cleanOrphanedCustomCss(safeCss, projectData), (url) => urlToPath.get(url) || url)
+  if (input.templateSource !== undefined) {
+    const rebuiltTemplate = templateForProject(input.templateSource, projectData, assetPaths)
+    if (normalizedTemplate(rebuiltTemplate) !== normalizedTemplate(safeTemplate)) {
+      throw new Error('模板来源与最终 b19.art 不一致')
+    }
+  }
   const unresolvedProjectUrls = new Set<string>()
   collectProjectUrls(projectData, unresolvedProjectUrls)
   for (const url of unresolvedProjectUrls) {
@@ -426,6 +534,7 @@ export async function exportThemePackage(input: ExportThemeInput) {
     draft: input.draft,
     resources: input.resources,
     css: exportedCss,
+    ...(input.templateSource !== undefined ? { templateSource: input.templateSource } : {}),
     projectData,
   }
 
@@ -433,9 +542,9 @@ export async function exportThemePackage(input: ExportThemeInput) {
   const root = zip.folder(input.draft.id.trim())
   if (!root) throw new Error('无法创建主题包目录')
   root.file('info.yaml', manifestYaml(input))
-  root.file('b19.css', `@import "../../b19.css";\n\n${exportedCss}\n`)
+  root.file('b19.css', `@import "../../b19.css";\n\n${DIFFICULTY_COLOR_CSS}\n\n${exportedCss}\n`)
   root.file('studio.json', JSON.stringify(studioFile, null, 2))
-  if (input.customTemplate.trim()) root.file('b19.art', input.customTemplate.trimEnd() + '\n')
+  if (safeTemplate) root.file('b19.art', `${safeTemplate}\n`)
   for (const asset of input.assets) root.file(asset.path, asset.bytes)
   return zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } })
 }
@@ -547,7 +656,8 @@ export async function importThemePackage(file: File): Promise<ImportedTheme> {
     if (!cssEntry) warnings.push('主题包未包含 CSS，将从空白覆盖样式开始。')
     const templatePath = resolveRootPath(rootPrefix, rawManifest.template)
     const templateEntry = templatePath ? zip.file(templatePath) as ZipEntry | null : null
-    const customTemplate = templateEntry ? await readText(templateEntry, MAX_TEXT_SIZE, templateEntry.name) : ''
+    let customTemplate = templateEntry ? await readText(templateEntry, MAX_TEXT_SIZE, templateEntry.name) : ''
+    validateThemeTemplate(customTemplate, assetPaths)
 
     let projectData: ProjectData | undefined
     const studioEntry = zip.file(`${rootPrefix}studio.json`) as ZipEntry | null
@@ -559,6 +669,14 @@ export async function importThemePackage(file: File): Promise<ImportedTheme> {
             throw new Error('studio.json 工程样式与 b19.css 不一致')
           }
           const safeProject = validateStudioProjectData(studio.projectData)
+          if (studio.templateSource !== undefined) {
+            if (typeof studio.templateSource !== 'string') throw new Error('studio.json 模板来源无效')
+            const rebuiltTemplate = templateForProject(studio.templateSource, safeProject, assetPaths)
+            if (normalizedTemplate(rebuiltTemplate) !== normalizedTemplate(customTemplate)) {
+              throw new Error('studio.json 模板来源与 b19.art 不一致')
+            }
+            customTemplate = studio.templateSource
+          }
           const pathToUrl = new Map(assets.map((asset) => [asset.path, asset.previewUrl]))
           projectData = mapStringsDeep(safeProject, pathToUrl) as ProjectData
         } else {

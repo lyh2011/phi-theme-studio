@@ -33,6 +33,7 @@ export interface StudioProjectFile {
   draft: ThemeDraft
   resources: ThemeResources
   css: string
+  templateSource?: string
   projectData: ProjectData
 }
 

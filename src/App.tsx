@@ -30,8 +30,21 @@ import { GrapesCanvas } from './components/GrapesCanvas'
 import { PackagePanel } from './components/PackagePanel'
 import { SourceDialog } from './components/SourceDialog'
 import { ThemeForm } from './components/ThemeForm'
-import { lockEditorDocument, resetEditorDocument } from './editor/createEditor'
-import { applyRuntimePreview } from './editor/preview'
+import { resetEditorDocument } from './editor/createEditor'
+import {
+  appendCustomComponent,
+  restoreCustomComponents,
+  sourceTemplateForEditing,
+  templateForProject,
+  type CustomElementKind,
+} from './editor/customElements'
+import {
+  applyRuntimePreview,
+  DEFAULT_PREVIEW_PAGE,
+  PREVIEW_PAGE_HEIGHTS,
+  PREVIEW_PAGES,
+  type PreviewPage,
+} from './editor/preview'
 import {
   assetFromFile,
   extensionOf,
@@ -67,6 +80,22 @@ type SaveState = 'loading' | 'saved' | 'saving' | 'dirty'
 type Toast = { kind: 'success' | 'error' | 'info'; message: string }
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+const PREVIEW_PAGE_LABELS: Record<PreviewPage, string> = {
+  b19: 'B19',
+  b27: 'B27',
+  b30: 'B30',
+  b33: 'B33',
+  analysis: 'B30数据分析',
+}
+
+const CUSTOM_ELEMENT_LABELS: Record<CustomElementKind, string> = {
+  text: '文字',
+  rect: '矩形',
+  circle: '圆形',
+  line: '线条',
+  triangle: '三角形',
+  image: '图片',
+}
 
 function assetUrlMap(assets: PackageAsset[]) {
   const map = new Map<string, string>()
@@ -90,11 +119,13 @@ function App() {
   const [saveState, setSaveState] = useState<SaveState>('loading')
   const [zoom, setZoom] = useState(60)
   const [previewMode, setPreviewMode] = useState(false)
+  const [previewPage, setPreviewPage] = useState<PreviewPage>(DEFAULT_PREVIEW_PAGE)
   const [sourceOpen, setSourceOpen] = useState(false)
   const [selectedName, setSelectedName] = useState('成绩卡')
   const [toast, setToast] = useState<Toast | null>(null)
   const [mobilePanel, setMobilePanel] = useState<'left' | 'right' | null>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
+  const customImageInputRef = useRef<HTMLInputElement>(null)
   const restoredRef = useRef(false)
   const mountedRef = useRef(true)
   const assetsRef = useRef<PackageAsset[]>([])
@@ -147,9 +178,13 @@ function App() {
           setResources(persisted.resources)
           assetsRef.current = restoredAssets
           setAssets(restoredAssets)
-          setCustomTemplate(persisted.customTemplate)
-          instance.loadProjectData(projectData)
-          lockEditorDocument(instance)
+          setCustomTemplate(sourceTemplateForEditing(persisted.customTemplate))
+          const restoredCss = projectData.styles
+          resetEditorDocument(instance)
+          if (Array.isArray(restoredCss)) instance.setStyle(restoredCss)
+          // Custom components are kept in project data and appended after the
+          // stable runtime preview so the base template remains intact.
+          restoreCustomComponents(instance, projectData)
           instance.UndoManager.clear()
           restoredAssets = undefined
         }
@@ -176,11 +211,37 @@ function App() {
     if (!editor) return
     try {
       const canvasDocument = editor.Canvas.getDocument()
-      if (canvasDocument) applyRuntimePreview(canvasDocument, draft, resources, assets)
+      if (canvasDocument) {
+        applyRuntimePreview(canvasDocument, draft, resources, assets, previewPage)
+        const selectedElement = editor.getSelected()?.getEl()
+        if (selectedElement?.closest('[data-phi-preview-hidden]')) {
+          const fallbackSelector = previewPage === 'analysis' ? '.b30-analysis-row' : '.b19'
+          const fallback = editor.getWrapper()?.find(fallbackSelector)[0]
+          if (fallback) editor.select(fallback)
+        }
+      }
     } catch {
       // The frame can be between reload states while a project is imported.
     }
-  }, [editor, draft, resources, assets, revision])
+  }, [editor, draft, resources, assets, revision, previewPage])
+
+  useEffect(() => {
+    if (!editor) return
+    const device = editor.Devices.get('phi-1200') || editor.Devices.getSelected()
+    const height = `${PREVIEW_PAGE_HEIGHTS[previewPage]}px`
+    if (device && device.get('height') !== height) {
+      editor.UndoManager.skip(() => device.set('height', height))
+    }
+
+    let frame = window.requestAnimationFrame(() => {
+      editor.refresh({ tools: true })
+      frame = window.requestAnimationFrame(() => {
+        editor.Canvas.fitViewport({ gap: 28, zoom: (value) => Math.min(value, 80) })
+        setZoom(Math.round(editor.Canvas.getZoom()))
+      })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [editor, previewPage])
 
   useEffect(() => {
     if (!editor || !restoredRef.current) return
@@ -223,17 +284,45 @@ function App() {
     }
   })()
   const canonicalCss = canonical.css
+  const projectData = useMemo(() => {
+    if (!editor) return undefined
+    try {
+      return mapProjectAssetUrls(editor.getProjectData(), assetUrlMap(assets))
+    } catch {
+      return undefined
+    }
+  // revision invalidates this snapshot after GrapesJS mutates its internal models.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, assets, revision])
+  const effectiveTemplateResult = useMemo(() => {
+    if (!projectData) return { template: customTemplate, error: '' }
+    try {
+      return {
+        template: templateForProject(customTemplate, projectData, new Set(assets.map((asset) => asset.path))),
+        error: '',
+      }
+    } catch (error) {
+      return {
+        template: customTemplate,
+        error: `生成 b19.art 失败：${error instanceof Error ? error.message : String(error)}`,
+      }
+    }
+  }, [customTemplate, projectData, assets])
+  const effectiveTemplate = effectiveTemplateResult.template
   const exportInput = useMemo(() => ({
     draft,
     resources,
     assets,
     css: canonicalCss,
-    customTemplate,
-  }), [draft, resources, assets, canonicalCss, customTemplate])
+    customTemplate: effectiveTemplate,
+  }), [draft, resources, assets, canonicalCss, effectiveTemplate])
   const issues = useMemo(() => {
     const result = validateTheme(exportInput)
-    return canonical.error ? [{ level: 'error' as const, message: canonical.error }, ...result] : result
-  }, [exportInput, canonical.error])
+    const derivedErrors = [canonical.error, effectiveTemplateResult.error]
+      .filter(Boolean)
+      .map((message) => ({ level: 'error' as const, message }))
+    return [...derivedErrors, ...result]
+  }, [exportInput, canonical.error, effectiveTemplateResult.error])
   const yaml = useMemo(() => manifestYaml(exportInput), [exportInput])
   const assetBytes = useMemo(() => assets.reduce((total, asset) => total + asset.bytes.byteLength, 0), [assets])
 
@@ -343,21 +432,15 @@ function App() {
         editor.stopCommand('preview')
         setPreviewMode(false)
       }
-      if (imported.projectData) {
-        editor.loadProjectData(imported.projectData)
-        // b19.css remains the source of truth even when studio.json restores the component tree.
-        editor.setStyle(cssForPreview(imported.css, imported.assets))
-        lockEditorDocument(editor)
-        editor.UndoManager.clear()
-      } else {
-        resetEditorDocument(editor, cssForPreview(imported.css, imported.assets))
-      }
+      // Always use the latest fixed preview DOM. Runtime CSS is the package source of truth.
+      resetEditorDocument(editor, cssForPreview(imported.css, imported.assets))
+      if (imported.projectData) restoreCustomComponents(editor, imported.projectData)
       const next = imported
       setDraft(next.draft)
       setResources(next.resources)
       assetsRef.current = next.assets
       setAssets(next.assets)
-      setCustomTemplate(next.customTemplate)
+      setCustomTemplate(sourceTemplateForEditing(next.customTemplate, Boolean(next.projectData)))
       imported = undefined
       window.setTimeout(() => revokeAssets(previousAssets), 0)
       setRevision((value) => value + 1)
@@ -399,7 +482,14 @@ function App() {
   const exportPackage = async () => {
     if (!editor) return
     try {
-      const blob = await exportThemePackage({ ...exportInput, projectData: editor.getProjectData() })
+      const projectData = mapProjectAssetUrls(editor.getProjectData(), assetUrlMap(assets))
+      const generatedTemplate = templateForProject(customTemplate, projectData, new Set(assets.map((asset) => asset.path)))
+      const blob = await exportThemePackage({
+        ...exportInput,
+        customTemplate: generatedTemplate,
+        templateSource: customTemplate,
+        projectData,
+      })
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       anchor.href = url
@@ -419,6 +509,39 @@ function App() {
     setCustomTemplate(template)
     setRevision((value) => value + 1)
     setSaveState('dirty')
+  }
+
+  const addCustomElement = (kind: CustomElementKind, src?: string) => {
+    if (!editor) return
+    appendCustomComponent(editor, {
+      kind,
+      src,
+      name: `自定义${CUSTOM_ELEMENT_LABELS[kind]}`,
+    })
+    setSelectedName(`自定义${CUSTOM_ELEMENT_LABELS[kind]}`)
+    setRevision((value) => value + 1)
+    setSaveState('dirty')
+    notify(`已添加${CUSTOM_ELEMENT_LABELS[kind]}元素`, 'success')
+  }
+
+  const handleCustomImage = async (file: File) => {
+    if (!editor) return
+    if (file.size > MAX_UPLOAD_BYTES) {
+      notify('单个资源不能超过 20 MB', 'error')
+      return
+    }
+    if (!['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'].includes(extensionOf(file.name))) {
+      notify('仅支持 PNG、JPEG、WebP、GIF 或 AVIF 图片', 'error')
+      return
+    }
+    const path = `assets/custom/${normalizedAssetName(file.name, `image-${Date.now()}`)}`
+    const asset = await assetFromFile(file, path)
+    setAssets((current) => {
+      const next = [...current, asset]
+      assetsRef.current = next
+      return next
+    })
+    addCustomElement('image', asset.previewUrl)
   }
 
   const saveLabel = {
@@ -472,6 +595,11 @@ function App() {
             if (file) void importPackage(file)
             event.target.value = ''
           }} />
+          <input ref={customImageInputRef} type="file" accept="image/*" hidden onChange={(event) => {
+            const file = event.target.files?.[0]
+            if (file) void handleCustomImage(file)
+            event.target.value = ''
+          }} />
         </div>
       </header>
 
@@ -482,17 +610,40 @@ function App() {
             <button type="button" role="tab" aria-selected={leftTab === 'layers'} className={leftTab === 'layers' ? 'active' : ''} onClick={() => setLeftTab('layers')}><Layers3 size={15} />图层</button>
           </div>
           <div className={`sidebar-content ${leftTab === 'components' ? 'active' : ''}`}>
-            <ComponentNavigator editor={editor} />
+            <ComponentNavigator
+              editor={editor}
+              page={previewPage}
+              onSelect={setSelectedName}
+              onAddCustom={(kind) => addCustomElement(kind)}
+              onUploadCustomImage={() => customImageInputRef.current?.click()}
+            />
           </div>
           <div className={`sidebar-content manager-content ${leftTab === 'layers' ? 'active' : ''}`} id="gjs-layer-manager" />
         </aside>
 
         <section className="canvas-column">
+          <div className="canvas-viewbar">
+            <div className="preview-segmented" role="tablist" aria-label="预览页面">
+              {PREVIEW_PAGES.map((page) => (
+                <button
+                  key={page.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={previewPage === page.id}
+                  className={previewPage === page.id ? 'active' : ''}
+                  onClick={() => setPreviewPage(page.id)}
+                >
+                  {PREVIEW_PAGE_LABELS[page.id]}
+                </button>
+              ))}
+            </div>
+            <span className="preview-dimensions">1200 x {PREVIEW_PAGE_HEIGHTS[previewPage]}</span>
+          </div>
           <div className="canvas-stage">
             <GrapesCanvas onReady={handleEditorReady} onUpdate={handleEditorUpdate} onZoomChange={setZoom} />
           </div>
           <footer className="canvas-statusbar">
-            <span><Check size={13} />固定 1200px Bot 画布</span>
+            <span><Check size={13} />{PREVIEW_PAGE_LABELS[previewPage]} 预览</span>
             <span className="selected-component">{selectedName}</span>
             <span>{assets.length} 资源 · {formatBytes(assetBytes)}</span>
           </footer>
@@ -518,7 +669,7 @@ function App() {
           </div>
           <div className={`inspector-content ${rightTab === 'theme' ? 'active' : ''}`}><ThemeForm draft={draft} setDraft={setDraft} /></div>
           <div className={`inspector-content ${rightTab === 'assets' ? 'active' : ''}`}><AssetForm resources={resources} assets={assets} onUpload={(target, file) => void uploadAsset(target, file)} onRemove={removeAsset} /></div>
-          <div className={`inspector-content ${rightTab === 'package' ? 'active' : ''}`}><PackagePanel issues={issues} assetCount={assets.length} customTemplate={Boolean(customTemplate.trim())} onSource={() => setSourceOpen(true)} onExport={exportPackage} /></div>
+          <div className={`inspector-content ${rightTab === 'package' ? 'active' : ''}`}><PackagePanel issues={issues} assetCount={assets.length} customTemplate={Boolean(effectiveTemplate.trim())} onSource={() => setSourceOpen(true)} onExport={exportPackage} /></div>
         </aside>
       </main>
 

@@ -4,6 +4,7 @@ import YAML from 'yaml'
 import {
   exportThemePackage,
   importThemePackage,
+  mapProjectAssetUrls,
   rewriteCssUrls,
   validateTheme,
   validateThemeCss,
@@ -43,6 +44,35 @@ describe('theme package validation', () => {
     expect(() => validateThemeCss('#i390l { color: red; }')).toThrow(/临时 ID/)
   })
 
+  it('validates the final b19.art against packaged assets', () => {
+    const input = {
+      draft: DEFAULT_DRAFT,
+      resources: DEFAULT_RESOURCES,
+      assets: [] as PackageAsset[],
+      css: '',
+    }
+    const blobIssues = validateTheme({ ...input, customTemplate: '<img src="blob:orphan">' })
+    const missingIssues = validateTheme({
+      ...input,
+      customTemplate: '<img src="{{themeInfo.baseUrl}}assets/custom/missing.png">',
+    })
+
+    expect(blobIssues.some((issue) => issue.level === 'error' && issue.message.includes('blob:orphan'))).toBe(true)
+    expect(missingIssues.some((issue) => issue.level === 'error' && issue.message.includes('不存在的资源'))).toBe(true)
+  })
+
+  it('rejects an export whose editable source cannot rebuild its final template', async () => {
+    await expect(exportThemePackage({
+      draft: DEFAULT_DRAFT,
+      resources: DEFAULT_RESOURCES,
+      assets: [],
+      css: '',
+      customTemplate: '<main>final</main>',
+      templateSource: '<main>source</main>',
+      projectData,
+    })).rejects.toThrow(/模板来源与最终 b19\.art 不一致/)
+  })
+
   it('rewrites only parsed url values', () => {
     const css = '.song { background: url("blob:test"); content: "blob:test"; }'
     expect(rewriteCssUrls(css, (url) => url === 'blob:test' ? 'assets/bg.png' : url)).toContain('url("assets/bg.png")')
@@ -79,13 +109,162 @@ describe('theme package round trip', () => {
     expect(yaml).toMatchObject({ id: 'round-trip', name: 'Round Trip', Author: 'Tester', css: 'b19.css' })
     const css = await zip.file('round-trip/b19.css')!.async('string')
     expect(css).toMatch(/^@import "\.\.\/\.\.\/b19\.css";/)
+    expect(css).toContain('.rank-AT { background-color: var(--AT); }')
+    expect(css).toContain('.info-IN { background-color: color-mix(in srgb, var(--IN) 30%, transparent); border-color: var(--IN); }')
+    expect(css.indexOf('.rank-AT')).toBeLessThan(css.indexOf('.song { border-radius: 3px; }'))
 
     const imported = await importThemePackage(new File([blob], 'round-trip.zip', { type: 'application/zip' }))
     expect(imported.draft.id).toBe('round-trip')
     expect(imported.resources.background).toBe('assets/background.png')
     expect(imported.assets[0].bytes).toEqual(bytes)
     expect(imported.css).toContain('border-radius: 3px')
+    expect(imported.css).not.toContain('phi-theme-studio:difficulty-colors')
     for (const importedAsset of imported.assets) URL.revokeObjectURL(importedAsset.previewUrl)
+  })
+
+  it('exports custom canvas elements as a real template and restores them on import', async () => {
+    const bytes = new Uint8Array([137, 80, 78, 71])
+    const asset: PackageAsset = {
+      path: 'assets/custom/badge.png',
+      mime: 'image/png',
+      bytes,
+      previewUrl: 'blob:badge',
+    }
+    const customProject = {
+      pages: [{ frames: [{ component: { type: 'wrapper', components: [
+        {
+          tagName: 'div',
+          type: 'text',
+          classes: ['phi-custom-text-test'],
+          attributes: {
+            class: 'phi-custom-text-test',
+            'data-phi-selector': '.phi-custom-text-test',
+            'data-phi-custom': 'text',
+          },
+          content: 'Custom result label',
+        },
+        {
+          tagName: 'img',
+          type: 'image',
+          classes: ['phi-custom-image-test'],
+          attributes: {
+            class: 'phi-custom-image-test',
+            'data-phi-selector': '.phi-custom-image-test',
+            'data-phi-custom': 'image',
+            src: asset.path,
+            alt: 'Custom badge',
+          },
+        },
+      ] } }] }],
+      styles: [],
+    }
+    const { templateForProject } = await import('../editor/customElements')
+    const templateSource = ''
+    const template = templateForProject(templateSource, customProject, new Set([asset.path]))
+    const draft = { ...DEFAULT_DRAFT, id: 'custom-elements', name: 'Custom Elements' }
+    const blob = await exportThemePackage({
+      draft,
+      resources: DEFAULT_RESOURCES,
+      assets: [asset],
+      css: '.phi-custom-text-test { color: #fff; }',
+      customTemplate: template,
+      templateSource,
+      projectData: customProject,
+    })
+    const zip = await JSZip.loadAsync(await blob.arrayBuffer())
+    const yaml = YAML.parse(await zip.file('custom-elements/info.yaml')!.async('string'))
+    const art = await zip.file('custom-elements/b19.art')!.async('string')
+
+    expect(yaml.template).toBe('b19.art')
+    expect(zip.file('custom-elements/assets/custom/badge.png')).toBeTruthy()
+    expect(art).toContain('class="phi-custom-text-test"')
+    expect(art).toContain('<img class="phi-custom-image-test"')
+    expect(art).toContain('src="{{themeInfo.baseUrl}}assets/custom/badge.png"')
+    expect(art).not.toContain('blob:')
+    expect(await zip.file('custom-elements/b19.css')!.async('string')).toContain('.phi-custom-text-test')
+
+    const imported = await importThemePackage(new File([blob], 'custom-elements.zip', { type: 'application/zip' }))
+    expect(imported.customTemplate).toBe('')
+    expect(imported.projectData).toBeTruthy()
+    expect(imported.assets).toHaveLength(1)
+
+    const portableProject = mapProjectAssetUrls(
+      imported.projectData!,
+      new Map(imported.assets.map((importedAsset) => [importedAsset.previewUrl, importedAsset.path])),
+    )
+    expect(templateForProject(imported.customTemplate, portableProject, new Set([asset.path])))
+      .toBe(template)
+
+    const cleanBlob = await exportThemePackage({
+      draft: { ...draft, id: 'custom-elements-clean' },
+      resources: DEFAULT_RESOURCES,
+      assets: [],
+      css: '.phi-custom-text-test { color: #fff; } .song { opacity: .9; }',
+      customTemplate: templateForProject(imported.customTemplate, projectData),
+      templateSource: imported.customTemplate,
+      projectData: {
+        ...projectData,
+        styles: [
+          { selectors: ['phi-custom-text-test'], style: { color: '#fff' } },
+          { selectors: ['song'], style: { opacity: '.9' } },
+        ],
+      },
+    })
+    const cleanZip = await JSZip.loadAsync(await cleanBlob.arrayBuffer())
+    const cleanYaml = YAML.parse(await cleanZip.file('custom-elements-clean/info.yaml')!.async('string'))
+    const cleanStudio = await cleanZip.file('custom-elements-clean/studio.json')!.async('string')
+    const cleanCss = await cleanZip.file('custom-elements-clean/b19.css')!.async('string')
+    expect(cleanYaml.template).toBeUndefined()
+    expect(cleanZip.file('custom-elements-clean/b19.art')).toBeNull()
+    expect(cleanStudio).not.toContain('phi-theme-studio custom elements')
+    expect(cleanStudio).not.toContain('phi-custom-text-test')
+    expect(cleanStudio).toContain('"song"')
+    expect(cleanCss).not.toContain('phi-custom-text-test')
+    expect(cleanCss).toContain('.song { opacity: .9; }')
+    for (const importedAsset of imported.assets) URL.revokeObjectURL(importedAsset.previewUrl)
+  })
+
+  it('round-trips templateSource only when it rebuilds the packaged b19.art', async () => {
+    const { templateForProject } = await import('../editor/customElements')
+    const source = '{{block "main"}}\n<main>custom source</main>\n{{/block}}'
+    const customProject = {
+      pages: [{ frames: [{ component: { type: 'wrapper', components: [{
+        tagName: 'div',
+        classes: ['phi-custom-text-source'],
+        attributes: {
+          class: 'phi-custom-text-source',
+          'data-phi-custom': 'text',
+          'data-phi-selector': '.phi-custom-text-source',
+        },
+        content: 'generated element',
+      }] } }] }],
+      styles: [],
+    }
+    const finalTemplate = templateForProject(source, customProject)
+    const draft = { ...DEFAULT_DRAFT, id: 'template-source', name: 'Template Source' }
+    const blob = await exportThemePackage({
+      draft,
+      resources: DEFAULT_RESOURCES,
+      assets: [],
+      css: '',
+      customTemplate: finalTemplate,
+      templateSource: source,
+      projectData: customProject,
+    })
+    const imported = await importThemePackage(new File([blob], 'template-source.zip'))
+    expect(imported.customTemplate).toBe(source)
+    expect(imported.projectData).toBeTruthy()
+
+    const tamperedZip = await JSZip.loadAsync(await blob.arrayBuffer())
+    const studioPath = 'template-source/studio.json'
+    const studio = JSON.parse(await tamperedZip.file(studioPath)!.async('string'))
+    studio.templateSource = '{{block "main"}}tampered{{/block}}'
+    tamperedZip.file(studioPath, JSON.stringify(studio))
+    const tamperedBlob = await tamperedZip.generateAsync({ type: 'blob' })
+    const tampered = await importThemePackage(new File([tamperedBlob], 'tampered.zip'))
+    expect(tampered.projectData).toBeUndefined()
+    expect(tampered.customTemplate).toContain('generated element')
+    expect(tampered.warnings.join(' ')).toMatch(/模板来源与 b19\.art 不一致/)
   })
 
   it('rejects zip traversal names', async () => {
