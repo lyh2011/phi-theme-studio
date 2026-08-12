@@ -80,6 +80,7 @@ type SaveState = 'loading' | 'saved' | 'saving' | 'dirty'
 type Toast = { kind: 'success' | 'error' | 'info'; message: string }
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024
+const MAX_CANVAS_ZOOM = 300
 const PREVIEW_PAGE_LABELS: Record<PreviewPage, string> = {
   b19: 'B19',
   b27: 'B27',
@@ -328,7 +329,7 @@ function App() {
 
   const updateZoom = (value: number) => {
     if (!editor) return
-    const next = Math.max(20, Math.min(100, Math.round(value)))
+    const next = Math.max(20, Math.min(MAX_CANVAS_ZOOM, Math.round(value)))
     editor.Canvas.setZoom(next)
     setZoom(next)
   }
@@ -573,7 +574,7 @@ function App() {
           <span className="toolbar-divider" />
           <button type="button" className="icon-button" title="缩小" onClick={() => updateZoom(zoom - 10)}><ZoomOut size={17} /></button>
           <button type="button" className="zoom-readout" title="当前缩放" onClick={fitCanvas}>{zoom}%</button>
-          <button type="button" className="icon-button" title="放大" onClick={() => updateZoom(zoom + 10)}><ZoomIn size={17} /></button>
+          <button type="button" className="icon-button" title="放大" disabled={zoom >= MAX_CANVAS_ZOOM} onClick={() => updateZoom(zoom + 10)}><ZoomIn size={17} /></button>
           <button type="button" className="icon-button" title="适应画布" onClick={fitCanvas}><Scan size={17} /></button>
           <span className="toolbar-divider" />
           <button type="button" className={`icon-button ${previewMode ? 'active' : ''}`} title={previewMode ? '退出预览' : '预览'} onClick={togglePreview}>

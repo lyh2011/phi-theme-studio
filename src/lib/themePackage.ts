@@ -33,6 +33,7 @@ const MAX_TEXT_SIZE = 5 * 1024 * 1024
 const MAX_FILES = 128
 const MAX_PROJECT_NODES = 5000
 const MAX_PROJECT_DEPTH = 64
+const RUNTIME_PACKAGE_PATHS = new Set(['info.yaml', 'b19.css', 'b19.art', 'studio.json'])
 const ALLOWED_EXTENSIONS = new Set([
   'yaml', 'css', 'art', 'json', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'avif',
   'ttf', 'otf', 'woff', 'woff2',
@@ -64,6 +65,14 @@ export interface ExportThemeInput {
 
 function pathExtension(path: string) {
   return path.split('.').pop()?.toLowerCase() || ''
+}
+
+function fileSizeLimit(path: string) {
+  return ['yaml', 'css', 'art', 'json'].includes(pathExtension(path)) ? MAX_TEXT_SIZE : MAX_FILE_SIZE
+}
+
+function fileSizeLabel(limit: number) {
+  return `${limit / 1024 / 1024} MB`
 }
 
 type ZipEntry = JSZip.JSZipObject & {
@@ -462,7 +471,28 @@ export function validateTheme(input: Omit<ExportThemeInput, 'projectData'>): Val
       issues.push({ level: 'error', message: `${key} 难度色不是有效的十六进制颜色` })
     }
   }
-  const assetPaths = new Set(input.assets.map((asset) => asset.path))
+  const assetPaths = new Set<string>()
+  for (const asset of input.assets) {
+    if (!safeAssetPath(asset.path)) {
+      issues.push({ level: 'error', message: `资源路径不安全：${asset.path}` })
+    } else if (RUNTIME_PACKAGE_PATHS.has(asset.path)) {
+      issues.push({ level: 'error', message: `资源路径与主题包内置文件冲突：${asset.path}` })
+    } else if (!ALLOWED_EXTENSIONS.has(pathExtension(asset.path))) {
+      issues.push({ level: 'error', message: `不支持的资源文件类型：${asset.path}` })
+    }
+    if (assetPaths.has(asset.path)) {
+      issues.push({ level: 'error', message: `资源路径重复：${asset.path}` })
+    }
+    assetPaths.add(asset.path)
+    const limit = fileSizeLimit(asset.path)
+    if (asset.bytes.byteLength > limit) {
+      issues.push({ level: 'error', message: `资源文件超过 ${fileSizeLabel(limit)}：${asset.path}` })
+    }
+  }
+  const runtimeFileCount = input.customTemplate.trim() ? 4 : 3
+  if (input.assets.length + runtimeFileCount > MAX_FILES) {
+    issues.push({ level: 'error', message: `主题包文件数超过 ${MAX_FILES}` })
+  }
   const references = [
     input.resources.background,
     input.resources.font,
@@ -538,15 +568,35 @@ export async function exportThemePackage(input: ExportThemeInput) {
     projectData,
   }
 
+  const manifest = manifestYaml(input)
+  const packageCss = `@import "../../b19.css";\n\n${DIFFICULTY_COLOR_CSS}\n\n${exportedCss}\n`
+  const studioJson = JSON.stringify(studioFile, null, 2)
+  const packageTemplate = safeTemplate ? `${safeTemplate}\n` : ''
+  const textFiles = [
+    ['info.yaml', manifest],
+    ['b19.css', packageCss],
+    ['studio.json', studioJson],
+    ...(packageTemplate ? [['b19.art', packageTemplate]] : []),
+  ]
+  let totalSize = input.assets.reduce((total, asset) => total + asset.bytes.byteLength, 0)
+  for (const [path, contents] of textFiles) {
+    const size = new TextEncoder().encode(contents).byteLength
+    if (size > MAX_TEXT_SIZE) throw new Error(`${path} 超过 ${fileSizeLabel(MAX_TEXT_SIZE)}`)
+    totalSize += size
+  }
+  if (totalSize > MAX_TOTAL_UNCOMPRESSED_SIZE) throw new Error('主题包解压后总大小超过 50 MB')
+
   const zip = new JSZip()
   const root = zip.folder(input.draft.id.trim())
   if (!root) throw new Error('无法创建主题包目录')
-  root.file('info.yaml', manifestYaml(input))
-  root.file('b19.css', `@import "../../b19.css";\n\n${DIFFICULTY_COLOR_CSS}\n\n${exportedCss}\n`)
-  root.file('studio.json', JSON.stringify(studioFile, null, 2))
-  if (safeTemplate) root.file('b19.art', `${safeTemplate}\n`)
+  root.file('info.yaml', manifest)
+  root.file('b19.css', packageCss)
+  root.file('studio.json', studioJson)
+  if (packageTemplate) root.file('b19.art', packageTemplate)
   for (const asset of input.assets) root.file(asset.path, asset.bytes)
-  return zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } })
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } })
+  if (blob.size > MAX_ZIP_SIZE) throw new Error('生成的 ZIP 文件超过 50 MB')
+  return blob
 }
 
 function resolveRootPath(rootPrefix: string, path: string | undefined) {

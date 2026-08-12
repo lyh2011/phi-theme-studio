@@ -24,6 +24,7 @@ import {
   findVisibleRuntimeComponent,
   getRuntimeSelector,
   PHI_COMPONENT_DRAG_TYPE,
+  PHI_CUSTOM_ELEMENT_DRAG_TYPE,
 } from '../editor/createEditor'
 import type { CustomElementKind } from '../editor/customElements'
 
@@ -57,7 +58,7 @@ const sharedGroups: NavigatorGroup[] = [
       { label: '成绩卡', selector: '.song', icon: BarChart3 },
       { label: '曲绘区域', selector: '.ill-box', icon: Image },
       { label: '评级图标', selector: '.Rating', icon: Medal },
-      { label: '曲名文字', selector: '.songname', icon: Type },
+      { label: '曲名文字', selector: '.songname p', icon: Type },
     ],
   },
 ]
@@ -128,6 +129,16 @@ export function ComponentNavigator({ editor, page, onSelect, onAddCustom, onUplo
     onSelect(label)
   }
 
+  const startCustomDrag = (event: DragEvent<HTMLButtonElement>, kind: Exclude<CustomElementKind, 'image'>) => {
+    if (!editor) {
+      event.preventDefault()
+      return
+    }
+    event.dataTransfer.effectAllowed = 'copy'
+    event.dataTransfer.setData(PHI_CUSTOM_ELEMENT_DRAG_TYPE, kind)
+    event.dataTransfer.setData('text/plain', kind)
+  }
+
   return (
     <nav className="component-nav" aria-label="当前页面组件">
       {groupsForPage(page).map((group) => (
@@ -160,7 +171,15 @@ export function ComponentNavigator({ editor, page, onSelect, onAddCustom, onUplo
             ['triangle', '三角形', Triangle],
             ['line', '线条', Minus],
           ] as const).map(([kind, label, Icon]) => (
-            <button key={kind} type="button" disabled={!editor} onClick={() => onAddCustom(kind)} title={`添加${label}`}>
+            <button
+              key={kind}
+              type="button"
+              draggable={Boolean(editor)}
+              disabled={!editor}
+              onClick={() => onAddCustom(kind)}
+              onDragStart={(event) => startCustomDrag(event, kind)}
+              title={`添加或拖放${label}`}
+            >
               <Icon size={17} aria-hidden="true" />
               <span>{label}</span>
             </button>

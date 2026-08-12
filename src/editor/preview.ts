@@ -26,6 +26,7 @@ export const PREVIEW_PAGE_HEIGHTS: Record<PreviewPage, number> = {
 }
 
 const demoAssetUrl = (path: string) => `${import.meta.env.BASE_URL}demo/${path}`
+const defaultFontUrl = () => `${import.meta.env.BASE_URL}font/phi.ttf`
 
 const songSeeds = [
   ['Luminescence', 'IN', '15.8', '16.31', 'phi', '1000000', '100.00', '01'],
@@ -206,6 +207,7 @@ function stripPreviewImports(css: string) {
 }
 
 const previewOnlyCss = `
+@font-face { font-family: "PHI"; src: url(${JSON.stringify(defaultFontUrl())}) format("truetype"); font-display: swap; }
 html { background: #171a1d; }
 body { min-height: var(--phi-preview-height, 1400px); overflow: hidden; }
 .background { min-height: var(--phi-preview-height, 1400px); }
@@ -269,7 +271,7 @@ export function applyRuntimePreview(
   const font = resources.font ? byPath.get(resources.font)?.previewUrl : undefined
   style.textContent = `
     html:root { --AT: ${draft.colors.AT}; --IN: ${draft.colors.IN}; --HD: ${draft.colors.HD}; --EZ: ${draft.colors.EZ}; --phi-preview-height: ${PREVIEW_PAGE_HEIGHTS[page]}px; }
-    ${font ? `@font-face { font-family: "phi-theme-preview"; src: url(${JSON.stringify(font)}); } body { font-family: "phi-theme-preview", "PHI", sans-serif; }` : ''}
+    ${font ? `@font-face { font-family: "phi-theme-preview"; src: url(${JSON.stringify(font)}); } body, body * { font-family: "phi-theme-preview", "PHI", sans-serif !important; }` : ''}
   `
   applyPreviewPage(document, page)
 }

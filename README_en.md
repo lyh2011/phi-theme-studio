@@ -12,11 +12,13 @@ Live editor: [https://lyh2011.github.io/phi-theme-studio/](https://lyh2011.githu
 
 - B19, B27, B30, B33 (Overflow), and B30 analysis previews
 - GrapesJS selection and dragging of semantic result elements, emitted as stable runtime CSS selectors for phi-plugin
-- Right-button canvas panning after zooming, plus toolbar zoom and fit-to-canvas controls
+- Canvas zoom up to 300%, right-button panning, and fit-to-canvas controls
 - Dragging and resizing for semantic and custom elements, with pointer movement compensated for the current canvas zoom; hold `Shift` to temporarily disable snapping
 - Layout, typography, appearance, transforms, and SVG `fill`/`stroke` controls in the style panel, including native color pickers
+- Numeric font size, dimension, and position controls default to `px`, while rotation defaults to `deg`; units can be changed or supplied as complete CSS values
 - Customizable multidimensional radar chart, tag rankings, histogram, and related analysis elements
-- Custom text, rectangles, circles, triangles, lines, and uploaded image elements
+- Custom text, rectangles, circles, triangles, and lines via click or sidebar drag-and-drop, plus uploaded image elements
+- Preview defaults to phi-plugin's PHI font and allows a packaged theme font to override it
 - Theme metadata and live AT/IN/HD/EZ preview color controls
 - Background, font, and rating icon asset management
 - Import existing phi-plugin theme ZIP files

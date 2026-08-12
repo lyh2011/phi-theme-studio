@@ -61,6 +61,43 @@ describe('theme package validation', () => {
     expect(missingIssues.some((issue) => issue.level === 'error' && issue.message.includes('不存在的资源'))).toBe(true)
   })
 
+  it('rejects assets that cannot be exported as a safe, re-importable package', async () => {
+    const asset = (path: string, size = 1): PackageAsset => ({
+      path,
+      mime: 'image/png',
+      bytes: new Uint8Array(size),
+      previewUrl: `blob:${path}`,
+    })
+    const input = {
+      draft: DEFAULT_DRAFT,
+      resources: DEFAULT_RESOURCES,
+      css: '',
+      customTemplate: '',
+    }
+
+    const unsafe = validateTheme({ ...input, assets: [asset('../outside.png')] })
+    const reserved = validateTheme({ ...input, assets: [asset('info.yaml')] })
+    const duplicate = validateTheme({ ...input, assets: [asset('assets/a.png'), asset('assets/a.png')] })
+    const unsupported = validateTheme({ ...input, assets: [asset('assets/a.exe')] })
+    const oversized = validateTheme({ ...input, assets: [asset('assets/large.png', 20 * 1024 * 1024 + 1)] })
+    const tooMany = validateTheme({
+      ...input,
+      assets: Array.from({ length: 126 }, (_, index) => asset(`assets/${index}.png`)),
+    })
+
+    expect(unsafe.some((issue) => issue.level === 'error' && issue.message.includes('路径不安全'))).toBe(true)
+    expect(reserved.some((issue) => issue.level === 'error' && issue.message.includes('内置文件冲突'))).toBe(true)
+    expect(duplicate.some((issue) => issue.level === 'error' && issue.message.includes('路径重复'))).toBe(true)
+    expect(unsupported.some((issue) => issue.level === 'error' && issue.message.includes('文件类型'))).toBe(true)
+    expect(oversized.some((issue) => issue.level === 'error' && issue.message.includes('20 MB'))).toBe(true)
+    expect(tooMany.some((issue) => issue.level === 'error' && issue.message.includes('文件数超过 128'))).toBe(true)
+    await expect(exportThemePackage({
+      ...input,
+      assets: [asset('info.yaml')],
+      projectData,
+    })).rejects.toThrow(/内置文件冲突/)
+  })
+
   it('rejects an export whose editable source cannot rebuild its final template', async () => {
     await expect(exportThemePackage({
       draft: DEFAULT_DRAFT,

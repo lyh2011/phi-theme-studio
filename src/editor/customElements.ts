@@ -34,8 +34,8 @@ function stylesFor(options: CustomElementOptions) {
   const height = number(options.height, options.kind === 'line' ? 4 : options.kind === 'text' ? 56 : 120)
   const style: Record<string, string> = {
     position: 'absolute',
-    left: `${number(options.x, 70)}px`,
-    top: `${number(options.y, 220)}px`,
+    left: `${number(options.x, 70) - (options.x === undefined ? 0 : width / 2)}px`,
+    top: `${number(options.y, 220) - (options.y === undefined ? 0 : height / 2)}px`,
     width: `${width}px`,
     height: `${height}px`,
     'z-index': '20',

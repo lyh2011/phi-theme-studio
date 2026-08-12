@@ -5,6 +5,7 @@ import grapesjs, {
   type StyleProps,
 } from 'grapesjs'
 import { PREVIEW_MARKUP, PROTECTED_CSS } from './preview'
+import { appendCustomComponent, CUSTOM_ELEMENT_KINDS, type CustomElementKind } from './customElements'
 
 interface CreateEditorOptions {
   container: HTMLElement
@@ -36,6 +37,39 @@ interface ActiveResize {
 }
 
 export const PHI_COMPONENT_DRAG_TYPE = 'application/x-phi-theme-component'
+export const PHI_CUSTOM_ELEMENT_DRAG_TYPE = 'application/x-phi-theme-custom-element'
+
+const LENGTH_UNITS = ['px', '%', 'em', 'rem', 'vh', 'vw']
+const LENGTH_UNITS_NO_PERCENT = ['px', 'em', 'rem', 'vh', 'vw']
+const BARE_NUMBER_LIST_RE = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[\s,]+[-+]?(?:\d+\.?\d*|\.\d+))*$/
+
+export function normalizeStyleInputUnit(property: string, rawValue: string) {
+  const units: Record<string, string> = {
+    margin: 'px',
+    padding: 'px',
+    translate: 'px',
+    rotate: 'deg',
+    'transform-origin': 'px',
+  }
+  const value = rawValue.trim()
+  const unit = units[property]
+  return unit && BARE_NUMBER_LIST_RE.test(value)
+    ? value.replace(/[-+]?(?:\d+\.?\d*|\.\d+)/g, (number) => `${number}${unit}`)
+    : rawValue
+}
+
+function installStyleInputUnits(container: HTMLElement, editor: Editor) {
+  const properties = ['margin', 'padding', 'translate', 'rotate', 'transform-origin']
+  const normalize = (event: Event) => {
+    const input = event.target
+    if (!(input instanceof HTMLInputElement)) return
+    const property = properties.find((name) => input.closest(`.gjs-sm-property__${name}`))
+    if (!property) return
+    input.value = normalizeStyleInputUnit(property, input.value)
+  }
+  container.addEventListener('change', normalize, true)
+  editor.on('destroy', () => container.removeEventListener('change', normalize, true))
+}
 
 export function createShiftAwareSnapGuides(defaults: { x?: number; y?: number } = {}) {
   const fallback = { x: defaults.x ?? 5, y: defaults.y ?? 5 }
@@ -233,11 +267,25 @@ function installCanvasDrop(editor: Editor) {
   document.documentElement.dataset.phiDropReady = 'true'
 
   document.addEventListener('dragover', (event) => {
-    if (!event.dataTransfer?.types.includes(PHI_COMPONENT_DRAG_TYPE)) return
+    if (!event.dataTransfer?.types.some((type) => (
+      type === PHI_COMPONENT_DRAG_TYPE || type === PHI_CUSTOM_ELEMENT_DRAG_TYPE
+    ))) return
     event.preventDefault()
-    event.dataTransfer.dropEffect = 'move'
+    event.dataTransfer.dropEffect = event.dataTransfer.types.includes(PHI_CUSTOM_ELEMENT_DRAG_TYPE) ? 'copy' : 'move'
   })
   document.addEventListener('drop', (event) => {
+    const customKind = event.dataTransfer?.getData(PHI_CUSTOM_ELEMENT_DRAG_TYPE) as CustomElementKind | undefined
+    if (customKind && CUSTOM_ELEMENT_KINDS.includes(customKind)) {
+      event.preventDefault()
+      const component = appendCustomComponent(editor, {
+        kind: customKind,
+        name: `自定义${customKind}`,
+        x: event.clientX,
+        y: event.clientY,
+      })
+      if (component) editor.trigger('phi:custom:drop', { component, kind: customKind })
+      return
+    }
     const selector = event.dataTransfer?.getData(PHI_COMPONENT_DRAG_TYPE) || ''
     if (!RUNTIME_SELECTOR_RE.test(selector)) return
     const component = findVisibleRuntimeComponent(editor, selector)
@@ -435,15 +483,15 @@ export function createPhiEditor(options: CreateEditorOptions) {
           properties: [
             { property: 'display', name: '显示' },
             { property: 'position', name: '定位' },
-            { property: 'width', name: '宽度' },
-            { property: 'height', name: '高度' },
-            { property: 'top', name: '上' },
-            { property: 'right', name: '右' },
-            { property: 'bottom', name: '下' },
-            { property: 'left', name: '左' },
+            { property: 'width', name: '宽度', type: 'number', units: LENGTH_UNITS },
+            { property: 'height', name: '高度', type: 'number', units: LENGTH_UNITS },
+            { property: 'top', name: '上', type: 'number', units: LENGTH_UNITS },
+            { property: 'right', name: '右', type: 'number', units: LENGTH_UNITS },
+            { property: 'bottom', name: '下', type: 'number', units: LENGTH_UNITS },
+            { property: 'left', name: '左', type: 'number', units: LENGTH_UNITS },
             { property: 'margin', name: '外边距' },
             { property: 'padding', name: '内边距' },
-            { property: 'gap', name: '间距' },
+            { property: 'gap', name: '间距', type: 'number', units: LENGTH_UNITS },
             { property: 'flex-direction', name: '排列方向' },
             { property: 'justify-content', name: '主轴对齐' },
             { property: 'align-items', name: '交叉轴对齐' },
@@ -456,7 +504,7 @@ export function createPhiEditor(options: CreateEditorOptions) {
           open: false,
           properties: [
             { property: 'color', name: '颜色', type: 'color' },
-            { property: 'font-size', name: '字号' },
+            { property: 'font-size', name: '字号', type: 'number', units: LENGTH_UNITS_NO_PERCENT },
             { property: 'font-weight', name: '字重' },
             { property: 'line-height', name: '行高' },
             { property: 'text-align', name: '对齐' },
@@ -472,9 +520,9 @@ export function createPhiEditor(options: CreateEditorOptions) {
             { property: 'background-color', name: '背景色', type: 'color' },
             { property: 'fill', name: 'SVG 填充', type: 'color' },
             { property: 'stroke', name: 'SVG 描边', type: 'color' },
-            { property: 'stroke-width', name: '描边宽度' },
+            { property: 'stroke-width', name: '描边宽度', type: 'number', units: LENGTH_UNITS_NO_PERCENT, min: 0 },
             { property: 'border', name: '边框' },
-            { property: 'border-radius', name: '圆角' },
+            { property: 'border-radius', name: '圆角', type: 'number', units: LENGTH_UNITS, min: 0 },
             { property: 'box-shadow', name: '阴影' },
             { property: 'opacity', name: '透明度' },
             { property: 'overflow', name: '溢出' },
@@ -517,6 +565,7 @@ export function createPhiEditor(options: CreateEditorOptions) {
     },
   })
 
+  installStyleInputUnits(options.styles, editor)
   installStableStyleBridge(editor)
   editor.on('load', () => {
     lockEditorDocument(editor)

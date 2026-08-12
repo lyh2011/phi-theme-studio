@@ -34,15 +34,22 @@ export function GrapesCanvas({ onReady, onUpdate, onZoomChange }: GrapesCanvasPr
         onZoomChange(Math.round(editor.Canvas.getZoom()))
       })
     }
+    const refresh = () => {
+      if (!loaded) return
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => editor.Canvas.refresh({ all: true }))
+    }
     editor.on('load', () => {
       loaded = true
       fit()
     })
-    const observer = new ResizeObserver(fit)
+    editor.on('phi:custom:drop', onUpdate)
+    const observer = new ResizeObserver(refresh)
     observer.observe(canvasRef.current)
     return () => {
       observer.disconnect()
       window.cancelAnimationFrame(frame)
+      editor.off('phi:custom:drop', onUpdate)
       editor.destroy()
     }
   }, [onReady, onUpdate, onZoomChange])

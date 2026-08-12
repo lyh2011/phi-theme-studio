@@ -10,5 +10,9 @@ https://github.com/GrapesJS/grapesjs
 Copyright (c) Artur Arseniev
 Licensed under the BSD 3-Clause License.
 
+The bundled public/font/phi.ttf font is "Source Han Sans & Saira Hybrid",
+distributed by phi-plugin and licensed under the Apache License 2.0. A copy
+of the license is available at LICENSES/Apache-2.0.txt.
+
 Other third-party packages retain their respective licenses as recorded in
 package-lock.json and their distributed package metadata.

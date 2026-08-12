@@ -7,6 +7,7 @@ import { applyRuntimePreview, PREVIEW_MARKUP, PROTECTED_CSS } from './preview'
 describe('difficulty color preview', () => {
   it('keeps demo data styles out of editable component ids', () => {
     expect(PREVIEW_MARKUP).not.toMatch(/\sstyle=/)
+    expect(PROTECTED_CSS).toContain('/font/phi.ttf')
     expect(PROTECTED_CSS).toContain('.average-marker { bottom: 55%; }')
     expect(PROTECTED_CSS).toContain('.histogram-slot:nth-child(30) .histogram-bar { height: 12%; }')
   })
@@ -36,5 +37,21 @@ describe('difficulty color preview', () => {
     expect(runtimeCss).toContain('html:root')
     expect(runtimeCss).toContain('--IN: #abcdef')
     expect(runtimeCss).not.toContain('--IN: #12ab34')
+  })
+
+  it('lets an uploaded theme font override preview component fonts', () => {
+    const resources = { ...DEFAULT_RESOURCES, font: 'assets/theme.ttf' }
+    const assets = [{
+      path: 'assets/theme.ttf',
+      mime: 'font/ttf',
+      bytes: new Uint8Array([0]),
+      previewUrl: 'blob:theme-font',
+    }]
+
+    applyRuntimePreview(document, DEFAULT_DRAFT, resources, assets)
+    const runtimeCss = document.querySelector('#phi-runtime-theme')?.textContent || ''
+    expect(runtimeCss).toContain('@font-face { font-family: "phi-theme-preview"')
+    expect(runtimeCss).toContain('body, body * { font-family: "phi-theme-preview"')
+    expect(runtimeCss).toContain('!important')
   })
 })
