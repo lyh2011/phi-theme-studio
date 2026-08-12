@@ -1,0 +1,51 @@
+import { useEffect, useRef } from 'react'
+import type { Editor } from 'grapesjs'
+import { createPhiEditor } from '../editor/createEditor'
+
+interface GrapesCanvasProps {
+  onReady: (editor: Editor) => void
+  onUpdate: () => void
+  onZoomChange: (zoom: number) => void
+}
+
+export function GrapesCanvas({ onReady, onUpdate, onZoomChange }: GrapesCanvasProps) {
+  const canvasRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const layers = document.getElementById('gjs-layer-manager')
+    const styles = document.getElementById('gjs-style-manager')
+    const traits = document.getElementById('gjs-trait-manager')
+    if (!canvasRef.current || !layers || !styles || !traits) return
+    const editor = createPhiEditor({
+      container: canvasRef.current,
+      layers,
+      styles,
+      traits,
+      onReady,
+      onUpdate,
+    })
+    let frame = 0
+    let loaded = false
+    const fit = () => {
+      if (!loaded) return
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        editor.Canvas.fitViewport({ gap: 28, zoom: (value) => Math.min(value, 80) })
+        onZoomChange(Math.round(editor.Canvas.getZoom()))
+      })
+    }
+    editor.on('load', () => {
+      loaded = true
+      fit()
+    })
+    const observer = new ResizeObserver(fit)
+    observer.observe(canvasRef.current)
+    return () => {
+      observer.disconnect()
+      window.cancelAnimationFrame(frame)
+      editor.destroy()
+    }
+  }, [onReady, onUpdate, onZoomChange])
+
+  return <div ref={canvasRef} className="gjs-canvas-host" data-testid="editor-canvas" />
+}

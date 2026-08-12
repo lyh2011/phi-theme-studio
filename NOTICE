@@ -1,0 +1,14 @@
+Phi Theme Studio
+Copyright (C) 2026 lyh2011 and contributors
+
+This project includes and adapts CSS and visual resources from phi-plugin:
+https://github.com/Catrong/phi-plugin
+Licensed under GNU General Public License v3.0.
+
+This project uses GrapesJS:
+https://github.com/GrapesJS/grapesjs
+Copyright (c) Artur Arseniev
+Licensed under the BSD 3-Clause License.
+
+Other third-party packages retain their respective licenses as recorded in
+package-lock.json and their distributed package metadata.
