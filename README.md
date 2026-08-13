@@ -6,6 +6,8 @@
 
 在线编辑器：[https://lyh2011.github.io/phi-theme-studio/](https://lyh2011.github.io/phi-theme-studio/)
 
+第一次使用请看 [使用指南](./docs/使用指南.md)，或直接点编辑器右上角的问号按钮。
+
 ![Phi Theme Studio 编辑器](./docs/editor.png)
 
 ## 功能

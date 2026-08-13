@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Editor } from 'grapesjs'
 import {
   Check,
+  CircleHelp,
   Code2,
   Download,
   Eye,
@@ -27,6 +28,7 @@ import {
 import { AssetForm, type UploadTarget } from './components/AssetForm'
 import { ComponentNavigator } from './components/ComponentNavigator'
 import { GrapesCanvas } from './components/GrapesCanvas'
+import { HelpDialog } from './components/HelpDialog'
 import { PackagePanel } from './components/PackagePanel'
 import { PreviewOptionsMenu } from './components/PreviewOptionsMenu'
 import { SourceDialog } from './components/SourceDialog'
@@ -56,6 +58,7 @@ import {
   normalizedAssetName,
   revokeAssets,
 } from './lib/assets'
+import { useFirstRunGuide } from './lib/guide'
 import { clearPersistedProject, loadPersistedProject, savePersistedProject } from './lib/persistence'
 import {
   cssForPreview,
@@ -129,6 +132,7 @@ function App() {
   const [previewPage, setPreviewPage] = useState<PreviewPage>(DEFAULT_PREVIEW_PAGE)
   const [previewOptions, setPreviewOptions] = useState(DEFAULT_PREVIEW_OPTIONS)
   const [sourceOpen, setSourceOpen] = useState(false)
+  const guide = useFirstRunGuide()
   const [selectedName, setSelectedName] = useState('成绩卡')
   const [selectionTick, setSelectionTick] = useState(0)
   const [toast, setToast] = useState<Toast | null>(null)
@@ -612,6 +616,7 @@ function App() {
             {previewMode ? <EyeOff size={17} /> : <Eye size={17} />}
           </button>
           <button type="button" className="icon-button" title="主题源码" onClick={() => setSourceOpen(true)}><Code2 size={17} /></button>
+          <button type="button" className="icon-button" title="使用指南" onClick={() => guide.setOpen(true)}><CircleHelp size={17} /></button>
         </div>
 
         <div className="topbar-status" title={saveLabel}>
@@ -756,6 +761,7 @@ function App() {
       </main>
 
       <SourceDialog open={sourceOpen} css={canonicalCss} template={customTemplate} yaml={yaml} onClose={() => setSourceOpen(false)} onApply={applySource} />
+      <HelpDialog open={guide.open} onClose={guide.close} />
       {toast && <div className={`toast is-${toast.kind}`} role="status"><FileArchive size={16} />{toast.message}</div>}
     </div>
   )

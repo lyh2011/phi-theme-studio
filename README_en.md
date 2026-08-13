@@ -6,6 +6,8 @@ A visual phi-plugin theme pack editor powered by [GrapesJS](https://github.com/G
 
 Live editor: [https://lyh2011.github.io/phi-theme-studio/](https://lyh2011.github.io/phi-theme-studio/)
 
+New here? Open the in-app guide from the question mark button in the toolbar. A written walkthrough is available in Chinese: [使用指南](./docs/使用指南.md).
+
 ![Phi Theme Studio editor](./docs/editor.png)
 
 ## Features
