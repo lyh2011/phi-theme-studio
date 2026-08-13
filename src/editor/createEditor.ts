@@ -2,6 +2,7 @@ import grapesjs, {
   type Component,
   type ComponentDragEventData,
   type Editor,
+  type Property,
   type StyleProps,
 } from 'grapesjs'
 import { PREVIEW_MARKUP, PROTECTED_CSS } from './preview'
@@ -42,6 +43,174 @@ export const PHI_CUSTOM_ELEMENT_DRAG_TYPE = 'application/x-phi-theme-custom-elem
 const LENGTH_UNITS = ['px', '%', 'em', 'rem', 'vh', 'vw']
 const LENGTH_UNITS_NO_PERCENT = ['px', 'em', 'rem', 'vh', 'vw']
 const BARE_NUMBER_LIST_RE = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[\s,]+[-+]?(?:\d+\.?\d*|\.\d+))*$/
+const COLOR_PROPERTIES = new Set(['color', 'background-color', 'fill', 'stroke'])
+
+const STYLE_PROPERTY_DEFINITIONS = [
+  { property: 'display', name: '显示' },
+  { property: 'position', name: '定位' },
+  { property: 'width', name: '宽度', type: 'number', units: LENGTH_UNITS },
+  { property: 'height', name: '高度', type: 'number', units: LENGTH_UNITS },
+  { property: 'top', name: '上', type: 'number', units: LENGTH_UNITS },
+  { property: 'right', name: '右', type: 'number', units: LENGTH_UNITS },
+  { property: 'bottom', name: '下', type: 'number', units: LENGTH_UNITS },
+  { property: 'left', name: '左', type: 'number', units: LENGTH_UNITS },
+  { property: 'margin', name: '外边距' },
+  { property: 'padding', name: '内边距' },
+  { property: 'gap', name: '间距', type: 'number', units: LENGTH_UNITS },
+  { property: 'flex-direction', name: '排列方向' },
+  { property: 'justify-content', name: '主轴对齐' },
+  { property: 'align-items', name: '交叉轴对齐' },
+  { property: 'grid-template-columns', name: '网格列' },
+  { property: 'color', name: '颜色', type: 'color' },
+  { property: 'font-size', name: '字号', type: 'number', units: LENGTH_UNITS_NO_PERCENT },
+  { property: 'font-weight', name: '字重' },
+  { property: 'line-height', name: '行高' },
+  { property: 'text-align', name: '对齐' },
+  { property: 'text-shadow', name: '文字阴影' },
+  { property: 'background', name: '背景' },
+  { property: 'background-color', name: '背景色', type: 'color' },
+  { property: 'fill', name: 'SVG 填充', type: 'color' },
+  { property: 'stroke', name: 'SVG 描边', type: 'color' },
+  { property: 'stroke-width', name: '描边宽度', type: 'number', units: LENGTH_UNITS_NO_PERCENT, min: 0 },
+  { property: 'border', name: '边框' },
+  { property: 'border-radius', name: '圆角', type: 'number', units: LENGTH_UNITS, min: 0 },
+  { property: 'box-shadow', name: '阴影' },
+  { property: 'opacity', name: '透明度' },
+  { property: 'overflow', name: '溢出' },
+  { property: 'translate', name: '平移' },
+  { property: 'rotate', name: '旋转' },
+  { property: 'scale', name: '缩放' },
+  { property: 'transform', name: '组合变换' },
+  { property: 'transform-origin', name: '变换原点' },
+  { property: 'filter', name: '滤镜' },
+  { property: 'backdrop-filter', name: '背景滤镜' },
+  { property: 'clip-path', name: '裁切路径' },
+] as const
+
+export const STYLE_PROPERTY_NAMES = STYLE_PROPERTY_DEFINITIONS.map(({ property }) => property)
+
+export function computedStylePlaceholder(value: string, type: string, units: readonly string[] = []) {
+  if (type !== 'number') return value
+  const match = value.match(/^([-+]?(?:\d+\.?\d*|\.\d+))([A-Za-z%]*)$/)
+  return match && (!match[2] || units.includes(match[2])) ? match[1] : value
+}
+
+interface StylePropertyView {
+  el?: HTMLElement
+}
+
+function propertyView(property: Property) {
+  return (property as Property & { view?: StylePropertyView }).view
+}
+
+function renderComputedStyleDefault(property: Property, value: string, hasOverride: boolean) {
+  const root = propertyView(property)?.el
+  if (!root) return
+
+  root.dataset.phiComputedValue = value
+  root.toggleAttribute('data-phi-has-override', hasOverride)
+  const units = property.get('units') as string[] | undefined
+  const input = root.querySelector<HTMLInputElement>('input:not([type="radio"]):not([type="range"])')
+  if (input) {
+    input.placeholder = computedStylePlaceholder(value, property.getType(), units)
+    input.dataset.phiComputedValue = value
+  }
+  const unit = value.match(/^[-+]?(?:\d+\.?\d*|\.\d+)([A-Za-z%]+)$/)?.[1]
+  const unitSelect = root.querySelector<HTMLSelectElement>('select.gjs-input-unit')
+  if (!hasOverride && unitSelect && [...unitSelect.options].some((option) => option.value === unit)) {
+    unitSelect.value = unit || ''
+  }
+  const colorPicker = root.querySelector<HTMLElement>('.gjs-field-color-picker')
+  if (colorPicker && COLOR_PROPERTIES.has(property.getName()) && !hasOverride) {
+    colorPicker.style.removeProperty('background-color')
+    colorPicker.style.backgroundColor = value
+  }
+
+  let hint = root.querySelector<HTMLElement>('.phi-computed-default')
+  if (!hint) {
+    hint = root.ownerDocument.createElement('div')
+    hint.className = 'phi-computed-default'
+    root.querySelector<HTMLElement>('[data-sm-fields]')?.append(hint)
+  }
+  hint.hidden = hasOverride
+  hint.title = `默认值：${value}`
+  hint.replaceChildren()
+
+  if (COLOR_PROPERTIES.has(property.getName())) {
+    const swatch = root.ownerDocument.createElement('span')
+    swatch.className = 'phi-computed-swatch'
+    swatch.style.background = value
+    hint.append(swatch)
+  }
+  const label = root.ownerDocument.createElement('span')
+  label.className = 'phi-computed-label'
+  label.textContent = '默认'
+  const output = root.ownerDocument.createElement('output')
+  output.textContent = value
+  hint.append(label, output)
+}
+
+export function syncComputedStyleDefaults(editor: Editor) {
+  const component = editor.getSelected()
+  const element = component?.getEl()
+  const view = element?.ownerDocument.defaultView
+  if (!component || !element || !view) {
+    for (const sector of editor.Styles.getSectors({ array: true })) {
+      for (const property of sector.getProperties()) {
+        const root = propertyView(property)?.el
+        if (!root) continue
+        delete root.dataset.phiComputedValue
+        root.removeAttribute('data-phi-has-override')
+        root.querySelector<HTMLElement>('.phi-computed-default')?.setAttribute('hidden', '')
+        const input = root.querySelector<HTMLInputElement>('input:not([type="radio"]):not([type="range"])')
+        if (input) {
+          input.removeAttribute('placeholder')
+          delete input.dataset.phiComputedValue
+        }
+        if (COLOR_PROPERTIES.has(property.getName())) {
+          root.querySelector<HTMLElement>('.gjs-field-color-picker')?.style.removeProperty('background-color')
+        }
+      }
+    }
+    return
+  }
+
+  const selector = getRuntimeSelector(component)
+  const target = selector ? editor.Css.getRule(selector) : editor.Styles.getSelected()
+  const targetStyle = target?.getStyle() || {}
+  const computed = view.getComputedStyle(element)
+  const sectors = editor.Styles.getSectors({ array: true })
+
+  for (const sector of sectors) {
+    for (const property of sector.getProperties()) {
+      const name = property.getName()
+      const rawValue = targetStyle[name]
+      const hasOverride = rawValue !== undefined && rawValue !== null && String(rawValue).trim() !== ''
+      const value = hasOverride
+        ? String(rawValue).trim()
+        : computed.getPropertyValue(name).trim() || 'initial'
+      renderComputedStyleDefault(property, value, hasOverride)
+    }
+  }
+}
+
+function installComputedStyleDefaults(editor: Editor, container: HTMLElement) {
+  let frame = 0
+  const ownerWindow = container.ownerDocument.defaultView
+  const schedule = () => {
+    if (frame) ownerWindow?.cancelAnimationFrame(frame)
+    frame = ownerWindow?.requestAnimationFrame(() => {
+      frame = 0
+      syncComputedStyleDefaults(editor)
+    }) || 0
+  }
+  const events = 'load component:selected component:deselected style:target style:property:update update undo redo phi:preview:update'
+  editor.on(events, schedule)
+  editor.on('destroy', () => {
+    if (frame) ownerWindow?.cancelAnimationFrame(frame)
+    editor.off(events, schedule)
+  })
+}
 
 export function normalizeStyleInputUnit(property: string, rawValue: string) {
   const units: Record<string, string> = {
@@ -480,68 +649,25 @@ export function createPhiEditor(options: CreateEditorOptions) {
           id: 'phi-layout',
           name: '布局',
           open: true,
-          properties: [
-            { property: 'display', name: '显示' },
-            { property: 'position', name: '定位' },
-            { property: 'width', name: '宽度', type: 'number', units: LENGTH_UNITS },
-            { property: 'height', name: '高度', type: 'number', units: LENGTH_UNITS },
-            { property: 'top', name: '上', type: 'number', units: LENGTH_UNITS },
-            { property: 'right', name: '右', type: 'number', units: LENGTH_UNITS },
-            { property: 'bottom', name: '下', type: 'number', units: LENGTH_UNITS },
-            { property: 'left', name: '左', type: 'number', units: LENGTH_UNITS },
-            { property: 'margin', name: '外边距' },
-            { property: 'padding', name: '内边距' },
-            { property: 'gap', name: '间距', type: 'number', units: LENGTH_UNITS },
-            { property: 'flex-direction', name: '排列方向' },
-            { property: 'justify-content', name: '主轴对齐' },
-            { property: 'align-items', name: '交叉轴对齐' },
-            { property: 'grid-template-columns', name: '网格列' },
-          ],
+          properties: STYLE_PROPERTY_DEFINITIONS.slice(0, 15),
         },
         {
           id: 'phi-typography',
           name: '文字',
           open: false,
-          properties: [
-            { property: 'color', name: '颜色', type: 'color' },
-            { property: 'font-size', name: '字号', type: 'number', units: LENGTH_UNITS_NO_PERCENT },
-            { property: 'font-weight', name: '字重' },
-            { property: 'line-height', name: '行高' },
-            { property: 'text-align', name: '对齐' },
-            { property: 'text-shadow', name: '文字阴影' },
-          ],
+          properties: STYLE_PROPERTY_DEFINITIONS.slice(15, 21),
         },
         {
           id: 'appearance',
           name: '外观',
           open: true,
-          properties: [
-            { property: 'background', name: '背景' },
-            { property: 'background-color', name: '背景色', type: 'color' },
-            { property: 'fill', name: 'SVG 填充', type: 'color' },
-            { property: 'stroke', name: 'SVG 描边', type: 'color' },
-            { property: 'stroke-width', name: '描边宽度', type: 'number', units: LENGTH_UNITS_NO_PERCENT, min: 0 },
-            { property: 'border', name: '边框' },
-            { property: 'border-radius', name: '圆角', type: 'number', units: LENGTH_UNITS, min: 0 },
-            { property: 'box-shadow', name: '阴影' },
-            { property: 'opacity', name: '透明度' },
-            { property: 'overflow', name: '溢出' },
-          ],
+          properties: STYLE_PROPERTY_DEFINITIONS.slice(21, 31),
         },
         {
           id: 'effects',
           name: '变换',
           open: false,
-          properties: [
-            { property: 'translate', name: '平移' },
-            { property: 'rotate', name: '旋转' },
-            { property: 'scale', name: '缩放' },
-            { property: 'transform', name: '组合变换' },
-            { property: 'transform-origin', name: '变换原点' },
-            { property: 'filter', name: '滤镜' },
-            { property: 'backdrop-filter', name: '背景滤镜' },
-            { property: 'clip-path', name: '裁切路径' },
-          ],
+          properties: STYLE_PROPERTY_DEFINITIONS.slice(31),
         },
       ],
     },
@@ -567,6 +693,7 @@ export function createPhiEditor(options: CreateEditorOptions) {
 
   installStyleInputUnits(options.styles, editor)
   installStableStyleBridge(editor)
+  installComputedStyleDefaults(editor, options.styles)
   editor.on('load', () => {
     lockEditorDocument(editor)
     installCanvasDrop(editor)

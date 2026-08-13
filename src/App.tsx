@@ -214,6 +214,7 @@ function App() {
       const canvasDocument = editor.Canvas.getDocument()
       if (canvasDocument) {
         applyRuntimePreview(canvasDocument, draft, resources, assets, previewPage)
+        editor.trigger('phi:preview:update')
         const selectedElement = editor.getSelected()?.getEl()
         if (selectedElement?.closest('[data-phi-preview-hidden]')) {
           const fallbackSelector = previewPage === 'analysis' ? '.b30-analysis-row' : '.b19'
@@ -237,7 +238,6 @@ function App() {
     let frame = window.requestAnimationFrame(() => {
       editor.refresh({ tools: true })
       frame = window.requestAnimationFrame(() => {
-        editor.Canvas.fitViewport({ gap: 28, zoom: (value) => Math.min(value, 80) })
         setZoom(Math.round(editor.Canvas.getZoom()))
       })
     })

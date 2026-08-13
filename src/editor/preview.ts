@@ -214,9 +214,9 @@ body { min-height: var(--phi-preview-height, 1400px); overflow: hidden; }
 [data-phi-preview-hidden] { display: none !important; }
 .createdbox { margin-top: 4%; margin-bottom: 4%; }
 .createdbox p { font-size: 48px; }
-.average-marker { bottom: 55%; }
-${histogramScale.map(([, bottom], index) => `.histogram-grid-line:nth-child(${index + 1}) { bottom: ${bottom}%; }`).join('\n')}
-${histogramHeights.map((height, index) => `.histogram-slot:nth-child(${index + 1}) .histogram-bar { height: ${height}%; }`).join('\n')}
+:where(.average-marker) { bottom: 55%; }
+${histogramScale.map(([, bottom], index) => `:where(.histogram-grid-line:nth-child(${index + 1})) { bottom: ${bottom}%; }`).join('\n')}
+${histogramHeights.map((height, index) => `:where(.histogram-slot:nth-child(${index + 1}) .histogram-bar) { height: ${height}%; }`).join('\n')}
 `
 
 export const PROTECTED_CSS = `${stripPreviewImports(commonCss)}\n${stripPreviewImports(baseB19Css)}\n${DIFFICULTY_COLOR_CSS}\n${previewOnlyCss}`

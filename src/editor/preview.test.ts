@@ -5,11 +5,12 @@ import { DEFAULT_DRAFT, DEFAULT_RESOURCES } from '../types/theme'
 import { applyRuntimePreview, PREVIEW_MARKUP, PROTECTED_CSS } from './preview'
 
 describe('difficulty color preview', () => {
-  it('keeps demo data styles out of editable component ids', () => {
-    expect(PREVIEW_MARKUP).not.toMatch(/\sstyle=/)
+  it('keeps demo data styles low-specificity and out of editable markup', () => {
     expect(PROTECTED_CSS).toContain('/font/phi.ttf')
-    expect(PROTECTED_CSS).toContain('.average-marker { bottom: 55%; }')
-    expect(PROTECTED_CSS).toContain('.histogram-slot:nth-child(30) .histogram-bar { height: 12%; }')
+    expect(PREVIEW_MARKUP).toContain('class="average-marker"')
+    expect(PREVIEW_MARKUP).not.toMatch(/\sstyle=/)
+    expect(PROTECTED_CSS).toContain(':where(.average-marker) { bottom: 55%; }')
+    expect(PROTECTED_CSS).toContain(':where(.histogram-slot:nth-child(30) .histogram-bar) { height: 12%; }')
   })
 
   it('uses difficulty variables for rank and info elements', () => {

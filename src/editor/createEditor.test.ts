@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { createShiftAwareSnapGuides, normalizeStyleInputUnit } from './createEditor'
+import {
+  computedStylePlaceholder,
+  createShiftAwareSnapGuides,
+  normalizeStyleInputUnit,
+  STYLE_PROPERTY_NAMES,
+} from './createEditor'
 
 describe('shift precision dragging', () => {
   it('disables both snap axes while Shift is held and restores their thresholds', () => {
@@ -26,5 +31,26 @@ describe('style input units', () => {
     expect(normalizeStyleInputUnit('margin', '2rem auto')).toBe('2rem auto')
     expect(normalizeStyleInputUnit('rotate', '0.5turn')).toBe('0.5turn')
     expect(normalizeStyleInputUnit('transform-origin', 'center top')).toBe('center top')
+  })
+})
+
+describe('computed style defaults', () => {
+  it('covers every style control exactly once', () => {
+    expect(STYLE_PROPERTY_NAMES).toHaveLength(39)
+    expect(new Set(STYLE_PROPERTY_NAMES)).toHaveLength(39)
+    expect(STYLE_PROPERTY_NAMES).toEqual(expect.arrayContaining([
+      'width', 'height', 'color', 'font-size', 'fill', 'stroke', 'translate', 'scale',
+    ]))
+  })
+
+  it('uses unitless placeholders for number controls', () => {
+    expect(computedStylePlaceholder('15px', 'number', ['px', 'rem'])).toBe('15')
+    expect(computedStylePlaceholder('1.25rem', 'number', ['px', 'rem'])).toBe('1.25')
+  })
+
+  it('keeps keywords, unsupported units, and regular values intact', () => {
+    expect(computedStylePlaceholder('auto', 'number', ['px'])).toBe('auto')
+    expect(computedStylePlaceholder('50%', 'number', ['px'])).toBe('50%')
+    expect(computedStylePlaceholder('rgb(255, 255, 255)', 'color')).toBe('rgb(255, 255, 255)')
   })
 })

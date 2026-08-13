@@ -15,6 +15,7 @@ Live editor: [https://lyh2011.github.io/phi-theme-studio/](https://lyh2011.githu
 - Canvas zoom up to 300%, right-button panning, and fit-to-canvas controls
 - Dragging and resizing for semantic and custom elements, with pointer movement compensated for the current canvas zoom; hold `Shift` to temporarily disable snapping
 - Layout, typography, appearance, transforms, and SVG `fill`/`stroke` controls in the style panel, including native color pickers
+- Every style control shows the selected element's computed default; these references do not create CSS overrides or enter exported packages
 - Numeric font size, dimension, and position controls default to `px`, while rotation defaults to `deg`; units can be changed or supplied as complete CSS values
 - Customizable multidimensional radar chart, tag rankings, histogram, and related analysis elements
 - Custom text, rectangles, circles, triangles, and lines via click or sidebar drag-and-drop, plus uploaded image elements
