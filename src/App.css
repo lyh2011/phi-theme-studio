@@ -560,6 +560,37 @@
 .gjs-cv-canvas-bg { background: #2c3135; }
 .gjs-pn-panels { display: none; }
 
+/* GrapesJS centres the resize handles on the selection edges. Most phi elements
+   are only ~12px tall at a fit-to-canvas zoom, so the handles blanket the whole
+   body and every attempt to drag one turns into a resize. Placing them just
+   outside the box keeps the body draggable at any zoom level. */
+.gjs-resizer-c .gjs-resizer-h {
+  width: 9px;
+  height: 9px;
+  margin: 0;
+  background: #fff;
+  border: 2px solid var(--focus);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.gjs-resizer-c .gjs-resizer-h-tl,
+.gjs-resizer-c .gjs-resizer-h-tc,
+.gjs-resizer-c .gjs-resizer-h-tr { top: -11px; bottom: auto; }
+.gjs-resizer-c .gjs-resizer-h-bl,
+.gjs-resizer-c .gjs-resizer-h-bc,
+.gjs-resizer-c .gjs-resizer-h-br { top: auto; bottom: -11px; }
+.gjs-resizer-c .gjs-resizer-h-tl,
+.gjs-resizer-c .gjs-resizer-h-cl,
+.gjs-resizer-c .gjs-resizer-h-bl { left: -11px; right: auto; }
+.gjs-resizer-c .gjs-resizer-h-tr,
+.gjs-resizer-c .gjs-resizer-h-cr { left: auto; right: -11px; }
+.gjs-resizer-c .gjs-resizer-h-br { right: -11px; }
+.gjs-resizer-c .gjs-resizer-h-tc,
+.gjs-resizer-c .gjs-resizer-h-bc { left: 0; right: 0; margin: 0 auto; }
+.gjs-resizer-c .gjs-resizer-h-cl,
+.gjs-resizer-c .gjs-resizer-h-cr { top: 0; bottom: 0; margin: auto 0; }
+
 .canvas-statusbar {
   min-width: 0;
   display: grid;
@@ -604,15 +635,32 @@
   white-space: nowrap;
 }
 
-.inspector-heading code {
+.selection-path {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.selection-path button,
+.inspector-heading code {
+  max-width: 100%;
   overflow: hidden;
-  color: #5d676e;
+  padding: 0;
+  background: transparent;
+  border: 0;
   font-family: "SFMono-Regular", Consolas, monospace;
   font-size: 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.inspector-heading code { color: #5d676e; }
+.selection-path button { color: #8b959b; }
+.selection-path button:hover { color: var(--teal-dark); text-decoration: underline; }
+.selection-path button:focus-visible { outline: 1px solid var(--focus); outline-offset: 1px; }
+.selection-path button::after { margin: 0 1px; color: #b6bec3; content: "›"; }
 
 .override-reset {
   grid-row: 1 / span 2;
@@ -898,6 +946,44 @@
 .package-summary > div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .package-summary strong { color: #263236; font-size: 12px; }
 .package-summary span { color: #617078; font-size: 10px; }
+.export-mode label {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.export-mode label + label { margin-top: 8px; }
+.export-mode label:hover { border-color: #9ecac5; }
+.export-mode label.active { background: #f1f8f7; border-color: var(--teal); }
+.export-mode input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.export-mode-dot {
+  width: 13px;
+  height: 13px;
+  margin-top: 2px;
+  background: #fff;
+  border: 1px solid #b3bcc2;
+  border-radius: 50%;
+}
+
+.export-mode label.active .export-mode-dot {
+  background: radial-gradient(circle, #fff 0 2px, var(--teal) 3px);
+  border-color: var(--teal);
+}
+
+.export-mode label:has(input:focus-visible) .export-mode-dot {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.export-mode-text { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.export-mode-text strong { color: var(--text); font-size: 11px; font-weight: 650; }
+.export-mode-text em { color: var(--muted); font-size: 9px; font-style: normal; line-height: 1.5; }
+
 .validation-list { padding: 16px 14px; }
 .validation-item {
   display: grid;

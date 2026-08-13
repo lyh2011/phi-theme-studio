@@ -312,22 +312,53 @@ function declaredStyleCount(style: StyleProps | undefined) {
   )).length
 }
 
+export interface SelectionAncestor {
+  id: string
+  name: string
+  selector: string
+}
+
 export interface SelectionInfo {
   name: string
   selector: string
   overrides: number
+  ancestors: SelectionAncestor[]
+}
+
+const MAX_ANCESTORS = 3
+
+function componentName(component: Component) {
+  return component.getName() || component.get('name') || '组件'
 }
 
 export function describeSelection(editor: Editor | null): SelectionInfo {
   const component = editor?.getSelected()
-  if (!editor || !component) return { name: '未选中元素', selector: '', overrides: 0 }
+  if (!editor || !component) return { name: '未选中元素', selector: '', overrides: 0, ancestors: [] }
   const selector = getRuntimeSelector(component)
   const style = selector ? editor.Css.getRule(selector)?.getStyle() as StyleProps | undefined : undefined
+  const ancestors: SelectionAncestor[] = []
+  for (let parent = component.parent(); parent; parent = parent.parent()) {
+    const parentSelector = getRuntimeSelector(parent)
+    if (!parentSelector) continue
+    ancestors.unshift({ id: parent.getId(), name: componentName(parent), selector: parentSelector })
+  }
   return {
-    name: component.getName() || component.get('name') || '组件',
+    name: componentName(component),
     selector,
     overrides: declaredStyleCount(style),
+    ancestors: ancestors.slice(-MAX_ANCESTORS),
   }
+}
+
+/** Clicking the canvas lands on the innermost element; this climbs back out. */
+export function selectAncestor(editor: Editor, id: string) {
+  for (let parent = editor.getSelected()?.parent(); parent; parent = parent.parent()) {
+    if (parent.getId() !== id) continue
+    editor.select(parent)
+    editor.Canvas.scrollTo(parent, { behavior: 'smooth', block: 'center', force: true })
+    return true
+  }
+  return false
 }
 
 /** Drop every override the theme has declared for the selected runtime selector. */

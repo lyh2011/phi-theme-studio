@@ -20,6 +20,10 @@ const hidden = (element: Element | null) => element?.hasAttribute('data-phi-prev
 
 describe('difficulty color preview', () => {
   it('keeps demo data styles low-specificity and out of editable markup', () => {
+    // The canvas must carry phi-plugin's real base rules, not just preview extras.
+    expect(PROTECTED_CSS).toContain('.b30-analysis-row')
+    expect(PROTECTED_CSS).toContain('.Nosignal')
+    expect(PROTECTED_CSS).not.toContain('@import')
     expect(PROTECTED_CSS).toContain('/font/phi.ttf')
     expect(PREVIEW_MARKUP).toContain('class="average-marker"')
     expect(PREVIEW_MARKUP).not.toMatch(/\sstyle=/)

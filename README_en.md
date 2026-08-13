@@ -17,8 +17,9 @@ Live editor: [https://lyh2011.github.io/phi-theme-studio/](https://lyh2011.githu
 - Canvas zoom up to 300%, right-button panning, and fit-to-canvas controls
 - Dragging and resizing for semantic and custom elements, with pointer movement compensated for the current canvas zoom; hold `Shift` to temporarily disable snapping
 - Arrow keys nudge the selected element by one pixel, or ten while holding `Shift`
+- Resize handles sit outside the selection, so even text elements barely a dozen pixels tall can be dragged without triggering an accidental resize
 - Layout, typography, appearance, transforms, and SVG `fill`/`stroke` controls in the style panel, including native color pickers
-- The style panel header shows the exported selector and override count for the selection, and can clear all of its overrides at once
+- The style panel header shows an ancestor breadcrumb (click to select the containing element), the exported selector, and the override count, and can clear all overrides at once
 - Every style control shows the selected element's computed default; these references do not create CSS overrides or enter exported packages
 - Numeric font size, dimension, and position controls default to `px`, while rotation defaults to `deg`; units can be changed or supplied as complete CSS values
 - Customizable multidimensional radar chart, tag rankings, histogram, and related analysis elements
@@ -27,7 +28,7 @@ Live editor: [https://lyh2011.github.io/phi-theme-studio/](https://lyh2011.githu
 - Theme metadata and live AT/IN/HD/EZ preview color controls
 - Background, font, and rating icon asset management
 - Import existing phi-plugin theme ZIP files
-- Export directly extractable `resources/html/b19/themes/` packages
+- Export directly extractable `resources/html/b19/themes/` packages, as either an override or a self-contained stylesheet
 - Editable project configuration stored in `studio.json` for later re-import
 - IndexedDB autosave, undo/redo, and advanced source editing
 - CSS, asset path, ZIP Slip, file count, and size validation
@@ -67,13 +68,33 @@ my-theme/
         └── phi.png
 ```
 
-The generated stylesheet imports the current phi-plugin base stylesheet:
+### Stylesheet Shape
+
+The Export panel offers two shapes for `b19.css`. Both render identically under phi-plugin; they differ only in where the base styles come from.
+
+**Override mode (default)** ships only your changes and imports the current phi-plugin base stylesheet:
 
 ```css
 @import "../../b19.css";
 ```
 
-Without custom canvas elements, this keeps the default export based on the current phi-plugin result template and base styles. All five previews share the same theme CSS. `studio.json` is ignored by phi-plugin and is only used to restore editable configuration in the studio.
+Packages stay tiny and pick up upstream fixes automatically, at the cost of following upstream restructuring of `b19.css`.
+
+**Self-contained mode** inlines the base styles, matching the bundled `milthm` theme:
+
+```css
+@import "../../../common/common.css";
+
+/* phi-theme-studio:base-styles:start */
+/* ...phi-plugin base styles... */
+/* phi-theme-studio:base-styles:end */
+```
+
+The appearance is pinned against upstream edits, at the cost of missing upstream improvements. The generated block is marked with comments and stripped on import, so the editor still shows only your own overrides.
+
+All five previews share the same theme CSS. `studio.json` records the chosen shape and the editable configuration, and is ignored by phi-plugin.
+
+Difficulty colors, theme fonts, and backgrounds are not written into the CSS: phi-plugin injects `:root { --AT/--IN/--HD/--EZ }` and `@font-face` from `info.yaml` in `common/layout/default.art`.
 
 Text, shapes, and images added to the canvas are stored in `studio.json` and injected into a real exported `b19.art`, so they are present in phi-plugin renders rather than only in the editor project. Uploaded images are packaged under `assets/custom/` and referenced through `{{themeInfo.baseUrl}}`. The manifest automatically receives `template: b19.art` in this case.
 

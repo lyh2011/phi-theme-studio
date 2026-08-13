@@ -31,7 +31,7 @@ import { PackagePanel } from './components/PackagePanel'
 import { PreviewOptionsMenu } from './components/PreviewOptionsMenu'
 import { SourceDialog } from './components/SourceDialog'
 import { ThemeForm } from './components/ThemeForm'
-import { clearSelectedOverrides, describeSelection, resetEditorDocument } from './editor/createEditor'
+import { clearSelectedOverrides, describeSelection, resetEditorDocument, selectAncestor } from './editor/createEditor'
 import {
   appendCustomComponent,
   restoreCustomComponents,
@@ -70,7 +70,9 @@ import {
 } from './lib/themePackage'
 import {
   DEFAULT_DRAFT,
+  DEFAULT_EXPORT_MODE,
   DEFAULT_RESOURCES,
+  type ExportMode,
   type PackageAsset,
   type ThemeDraft,
   type ThemeResources,
@@ -117,6 +119,7 @@ function App() {
   const [resources, setResources] = useState<ThemeResources>(DEFAULT_RESOURCES)
   const [assets, setAssets] = useState<PackageAsset[]>([])
   const [customTemplate, setCustomTemplate] = useState('')
+  const [exportMode, setExportMode] = useState<ExportMode>(DEFAULT_EXPORT_MODE)
   const [leftTab, setLeftTab] = useState<LeftTab>('components')
   const [rightTab, setRightTab] = useState<RightTab>('style')
   const [revision, setRevision] = useState(0)
@@ -187,6 +190,7 @@ function App() {
           assetsRef.current = restoredAssets
           setAssets(restoredAssets)
           setCustomTemplate(sourceTemplateForEditing(persisted.customTemplate))
+          setExportMode(persisted.exportMode || DEFAULT_EXPORT_MODE)
           const restoredCss = projectData.styles
           resetEditorDocument(instance)
           if (Array.isArray(restoredCss)) instance.setStyle(restoredCss)
@@ -263,6 +267,7 @@ function App() {
         resources,
         assets: assets.map(({ previewUrl: _previewUrl, ...asset }) => asset),
         customTemplate,
+        exportMode,
         projectData,
       }
       saveQueueRef.current = saveQueueRef.current
@@ -278,7 +283,7 @@ function App() {
         })
     }, 700)
     return () => window.clearTimeout(timeout)
-  }, [editor, draft, resources, assets, customTemplate, revision, notify])
+  }, [editor, draft, resources, assets, customTemplate, exportMode, revision, notify])
 
   const selection = useMemo(
     () => describeSelection(editor),
@@ -338,8 +343,9 @@ function App() {
     resources,
     assets,
     css: canonicalCss,
+    exportMode,
     customTemplate: effectiveTemplate,
-  }), [draft, resources, assets, canonicalCss, effectiveTemplate])
+  }), [draft, resources, assets, canonicalCss, exportMode, effectiveTemplate])
   const issues = useMemo(() => {
     const result = validateTheme(exportInput)
     const derivedErrors = [canonical.error, effectiveTemplateResult.error]
@@ -465,6 +471,7 @@ function App() {
       assetsRef.current = next.assets
       setAssets(next.assets)
       setCustomTemplate(sourceTemplateForEditing(next.customTemplate, Boolean(next.projectData)))
+      setExportMode(next.exportMode)
       imported = undefined
       window.setTimeout(() => revokeAssets(previousAssets), 0)
       setRevision((value) => value + 1)
@@ -494,6 +501,7 @@ function App() {
     setResources(DEFAULT_RESOURCES)
     setAssets([])
     setCustomTemplate('')
+    setExportMode(DEFAULT_EXPORT_MODE)
     resetEditorDocument(editor)
     await clearPersistedProject()
     revokeAssets(previousAssets)
@@ -697,9 +705,23 @@ function App() {
                 <span>当前组件</span>
                 <strong>{selection.name}</strong>
               </div>
-              <code title={selection.selector ? `导出规则选择器 ${selection.selector}` : '该元素不会生成导出规则'}>
-                {selection.selector || '不可导出'}
-              </code>
+              <nav className="selection-path" aria-label="元素层级">
+                {selection.ancestors.map((ancestor) => (
+                  <button
+                    key={ancestor.id}
+                    type="button"
+                    title={`选择上层元素 ${ancestor.name}（${ancestor.selector}）`}
+                    onClick={() => {
+                      if (editor && selectAncestor(editor, ancestor.id)) setSelectedName(ancestor.name)
+                    }}
+                  >
+                    {ancestor.selector}
+                  </button>
+                ))}
+                <code title={selection.selector ? `导出规则选择器 ${selection.selector}` : '该元素不会生成导出规则'}>
+                  {selection.selector || '不可导出'}
+                </code>
+              </nav>
               <button
                 type="button"
                 className="override-reset"
@@ -716,7 +738,20 @@ function App() {
           </div>
           <div className={`inspector-content ${rightTab === 'theme' ? 'active' : ''}`}><ThemeForm draft={draft} setDraft={setDraft} /></div>
           <div className={`inspector-content ${rightTab === 'assets' ? 'active' : ''}`}><AssetForm resources={resources} assets={assets} onUpload={(target, file) => void uploadAsset(target, file)} onRemove={removeAsset} /></div>
-          <div className={`inspector-content ${rightTab === 'package' ? 'active' : ''}`}><PackagePanel issues={issues} assetCount={assets.length} customTemplate={Boolean(effectiveTemplate.trim())} onSource={() => setSourceOpen(true)} onExport={exportPackage} /></div>
+          <div className={`inspector-content ${rightTab === 'package' ? 'active' : ''}`}>
+            <PackagePanel
+              issues={issues}
+              assetCount={assets.length}
+              customTemplate={Boolean(effectiveTemplate.trim())}
+              exportMode={exportMode}
+              onExportModeChange={(mode) => {
+                setExportMode(mode)
+                setSaveState('dirty')
+              }}
+              onSource={() => setSourceOpen(true)}
+              onExport={exportPackage}
+            />
+          </div>
         </aside>
       </main>
 

@@ -1,6 +1,6 @@
 import { del, get, set } from 'idb-keyval'
 import type { ProjectData } from 'grapesjs'
-import type { PackageAsset, ThemeDraft, ThemeResources } from '../types/theme'
+import type { ExportMode, PackageAsset, ThemeDraft, ThemeResources } from '../types/theme'
 
 const DRAFT_KEY = 'phi-theme-studio:last-project:v1'
 
@@ -9,6 +9,7 @@ export interface PersistedProject {
   resources: ThemeResources
   assets: Omit<PackageAsset, 'previewUrl'>[]
   customTemplate: string
+  exportMode?: ExportMode
   projectData: ProjectData
 }
 

@@ -9,11 +9,20 @@ import {
   GENERATED_DIFFICULTY_COLORS_END,
   GENERATED_DIFFICULTY_COLORS_START,
 } from './difficultyColors'
+import {
+  GENERATED_BASE_STYLES_END,
+  GENERATED_BASE_STYLES_START,
+  inlinedBaseStyles,
+  STANDALONE_COMMON_IMPORT,
+} from './baseStyles'
 import { collectCustomClassNames, templateForProject } from '../editor/customElements'
 import {
   DEFAULT_DRAFT,
+  DEFAULT_EXPORT_MODE,
   DIFFICULTY_KEYS,
+  EXPORT_MODES,
   RATING_KEYS,
+  type ExportMode,
   type ImportedTheme,
   type PackageAsset,
   type StudioProjectFile,
@@ -58,9 +67,22 @@ export interface ExportThemeInput {
   resources: ThemeResources
   assets: PackageAsset[]
   css: string
+  /** Defaults to the override mode that keeps themes following upstream. */
+  exportMode?: ExportMode
   customTemplate: string
   templateSource?: string
   projectData: ProjectData
+}
+
+/**
+ * Wrap the author's overrides into the stylesheet phi-plugin links instead of
+ * its own b19.css, so the base layout has to come from one of these two routes.
+ */
+export function packageCssFor(mode: ExportMode, overrides: string) {
+  const head = mode === 'standalone'
+    ? `${STANDALONE_COMMON_IMPORT}\n\n${inlinedBaseStyles()}`
+    : '@import "../../b19.css";'
+  return `${head}\n\n${DIFFICULTY_COLOR_CSS}\n\n${overrides}\n`
 }
 
 function pathExtension(path: string) {
@@ -199,27 +221,43 @@ export function rewriteCssUrls(css: string, mapUrl: (url: string) => string) {
   return root.toString()
 }
 
+const GENERATED_BLOCKS = [
+  [GENERATED_DIFFICULTY_COLORS_START, GENERATED_DIFFICULTY_COLORS_END],
+  [GENERATED_BASE_STYLES_START, GENERATED_BASE_STYLES_END],
+] as const
+
+/**
+ * Strip everything the studio generated (difficulty colors and, in standalone
+ * mode, the inlined phi-plugin base stylesheet) so only the author's own
+ * overrides are loaded back into the editor.
+ */
 export function cleanImportedCss(css: string) {
   const root = postcss.parse(css)
-  let generatedDifficultyColors = false
+  let openBlock: string | undefined
   root.each((node) => {
-    if (node.type === 'comment' && node.text.trim() === GENERATED_DIFFICULTY_COLORS_START) {
-      generatedDifficultyColors = true
-      node.remove()
-      return
+    const comment = node.type === 'comment' ? node.text.trim() : undefined
+    if (comment && !openBlock) {
+      const block = GENERATED_BLOCKS.find(([start]) => start === comment)
+      if (block) {
+        openBlock = block[1]
+        node.remove()
+        return
+      }
     }
-    if (node.type === 'comment' && node.text.trim() === GENERATED_DIFFICULTY_COLORS_END) {
-      generatedDifficultyColors = false
-      node.remove()
-      return
-    }
-    if (generatedDifficultyColors) node.remove()
+    if (!openBlock) return
+    if (comment === openBlock) openBlock = undefined
+    node.remove()
   })
   root.walkAtRules('import', (rule) => {
     const value = rule.params.replace(/['"\s]/g, '')
     if (value.endsWith('b19.css') || value.endsWith('common.css')) rule.remove()
   })
   return root.toString().trim()
+}
+
+/** Packages that inline the base stylesheet are re-imported in standalone mode. */
+export function detectExportMode(css: string): ExportMode {
+  return css.includes(GENERATED_BASE_STYLES_START) ? 'standalone' : 'override'
 }
 
 export function validateThemeCss(css: string, previewUrlToPath?: Map<string, string>) {
@@ -526,6 +564,11 @@ export function validateTheme(input: Omit<ExportThemeInput, 'projectData'>): Val
   } else {
     issues.push({ level: 'success', message: '使用插件内置 B30 模板，可跟随上游结构更新' })
   }
+  if ((input.exportMode ?? DEFAULT_EXPORT_MODE) === 'standalone') {
+    issues.push({ level: 'warning', message: '自包含样式表会固定当前基础布局，不再跟随 phi-plugin 更新' })
+  } else {
+    issues.push({ level: 'success', message: '覆盖模式只导出改动，基础样式跟随 phi-plugin 更新' })
+  }
   return issues
 }
 
@@ -558,18 +601,20 @@ export async function exportThemePackage(input: ExportThemeInput) {
   for (const url of unresolvedProjectUrls) {
     if (/^(?:blob:|\.\/assets\/)/.test(url)) throw new Error(`工程包含未打包的资源引用：${url}`)
   }
+  const exportMode = input.exportMode ?? DEFAULT_EXPORT_MODE
   const studioFile: StudioProjectFile = {
     schemaVersion: 1,
     generator: 'phi-theme-studio',
     draft: input.draft,
     resources: input.resources,
     css: exportedCss,
+    exportMode,
     ...(input.templateSource !== undefined ? { templateSource: input.templateSource } : {}),
     projectData,
   }
 
   const manifest = manifestYaml(input)
-  const packageCss = `@import "../../b19.css";\n\n${DIFFICULTY_COLOR_CSS}\n\n${exportedCss}\n`
+  const packageCss = packageCssFor(exportMode, exportedCss)
   const studioJson = JSON.stringify(studioFile, null, 2)
   const packageTemplate = safeTemplate ? `${safeTemplate}\n` : ''
   const textFiles = [
@@ -697,7 +742,9 @@ export async function importThemePackage(file: File): Promise<ImportedTheme> {
 
     const cssPath = resolveRootPath(rootPrefix, rawManifest.css || 'b19.css')
     const cssEntry = cssPath ? zip.file(cssPath) as ZipEntry | null : null
-    const css = cssEntry ? cleanImportedCss(await readText(cssEntry, MAX_TEXT_SIZE, cssEntry.name)) : ''
+    const rawCss = cssEntry ? await readText(cssEntry, MAX_TEXT_SIZE, cssEntry.name) : ''
+    const css = cssEntry ? cleanImportedCss(rawCss) : ''
+    let exportMode = detectExportMode(rawCss)
     const cssAssets = new Map(assets.flatMap((asset) => [
       [asset.path, asset.path],
       [`./${asset.path}`, asset.path],
@@ -727,6 +774,9 @@ export async function importThemePackage(file: File): Promise<ImportedTheme> {
             }
             customTemplate = studio.templateSource
           }
+          if (typeof studio.exportMode === 'string' && (EXPORT_MODES as readonly string[]).includes(studio.exportMode)) {
+            exportMode = studio.exportMode as ExportMode
+          }
           const pathToUrl = new Map(assets.map((asset) => [asset.path, asset.previewUrl]))
           projectData = mapStringsDeep(safeProject, pathToUrl) as ProjectData
         } else {
@@ -736,7 +786,7 @@ export async function importThemePackage(file: File): Promise<ImportedTheme> {
         warnings.push(`studio.json 无法安全解析，已按普通主题包导入：${error instanceof Error ? error.message : String(error)}`)
       }
     }
-    return { draft, resources, assets, css, customTemplate, projectData, warnings }
+    return { draft, resources, assets, css, exportMode, customTemplate, projectData, warnings }
   } catch (error) {
     revokeAssets(assets)
     throw error

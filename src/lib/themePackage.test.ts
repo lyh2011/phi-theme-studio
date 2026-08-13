@@ -156,6 +156,43 @@ describe('theme package round trip', () => {
     expect(imported.assets[0].bytes).toEqual(bytes)
     expect(imported.css).toContain('border-radius: 3px')
     expect(imported.css).not.toContain('phi-theme-studio:difficulty-colors')
+    expect(imported.exportMode).toBe('override')
+    for (const importedAsset of imported.assets) URL.revokeObjectURL(importedAsset.previewUrl)
+  })
+
+  it('inlines the phi-plugin base stylesheet in standalone mode and strips it on import', async () => {
+    const draft = { ...DEFAULT_DRAFT, id: 'standalone-theme' }
+    const blob = await exportThemePackage({
+      draft,
+      resources: DEFAULT_RESOURCES,
+      assets: [],
+      css: '.song { border-radius: 3px; }',
+      exportMode: 'standalone',
+      customTemplate: '',
+      projectData,
+    })
+    const zip = await JSZip.loadAsync(await blob.arrayBuffer())
+    const css = await zip.file('standalone-theme/b19.css')!.async('string')
+
+    // The shared stylesheet is three levels up, matching the bundled milthm theme.
+    expect(css).toMatch(/^@import "\.\.\/\.\.\/\.\.\/common\/common\.css";/)
+    expect(css).not.toContain('@import "../../b19.css"')
+    expect(css).toContain('phi-theme-studio:base-styles:start')
+    // Base layout rules travel with the package instead of being imported.
+    expect(css).toContain('.song {')
+    expect(css).toContain('.b30-analysis-row')
+    expect(css.indexOf('phi-theme-studio:base-styles:end')).toBeLessThan(css.indexOf('.song { border-radius: 3px; }'))
+
+    const studio = JSON.parse(await zip.file('standalone-theme/studio.json')!.async('string'))
+    expect(studio.exportMode).toBe('standalone')
+    // studio.json keeps only the author's overrides, never the inlined base.
+    expect(studio.css).toBe('.song { border-radius: 3px; }')
+
+    const imported = await importThemePackage(new File([blob], 'standalone.zip', { type: 'application/zip' }))
+    expect(imported.exportMode).toBe('standalone')
+    expect(imported.css).toBe('.song { border-radius: 3px; }')
+    expect(imported.css).not.toContain('phi-theme-studio:base-styles')
+    expect(imported.css).not.toContain('.b30-analysis-row')
     for (const importedAsset of imported.assets) URL.revokeObjectURL(importedAsset.previewUrl)
   })
 
