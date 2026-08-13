@@ -14,6 +14,30 @@ export const PREVIEW_PAGES = [
 export type PreviewPage = (typeof PREVIEW_PAGES)[number]['id']
 export const DEFAULT_PREVIEW_PAGE: PreviewPage = 'analysis'
 
+// phi-plugin renders these blocks only for certain saves or plugin settings.
+// The editor keeps them in the DOM so their styles stay reachable, and lets the
+// user decide which conditional states the canvas should show.
+export const PREVIEW_OPTIONS = [
+  { id: 'spInfo', label: '版本提示', hint: '存档版本与插件版本不一致时显示 .spInfoBox' },
+  { id: 'accAvg', label: '平均 ACC', hint: '开启 b30 平均 ACC 后每张成绩卡显示 .accAvg' },
+  { id: 'cpToOld', label: '定数对比', hint: '旧版本存档会显示与新定数的 RKS 差值 .cpToOld' },
+  { id: 'nosignal', label: '无成绩占位', hint: 'Phi 槽位没有成绩时用 .Nosignal 卡片占位' },
+  { id: 'tagInsufficient', label: '标签数据不足', hint: '标签票数不足时模糊雷达图并显示提示' },
+  { id: 'histogramWide', label: '宽版直方图', hint: '未启用标签接口时隐藏标签面板并铺满直方图' },
+] as const
+
+export type PreviewOption = (typeof PREVIEW_OPTIONS)[number]['id']
+export type PreviewOptions = Record<PreviewOption, boolean>
+
+export const DEFAULT_PREVIEW_OPTIONS: PreviewOptions = {
+  spInfo: true,
+  accAvg: true,
+  cpToOld: false,
+  nosignal: false,
+  tagInsufficient: false,
+  histogramWide: false,
+}
+
 export const PREVIEW_PAGE_HEIGHTS: Record<PreviewPage, number> = {
   // Values include the header, all score rows, analysis panels and footer.
   // Keeping a little breathing room here prevents the iframe viewport from
@@ -47,6 +71,61 @@ const semantic = (name: string, selector: string) => (
   `data-gjs-name="${name}" data-phi-selector="${selector}"`
 )
 
+// Both paths come from phi-plugin's b19.art: a check mark for finished
+// suggestions and a double chevron whose rotation encodes the comparison kind.
+const CHECK_PATH = 'M892.064 261.888a31.936 31.936 0 0 0-45.216 1.472L421.664 717.248l-220.448-185.216a32 32 0 1 0-41.152 48.992l243.648 204.704a31.872 31.872 0 0 0 20.576 7.488 31.808 31.808 0 0 0 23.36-10.112L893.536 307.136a32 32 0 0 0-1.472-45.248z'
+const CHEVRON_PATH = 'M564.8 465.184l4.192 3.904 274.72 274.752a32 32 0 0 1 0 45.248l-22.624 22.624a32 32 0 0 1-45.248 0l-263.456-263.392-263.424 263.392a32 32 0 0 1-42.24 2.656l-3.008-2.656-22.624-22.624a32 32 0 0 1 0-45.248l274.784-274.752a80 80 0 0 1 108.96-3.904z m0-256l4.192 3.904 274.72 274.752a32 32 0 0 1 0 45.248l-22.624 22.624a32 32 0 0 1-45.248 0l-263.456-263.392-263.424 263.392a32 32 0 0 1-42.24 2.656l-3.008-2.656-22.624-22.624a32 32 0 0 1 0-45.248l274.784-274.752a80 80 0 0 1 108.96-3.904z'
+
+const ACC_KINDS = [
+  ['accHigher', '高于平均'],
+  ['accLower', '低于平均'],
+  ['accHyper', '远高于平均'],
+  ['accFinished', '已完成推分'],
+] as const
+
+const chevronSvg = (name: string, selector: string) => `
+  <svg viewBox="0 0 1024 1024" ${semantic(name, selector)}><path ${semantic('对比箭头路径', `${selector} path`)} d="${CHEVRON_PATH}" fill="#333333"></path></svg>`
+
+function accAvgBadge(index: number) {
+  const [kind, kindLabel] = ACC_KINDS[index % ACC_KINDS.length]
+  const marks = ['99.4231', '98.8107', '99.9012', '99.6644']
+  const icon = kind === 'accFinished'
+    ? `<svg viewBox="0 0 1024 1024" ${semantic('平均 ACC 图标', '.accAvg svg')}><path ${semantic('平均 ACC 图标路径', '.accAvg path')} d="${CHECK_PATH}"></path></svg>`
+    : chevronSvg('平均 ACC 图标', '.accAvg svg')
+  return `
+    <div class="accAvg ${kind} clip-box" ${semantic(`平均 ACC（${kindLabel}）`, '.accAvg')} data-phi-optional="accAvg">
+      <div class="accAvgLine clip-box" ${semantic('平均 ACC 强调线', '.accAvgLine')}></div>
+      ${icon}
+      <p ${semantic('平均 ACC 文字', '.accAvg p')}>Avg: ${marks[index % marks.length]}%</p>
+    </div>`
+}
+
+function cpToOldBadge(index: number) {
+  const kind = index % 2 ? 'accHigher' : 'accLower'
+  return `
+    <div class="cpToOld ${kind} clip-box-left" ${semantic('定数对比', '.cpToOld')} data-phi-optional="cpToOld">
+      <p ${semantic('定数对比标题', '.cpToOld p')}>Dif</p>
+      ${chevronSvg('定数对比箭头', '.cpToOld svg')}
+      <p>0.${(index % 8) + 1}&ensp;&ensp;&ensp;RKS</p>
+      ${chevronSvg('定数对比箭头', '.cpToOld svg')}
+      <p>0.0${(index % 9) + 1}</p>
+    </div>`
+}
+
+function noSignalCard() {
+  const corners = ['left_top', 'right_top', 'left_bottom', 'right_bottom']
+    .map((corner) => `<div class="border_corner border_corner_${corner}" ${semantic('取景框角标', `.border_corner_${corner}`)}></div>`)
+    .join('')
+  return `
+    <div class="Nosignal" ${semantic('无成绩占位卡', '.Nosignal')} data-phi-slot="phi" data-phi-index="3" data-phi-optional="nosignal">
+      ${corners}
+      <div class="line" ${semantic('占位横线', '.Nosignal .line')}></div>
+      <div class="timeout" ${semantic('超时标题', '.Nosignal .timeout')}><p ${semantic('超时标题文字', '.Nosignal .timeout p')}>TIME_OUT</p></div>
+      <div class="client" ${semantic('客户端提示', '.Nosignal .client')}><p ${semantic('客户端提示文字', '.Nosignal .client p')}>&gt;&gt;&gt; PhigrOS Client Finding Phi.score</p></div>
+      <div class="sqrt" ${semantic('斜纹条', '.Nosignal .sqrt')}></div>
+    </div>`
+}
+
 function songCard(index: number) {
   const seed = songSeeds[index % songSeeds.length]
   const [title, rank, difficulty, rks, rating, score, acc, cover] = seed
@@ -55,8 +134,11 @@ function songCard(index: number) {
   const number = phi ? `P${index + 1}` : `#${bestIndex}`
   const kind = phi ? 'phi_song' : bestIndex <= 27 ? 'b_song' : ''
   const repeated = index >= songSeeds.length ? ` ${Math.floor(index / songSeeds.length) + 1}` : ''
+  // The third Phi slot doubles as the .Nosignal placeholder position, matching
+  // the runtime template where a missing record replaces the whole card.
+  const replaceable = index === 2 ? ' data-phi-optional-not="nosignal"' : ''
   return `
-    <div class="song ${kind}" ${semantic(`成绩卡 ${number}`, '.song')} data-phi-role="song-card" data-phi-slot="${phi ? 'phi' : 'best'}" data-phi-index="${phi ? index + 1 : bestIndex}">
+    <div class="song ${kind}" ${semantic(`成绩卡 ${number}`, '.song')} data-phi-role="song-card" data-phi-slot="${phi ? 'phi' : 'best'}" data-phi-index="${phi ? index + 1 : bestIndex}"${replaceable}>
       <div class="ill-box" ${semantic('曲绘区域', '.ill-box')}>
         <div class="num clip-box" ${semantic('成绩序号', '.num')}><p>${number}</p></div>
         <div class="ill clip-box" ${semantic('曲绘', '.ill')}><img ${semantic('曲绘图片', '.ill img')} src="${demoAssetUrl(`covers/${cover}.png`)}" alt="${title}"></div>
@@ -81,6 +163,8 @@ function songCard(index: number) {
           </div>
         </div>
       </div>
+      ${accAvgBadge(index)}
+      ${cpToOldBadge(index)}
     </div>`
 }
 
@@ -121,7 +205,7 @@ function analysisMarkup() {
   return `
     ${flowHeading('B30 数据分析', 'data-phi-analysis')}
     <div class="b30-analysis-row" ${semantic('B30 数据分析区', '.b30-analysis-row')} data-phi-analysis>
-      <section class="analysis-panel tag-analysis-panel clip-box" ${semantic('谱面标签能力面板', '.tag-analysis-panel')}>
+      <section class="analysis-panel tag-analysis-panel clip-box" ${semantic('谱面标签能力面板', '.tag-analysis-panel')} data-phi-optional-not="histogramWide">
         <div class="analysis-panel-head" ${semantic('分析面板标题栏', '.analysis-panel-head')}>
           <div><p class="analysis-kicker" ${semantic('分析英文标题', '.analysis-kicker')}>CHART PROFILE</p><p class="analysis-title" ${semantic('分析标题', '.analysis-title')}>谱面标签能力</p></div>
           <p class="analysis-meta" ${semantic('分析统计信息', '.analysis-meta')}>有效票 2,816</p>
@@ -144,6 +228,12 @@ function analysisMarkup() {
               <div class="tag-ranking-group weak-tags" ${semantic('薄弱词条组', '.weak-tags')}><div class="tag-column-title" ${semantic('词条组标题', '.tag-column-title')}><span></span><p>薄弱词条</p></div>${rankingRows(weak, true)}</div>
             </div>
           </div>
+          <div class="tag-insufficient-message" ${semantic('标签数据不足提示', '.tag-insufficient-message')} data-phi-optional="tagInsufficient">
+            <p ${semantic('数据不足提示文字', '.tag-insufficient-message p')}>可用谱面标签统计量不足，请前往 https://www.phib19.top 或使用 /settag 进行谱面标签投票</p>
+          </div>
+        </div>
+        <div class="tag-analysis-tip" ${semantic('标签投票提示', '.tag-analysis-tip')} data-phi-optional-not="tagInsufficient">
+          <p ${semantic('投票提示文字', '.tag-analysis-tip p')}>当前谱面标签统计量较小，可以前往 https://www.phib19.top 或使用 /settag 指令进行投票哦！</p>
         </div>
       </section>
       <section class="analysis-panel histogram-panel clip-box" ${semantic('等效 RKS 直方图面板', '.histogram-panel')}>
@@ -181,6 +271,11 @@ export const PREVIEW_MARKUP = `
       <div class="clgBox" ${semantic('课题模式区域', '.clgBox')}><div class="Challenge" ${semantic('课题模式', '.Challenge')}><img ${semantic('课题模式图标', '.Challenge img')} src="${demoAssetUrl('challenge.png')}" alt="课题模式"><p ${semantic('课题模式数字', '.Challenge p')}>48</p></div></div>
       <div class="date" ${semantic('更新时间', '.date')}><p ${semantic('更新时间文字', '.date p')}>2026/08/11 19:01:58</p></div>
       <div class="dataBox clip-box" ${semantic('Data 信息', '.dataBox')}><img ${semantic('Data 图标', '.dataBox img')} src="${demoAssetUrl('data.png')}" alt="Data"><p ${semantic('Data 文字', '.dataBox p')}>377MiB 674KiB</p></div>
+      <div class="spInfoBox" ${semantic('版本提示区', '.spInfoBox')} data-phi-optional="spInfo">
+        ${['3.13.0 Update to 3.14.0', 'Real RKS: 16.0963']
+          .map((text) => `<div class="spInfo colorful-background clip-box" ${semantic('版本提示', '.spInfo')}><p ${semantic('版本提示文字', '.spInfo p')}>${text}</p></div>`)
+          .join('')}
+      </div>
     </div>
     <div class="recordInfo clip-box" ${semantic('成绩统计', '.recordInfo')}>
         <div class="whiteLine clip-box" ${semantic('统计强调线', '.whiteLine')}></div>
@@ -193,7 +288,9 @@ export const PREVIEW_MARKUP = `
     </div>
   </div>
   <div class="b19" ${semantic('成绩网格', '.b19')} data-phi-role="score-grid">
-    ${scoreCards.slice(0, 30).join('')}
+    ${scoreCards.slice(0, 3).join('')}
+    ${noSignalCard()}
+    ${scoreCards.slice(3, 30).join('')}
     ${flowHeading('OVER FLOW', 'data-phi-overflow')}
     ${scoreCards.slice(30).join('')}
   </div>
@@ -221,27 +318,51 @@ ${histogramHeights.map((height, index) => `:where(.histogram-slot:nth-child(${in
 
 export const PROTECTED_CSS = `${stripPreviewImports(commonCss)}\n${stripPreviewImports(baseB19Css)}\n${DIFFICULTY_COLOR_CSS}\n${previewOnlyCss}`
 
-export function applyPreviewPage(document: Document, page: PreviewPage) {
+const TOGGLEABLE_SELECTOR = [
+  '[data-phi-analysis]',
+  '[data-phi-overflow]',
+  '[data-phi-slot]',
+  '[data-phi-optional]',
+  '[data-phi-optional-not]',
+].join(',')
+
+function hiddenByPage(element: HTMLElement, page: PreviewPage) {
+  if (element.hasAttribute('data-phi-analysis')) return page !== 'analysis'
+  if (element.hasAttribute('data-phi-overflow')) return page !== 'b33'
+  const slot = element.dataset.phiSlot
+  if (!slot) return false
+  const index = Number(element.dataset.phiIndex)
+  const visible = page === 'b19'
+    ? slot === 'phi' || slot === 'best' && index <= 16
+    : page === 'b27'
+      ? slot === 'best' && index <= 27
+      : page === 'b33'
+        ? slot === 'phi' || slot === 'best' && index <= 33
+        : slot === 'phi' || slot === 'best' && index <= 27
+  return !visible
+}
+
+function hiddenByOption(element: HTMLElement, options: PreviewOptions) {
+  const needs = element.dataset.phiOptional as PreviewOption | undefined
+  if (needs && !options[needs]) return true
+  const excludes = element.dataset.phiOptionalNot as PreviewOption | undefined
+  return Boolean(excludes && options[excludes])
+}
+
+export function applyPreviewPage(
+  document: Document,
+  page: PreviewPage,
+  options: PreviewOptions = DEFAULT_PREVIEW_OPTIONS,
+) {
   document.documentElement.dataset.phiPreview = page
-  const showAnalysis = page === 'analysis'
-  for (const element of document.querySelectorAll<HTMLElement>('[data-phi-analysis]')) {
-    element.toggleAttribute('data-phi-preview-hidden', !showAnalysis)
+  for (const element of document.querySelectorAll<HTMLElement>(TOGGLEABLE_SELECTOR)) {
+    const hidden = hiddenByPage(element, page) || hiddenByOption(element, options)
+    element.toggleAttribute('data-phi-preview-hidden', hidden)
   }
-  for (const element of document.querySelectorAll<HTMLElement>('[data-phi-overflow]')) {
-    element.toggleAttribute('data-phi-preview-hidden', page !== 'b33')
-  }
-  for (const element of document.querySelectorAll<HTMLElement>('.song[data-phi-slot]')) {
-    const slot = element.dataset.phiSlot
-    const index = Number(element.dataset.phiIndex)
-    const visible = page === 'b19'
-      ? slot === 'phi' || slot === 'best' && index <= 16
-      : page === 'b27'
-        ? slot === 'best' && index <= 27
-        : page === 'b33'
-          ? slot === 'phi' || slot === 'best' && index <= 33
-          : slot === 'phi' || slot === 'best' && index <= 27
-    element.toggleAttribute('data-phi-preview-hidden', !visible)
-  }
+  // These runtime state classes live on the DOM only. GrapesJS serializes its
+  // component models, so preview-only classes never reach the exported theme.
+  document.querySelector('.b30-analysis-row')?.classList.toggle('histogram-wide', options.histogramWide)
+  document.querySelector('.tag-analysis-body')?.classList.toggle('is-insufficient', options.tagInsufficient)
 }
 
 export function applyRuntimePreview(
@@ -250,6 +371,7 @@ export function applyRuntimePreview(
   resources: ThemeResources,
   assets: PackageAsset[],
   page: PreviewPage = DEFAULT_PREVIEW_PAGE,
+  options: PreviewOptions = DEFAULT_PREVIEW_OPTIONS,
 ) {
   const byPath = new Map(assets.map((asset) => [asset.path, asset]))
   const background = resources.background ? byPath.get(resources.background)?.previewUrl : undefined
@@ -273,5 +395,5 @@ export function applyRuntimePreview(
     html:root { --AT: ${draft.colors.AT}; --IN: ${draft.colors.IN}; --HD: ${draft.colors.HD}; --EZ: ${draft.colors.EZ}; --phi-preview-height: ${PREVIEW_PAGE_HEIGHTS[page]}px; }
     ${font ? `@font-face { font-family: "phi-theme-preview"; src: url(${JSON.stringify(font)}); } body, body * { font-family: "phi-theme-preview", "PHI", sans-serif !important; }` : ''}
   `
-  applyPreviewPage(document, page)
+  applyPreviewPage(document, page, options)
 }

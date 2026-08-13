@@ -1,24 +1,41 @@
+import { useMemo, useState } from 'react'
 import type { Editor } from 'grapesjs'
 import type { DragEvent } from 'react'
 import {
   BarChart3,
+  CalendarClock,
   ChartColumnBig,
   Circle,
+  CircleUser,
+  Database,
+  Gauge,
   Grid3X3,
+  Hash,
   Image,
+  ImageOff,
   LayoutGrid,
   ListOrdered,
   Minus,
   Medal,
   PanelBottom,
   PanelTop,
+  Percent,
   Radar,
+  Search,
+  Signal,
+  Sparkles,
   Square,
+  Star,
+  Tag,
   Tags,
+  Target,
+  TrendingUp,
   Type,
   Triangle,
   Upload,
+  Wallpaper,
 } from 'lucide-react'
+import { PREVIEW_OPTIONS, type PreviewOption, type PreviewOptions } from '../editor/preview'
 import type { PreviewPage } from '../editor/preview'
 import {
   findVisibleRuntimeComponent,
@@ -32,6 +49,8 @@ interface NavigatorTarget {
   label: string
   selector: string
   icon: typeof PanelTop
+  /** Preview option that must be enabled before this element exists on canvas. */
+  option?: PreviewOption
 }
 
 interface NavigatorGroup {
@@ -45,10 +64,24 @@ const sharedGroups: NavigatorGroup[] = [
     id: 'structure',
     label: '页面结构',
     targets: [
+      { label: '主题背景', selector: '.background', icon: Wallpaper },
       { label: '玩家信息', selector: '.title', icon: PanelTop },
-      { label: '成绩网格', selector: '.b19', icon: LayoutGrid },
+      { label: '玩家资料', selector: '.playerInfo', icon: CircleUser },
       { label: '成绩统计', selector: '.recordInfo', icon: Grid3X3 },
+      { label: '成绩网格', selector: '.b19', icon: LayoutGrid },
       { label: '页脚', selector: '.createdbox', icon: PanelBottom },
+    ],
+  },
+  {
+    id: 'player',
+    label: '玩家信息',
+    targets: [
+      { label: '头像', selector: '.avatar', icon: CircleUser },
+      { label: '玩家 ID', selector: '.playerId', icon: Type },
+      { label: '玩家 RKS', selector: '.rks', icon: Gauge },
+      { label: '课题模式', selector: '.Challenge', icon: Star },
+      { label: '更新时间', selector: '.date', icon: CalendarClock },
+      { label: 'Data 信息', selector: '.dataBox', icon: Database },
     ],
   },
   {
@@ -56,9 +89,24 @@ const sharedGroups: NavigatorGroup[] = [
     label: '成绩组件',
     targets: [
       { label: '成绩卡', selector: '.song', icon: BarChart3 },
+      { label: 'Phi 成绩卡', selector: '.phi_song', icon: Sparkles },
       { label: '曲绘区域', selector: '.ill-box', icon: Image },
-      { label: '评级图标', selector: '.Rating', icon: Medal },
+      { label: '成绩序号', selector: '.num', icon: Hash },
       { label: '曲名文字', selector: '.songname p', icon: Type },
+      { label: '评级图标', selector: '.Rating', icon: Medal },
+      { label: '分数', selector: '.score', icon: Target },
+      { label: '准确率', selector: '.acc', icon: Percent },
+      { label: '推分建议', selector: '.suggest', icon: TrendingUp },
+    ],
+  },
+  {
+    id: 'conditional',
+    label: '条件元素',
+    targets: [
+      { label: '版本提示', selector: '.spInfoBox', icon: Tag, option: 'spInfo' },
+      { label: '平均 ACC', selector: '.accAvg', icon: Percent, option: 'accAvg' },
+      { label: '定数对比', selector: '.cpToOld', icon: TrendingUp, option: 'cpToOld' },
+      { label: '无成绩占位', selector: '.Nosignal', icon: Signal, option: 'nosignal' },
     ],
   },
 ]
@@ -69,10 +117,13 @@ const analysisGroups: NavigatorGroup[] = [
     label: '数据分析',
     targets: [
       { label: '分析区域', selector: '.b30-analysis-row', icon: LayoutGrid },
+      { label: '标签面板', selector: '.tag-analysis-panel', icon: Tags },
       { label: '能力雷达', selector: '.tag-radar', icon: Radar },
       { label: '标签排行', selector: '.tag-ranking-column', icon: ListOrdered },
       { label: '擅长词条', selector: '.strong-tags', icon: Tags },
       { label: '薄弱词条', selector: '.weak-tags', icon: Tags },
+      { label: '投票提示', selector: '.tag-analysis-tip', icon: Tag },
+      { label: '数据不足提示', selector: '.tag-insufficient-message', icon: ImageOff, option: 'tagInsufficient' },
       { label: 'RKS 直方图', selector: '.histogram-panel', icon: ChartColumnBig },
       { label: '直方图柱组', selector: '.histogram-bars', icon: BarChart3 },
       { label: '平均 RKS 线', selector: '.average-marker', icon: ChartColumnBig },
@@ -92,22 +143,46 @@ function groupsForPage(page: PreviewPage) {
   return sharedGroups
 }
 
+const OPTION_LABELS = new Map(PREVIEW_OPTIONS.map(({ id, label }) => [id, label]))
+
+function unavailableReason(target: NavigatorTarget, options: PreviewOptions) {
+  if (!target.option || options[target.option]) return ''
+  return `请先在“可选元素”中开启${OPTION_LABELS.get(target.option) || target.option}`
+}
+
 interface ComponentNavigatorProps {
   editor: Editor | null
   page: PreviewPage
+  previewOptions: PreviewOptions
   onSelect: (label: string) => void
   onAddCustom: (kind: Exclude<CustomElementKind, 'image'>) => void
   onUploadCustomImage: () => void
 }
 
-export function ComponentNavigator({ editor, page, onSelect, onAddCustom, onUploadCustomImage }: ComponentNavigatorProps) {
+export function ComponentNavigator({
+  editor,
+  page,
+  previewOptions,
+  onSelect,
+  onAddCustom,
+  onUploadCustomImage,
+}: ComponentNavigatorProps) {
+  const [query, setQuery] = useState('')
+  const groups = useMemo(() => {
+    const pageGroups = groupsForPage(page)
+    const keyword = query.trim().toLowerCase()
+    if (!keyword) return pageGroups
+    const matches = pageGroups
+      .flatMap((group) => group.targets)
+      .filter((target) => (
+        target.label.toLowerCase().includes(keyword) || target.selector.toLowerCase().includes(keyword)
+      ))
+    return [{ id: 'search', label: `搜索结果 · ${matches.length}`, targets: matches }]
+  }, [page, query])
+
   const select = (selector: string, label: string) => {
     if (!editor) return
-    const components = editor.getWrapper()?.find(selector) || []
-    const component = components.find((candidate) => {
-      const element = candidate.getEl()
-      return element && !element.closest('[data-phi-preview-hidden]')
-    })
+    const component = findVisibleRuntimeComponent(editor, selector)
     if (!component) return
     editor.select(component)
     onSelect(label)
@@ -141,23 +216,39 @@ export function ComponentNavigator({ editor, page, onSelect, onAddCustom, onUplo
 
   return (
     <nav className="component-nav" aria-label="当前页面组件">
-      {groupsForPage(page).map((group) => (
+      <div className="component-search">
+        <Search size={13} aria-hidden="true" />
+        <input
+          type="search"
+          value={query}
+          placeholder="搜索元素或选择器"
+          aria-label="搜索元素或选择器"
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
+      {groups.map((group) => (
         <section className="component-nav-group" key={group.id}>
           <h2>{group.label}</h2>
+          {group.targets.length === 0 && <p className="component-nav-empty">当前预览页面没有匹配的元素。</p>}
           <div className="component-nav-grid">
-            {group.targets.map(({ label, selector, icon: Icon }) => (
-              <button
-                key={selector}
-                type="button"
-                draggable={Boolean(editor)}
-                onClick={() => select(selector, label)}
-                onDragStart={(event) => startDrag(event, selector, label)}
-                disabled={!editor}
-              >
-                <Icon size={17} aria-hidden="true" />
-                <span>{label}</span>
-              </button>
-            ))}
+            {group.targets.map((target) => {
+              const { label, selector, icon: Icon } = target
+              const reason = unavailableReason(target, previewOptions)
+              return (
+                <button
+                  key={selector}
+                  type="button"
+                  draggable={Boolean(editor) && !reason}
+                  onClick={() => select(selector, label)}
+                  onDragStart={(event) => startDrag(event, selector, label)}
+                  disabled={!editor || Boolean(reason)}
+                  title={reason || selector}
+                >
+                  <Icon size={17} aria-hidden="true" />
+                  <span>{label}</span>
+                </button>
+              )
+            })}
           </div>
         </section>
       ))}

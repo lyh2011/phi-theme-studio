@@ -3,6 +3,8 @@ import {
   computedStylePlaceholder,
   createShiftAwareSnapGuides,
   normalizeStyleInputUnit,
+  nudgeDelta,
+  parseTranslatePair,
   STYLE_PROPERTY_NAMES,
 } from './createEditor'
 
@@ -31,6 +33,35 @@ describe('style input units', () => {
     expect(normalizeStyleInputUnit('margin', '2rem auto')).toBe('2rem auto')
     expect(normalizeStyleInputUnit('rotate', '0.5turn')).toBe('0.5turn')
     expect(normalizeStyleInputUnit('transform-origin', 'center top')).toBe('center top')
+  })
+})
+
+describe('computed translate parsing', () => {
+  it('treats an omitted axis as zero instead of repeating the first one', () => {
+    // Browsers serialize `translate: 12px 0px` back as `12px`.
+    expect(parseTranslatePair('12px')).toEqual([12, 0])
+    expect(parseTranslatePair('12px 0px')).toEqual([12, 0])
+    expect(parseTranslatePair('-4.5px 8px')).toEqual([-4.5, 8])
+  })
+
+  it('falls back to no movement for empty and non-numeric values', () => {
+    expect(parseTranslatePair('none')).toEqual([0, 0])
+    expect(parseTranslatePair(undefined)).toEqual([0, 0])
+    expect(parseTranslatePair('auto auto')).toEqual([0, 0])
+  })
+})
+
+describe('arrow key nudging', () => {
+  it('moves one pixel per press and ten while Shift is held', () => {
+    expect(nudgeDelta('ArrowLeft', false)).toEqual([-1, 0])
+    expect(nudgeDelta('ArrowRight', false)).toEqual([1, 0])
+    expect(nudgeDelta('ArrowUp', true)).toEqual([0, -10])
+    expect(nudgeDelta('ArrowDown', true)).toEqual([0, 10])
+  })
+
+  it('ignores keys that are not arrows', () => {
+    expect(nudgeDelta('Enter', false)).toBeUndefined()
+    expect(nudgeDelta('a', true)).toBeUndefined()
   })
 })
 

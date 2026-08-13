@@ -305,11 +305,53 @@ function selectRuntimeStyle(editor: Editor, component: Component | undefined) {
   if (editor.Styles.getSelected() !== rule) editor.Styles.select(rule, { component })
 }
 
-function pixelPair(value: unknown): [number, number] {
+function declaredStyleCount(style: StyleProps | undefined) {
+  if (!style) return 0
+  return Object.entries(style).filter(([property, value]) => (
+    !property.startsWith('__') && value !== undefined && value !== null && String(value).trim() !== ''
+  )).length
+}
+
+export interface SelectionInfo {
+  name: string
+  selector: string
+  overrides: number
+}
+
+export function describeSelection(editor: Editor | null): SelectionInfo {
+  const component = editor?.getSelected()
+  if (!editor || !component) return { name: '未选中元素', selector: '', overrides: 0 }
+  const selector = getRuntimeSelector(component)
+  const style = selector ? editor.Css.getRule(selector)?.getStyle() as StyleProps | undefined : undefined
+  return {
+    name: component.getName() || component.get('name') || '组件',
+    selector,
+    overrides: declaredStyleCount(style),
+  }
+}
+
+/** Drop every override the theme has declared for the selected runtime selector. */
+export function clearSelectedOverrides(editor: Editor) {
+  const component = editor.getSelected()
+  const selector = getRuntimeSelector(component)
+  if (!component || !selector) return 0
+  const rule = editor.Css.getRule(selector)
+  const cleared = declaredStyleCount(rule?.getStyle() as StyleProps | undefined)
+  if (!rule || !cleared) return 0
+  rule.setStyle({})
+  editor.Styles.select(rule, { component })
+  return cleared
+}
+
+/**
+ * Read a computed `translate` value. Browsers drop a trailing zero, so `1px 0px`
+ * serializes back as `1px`; an omitted axis means no movement, not a repeat.
+ */
+export function parseTranslatePair(value: unknown): [number, number] {
   if (typeof value !== 'string' || value === 'none') return [0, 0]
-  const parts = value.trim().split(/\s+/)
-  const x = Number.parseFloat(parts[0])
-  const y = Number.parseFloat(parts[1] || parts[0])
+  const [rawX, rawY] = value.trim().split(/\s+/)
+  const x = Number.parseFloat(rawX)
+  const y = Number.parseFloat(rawY)
   return [Number.isFinite(x) ? x : 0, Number.isFinite(y) ? y : 0]
 }
 
@@ -325,7 +367,7 @@ function currentTranslate(component: Component): [number, number] {
   const view = element?.ownerDocument.defaultView
   if (!element || !view) return [0, 0]
   const style = view.getComputedStyle(element)
-  const individual = pixelPair(style.translate)
+  const individual = parseTranslatePair(style.translate)
   if (individual[0] || individual[1]) return individual
   const transform = style.transform
   const functionMatches = [...transform.matchAll(/translate(?:3d)?\(\s*(-?[\d.]+)px(?:\s*,?\s*)(-?[\d.]+)px(?:[^)]*)\)/g)]
@@ -356,6 +398,46 @@ export function moveRuntimeComponent(editor: Editor, component: Component, delta
   rule.addStyle({ translate: `${x}px ${y}px` })
   editor.select(component)
   selectRuntimeStyle(editor, component)
+}
+
+const NUDGE_DELTAS: Record<string, [number, number]> = {
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+}
+
+export function nudgeDelta(key: string, shiftKey: boolean) {
+  const delta = NUDGE_DELTAS[key]
+  if (!delta) return undefined
+  const step = shiftKey ? 10 : 1
+  return [delta[0] * step, delta[1] * step] as const
+}
+
+function isTextEntry(target: EventTarget | null | undefined) {
+  if (!(target instanceof Element)) return false
+  const element = target as HTMLElement
+  return element.isContentEditable || /^(input|textarea|select)$/i.test(element.tagName)
+}
+
+function installKeyboardNudge(editor: Editor) {
+  // GrapesJS re-dispatches canvas key events on the parent document, so a single
+  // listener here covers both focus contexts without applying the move twice.
+  const handle = (event: KeyboardEvent) => {
+    const delta = nudgeDelta(event.key, event.shiftKey)
+    if (!delta || event.ctrlKey || event.metaKey || event.altKey) return
+    // Forwarded events carry the frame element as target; the original one
+    // still points at whatever was focused inside the canvas.
+    const forwarded = (event as KeyboardEvent & { _parentEvent?: Event })._parentEvent
+    if (isTextEntry(event.target) || isTextEntry(forwarded?.target)) return
+    const component = editor.getSelected()
+    if (!component || !getRuntimeSelector(component)) return
+    event.preventDefault()
+    forwarded?.preventDefault()
+    moveRuntimeComponent(editor, component, delta[0], delta[1])
+  }
+  document.addEventListener('keydown', handle)
+  editor.on('destroy', () => document.removeEventListener('keydown', handle))
 }
 
 function installCanvasPan(editor: Editor) {
@@ -525,10 +607,12 @@ function installStableStyleBridge(editor: Editor) {
     const undoWasTracking = Boolean((editor.UndoManager as unknown as { isTracking?: () => boolean }).isTracking?.() ?? true)
     if (undoWasTracking) editor.UndoManager.stop()
 
-    // GrapesJS' translate dragger reads component-local styles. Seed only the
-    // current stable translation, not the full computed transform matrix.
+    // GrapesJS' translate dragger reads and writes component-local styles, so it
+    // uses this seed as its origin. Start it at zero: the ID rule's `transform`
+    // composes with the stable rule's `translate`, which keeps the element under
+    // the pointer and makes the value read back in drag:end a pure delta.
     editor.UndoManager.skip(() => editor.Css.setIdRule(target.getId(), {
-      transform: `translateX(${startX}px) translateY(${startY}px)`,
+      transform: 'translateX(0px) translateY(0px)',
     }))
     activeDrag = { component: target, selector, startX, startY, undoWasTracking }
   })
@@ -698,6 +782,7 @@ export function createPhiEditor(options: CreateEditorOptions) {
     lockEditorDocument(editor)
     installCanvasDrop(editor)
     installCanvasPan(editor)
+    installKeyboardNudge(editor)
     editor.Canvas.fitViewport({ gap: 28, zoom: (zoom) => Math.min(zoom, 80) })
     const firstCard = findVisibleRuntimeComponent(editor, '.song')
     if (firstCard) editor.select(firstCard)

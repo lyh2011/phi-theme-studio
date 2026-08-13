@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Editor } from 'grapesjs'
 import {
   Check,
-  ChevronDown,
   Code2,
   Download,
   Eye,
@@ -18,6 +17,7 @@ import {
   PanelRight,
   Plus,
   Redo2,
+  RotateCcw,
   Scan,
   Settings2,
   Undo2,
@@ -28,9 +28,10 @@ import { AssetForm, type UploadTarget } from './components/AssetForm'
 import { ComponentNavigator } from './components/ComponentNavigator'
 import { GrapesCanvas } from './components/GrapesCanvas'
 import { PackagePanel } from './components/PackagePanel'
+import { PreviewOptionsMenu } from './components/PreviewOptionsMenu'
 import { SourceDialog } from './components/SourceDialog'
 import { ThemeForm } from './components/ThemeForm'
-import { resetEditorDocument } from './editor/createEditor'
+import { clearSelectedOverrides, describeSelection, resetEditorDocument } from './editor/createEditor'
 import {
   appendCustomComponent,
   restoreCustomComponents,
@@ -40,9 +41,11 @@ import {
 } from './editor/customElements'
 import {
   applyRuntimePreview,
+  DEFAULT_PREVIEW_OPTIONS,
   DEFAULT_PREVIEW_PAGE,
   PREVIEW_PAGE_HEIGHTS,
   PREVIEW_PAGES,
+  type PreviewOption,
   type PreviewPage,
 } from './editor/preview'
 import {
@@ -121,8 +124,10 @@ function App() {
   const [zoom, setZoom] = useState(60)
   const [previewMode, setPreviewMode] = useState(false)
   const [previewPage, setPreviewPage] = useState<PreviewPage>(DEFAULT_PREVIEW_PAGE)
+  const [previewOptions, setPreviewOptions] = useState(DEFAULT_PREVIEW_OPTIONS)
   const [sourceOpen, setSourceOpen] = useState(false)
   const [selectedName, setSelectedName] = useState('成绩卡')
+  const [selectionTick, setSelectionTick] = useState(0)
   const [toast, setToast] = useState<Toast | null>(null)
   const [mobilePanel, setMobilePanel] = useState<'left' | 'right' | null>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
@@ -164,7 +169,9 @@ function App() {
   const handleEditorReady = useCallback((instance: Editor) => {
     instance.on('component:selected', (component) => {
       setSelectedName(component.getName() || component.get('name') || '组件')
+      setSelectionTick((value) => value + 1)
     })
+    instance.on('component:deselected', () => setSelectionTick((value) => value + 1))
     void (async () => {
       let restoredAssets: PackageAsset[] | undefined
       try {
@@ -213,7 +220,7 @@ function App() {
     try {
       const canvasDocument = editor.Canvas.getDocument()
       if (canvasDocument) {
-        applyRuntimePreview(canvasDocument, draft, resources, assets, previewPage)
+        applyRuntimePreview(canvasDocument, draft, resources, assets, previewPage, previewOptions)
         editor.trigger('phi:preview:update')
         const selectedElement = editor.getSelected()?.getEl()
         if (selectedElement?.closest('[data-phi-preview-hidden]')) {
@@ -225,7 +232,7 @@ function App() {
     } catch {
       // The frame can be between reload states while a project is imported.
     }
-  }, [editor, draft, resources, assets, revision, previewPage])
+  }, [editor, draft, resources, assets, revision, previewPage, previewOptions])
 
   useEffect(() => {
     if (!editor) return
@@ -272,6 +279,22 @@ function App() {
     }, 700)
     return () => window.clearTimeout(timeout)
   }, [editor, draft, resources, assets, customTemplate, revision, notify])
+
+  const selection = useMemo(
+    () => describeSelection(editor),
+    // GrapesJS mutates rules in place, so both counters invalidate this snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editor, revision, selectionTick],
+  )
+
+  const resetSelectedStyles = () => {
+    if (!editor) return
+    const cleared = clearSelectedOverrides(editor)
+    if (!cleared) return
+    setRevision((value) => value + 1)
+    setSaveState('dirty')
+    notify(`已清除 ${selection.name} 的 ${cleared} 项样式覆盖`, 'success')
+  }
 
   const canonical = (() => {
     if (!editor) return { css: '', error: '' }
@@ -614,6 +637,7 @@ function App() {
             <ComponentNavigator
               editor={editor}
               page={previewPage}
+              previewOptions={previewOptions}
               onSelect={setSelectedName}
               onAddCustom={(kind) => addCustomElement(kind)}
               onUploadCustomImage={() => customImageInputRef.current?.click()}
@@ -638,6 +662,10 @@ function App() {
                 </button>
               ))}
             </div>
+            <PreviewOptionsMenu
+              options={previewOptions}
+              onChange={(option: PreviewOption, enabled: boolean) => setPreviewOptions((current) => ({ ...current, [option]: enabled }))}
+            />
             <span className="preview-dimensions">1200 x {PREVIEW_PAGE_HEIGHTS[previewPage]}</span>
           </div>
           <div className="canvas-stage">
@@ -664,7 +692,25 @@ function App() {
             ))}
           </div>
           <div className={`inspector-content manager-content ${rightTab === 'style' ? 'active' : ''}`}>
-            <div className="inspector-heading"><span>当前组件</span><strong>{selectedName}</strong><ChevronDown size={14} /></div>
+            <div className="inspector-heading">
+              <div className="inspector-heading-name">
+                <span>当前组件</span>
+                <strong>{selection.name}</strong>
+              </div>
+              <code title={selection.selector ? `导出规则选择器 ${selection.selector}` : '该元素不会生成导出规则'}>
+                {selection.selector || '不可导出'}
+              </code>
+              <button
+                type="button"
+                className="override-reset"
+                disabled={!selection.overrides}
+                title={selection.overrides ? `清除 ${selection.overrides} 项样式覆盖` : '当前元素没有样式覆盖'}
+                onClick={resetSelectedStyles}
+              >
+                <RotateCcw size={12} />
+                {selection.overrides ? `${selection.overrides} 项覆盖` : '无覆盖'}
+              </button>
+            </div>
             <div id="gjs-style-manager" />
             <div id="gjs-trait-manager" />
           </div>

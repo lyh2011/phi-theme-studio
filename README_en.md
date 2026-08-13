@@ -11,10 +11,14 @@ Live editor: [https://lyh2011.github.io/phi-theme-studio/](https://lyh2011.githu
 ## Features
 
 - B19, B27, B30, B33 (Overflow), and B30 analysis previews
+- Optional-element toggles reveal the conditional blocks phi-plugin only renders for certain saves or plugin settings: version notices, average ACC badges, constant comparisons, the no-signal placeholder, insufficient tag data, and the wide histogram layout
 - GrapesJS selection and dragging of semantic result elements, emitted as stable runtime CSS selectors for phi-plugin
+- The component index covers player info, score cards, conditional blocks, and analysis panels, and is searchable by name or selector
 - Canvas zoom up to 300%, right-button panning, and fit-to-canvas controls
 - Dragging and resizing for semantic and custom elements, with pointer movement compensated for the current canvas zoom; hold `Shift` to temporarily disable snapping
+- Arrow keys nudge the selected element by one pixel, or ten while holding `Shift`
 - Layout, typography, appearance, transforms, and SVG `fill`/`stroke` controls in the style panel, including native color pickers
+- The style panel header shows the exported selector and override count for the selection, and can clear all of its overrides at once
 - Every style control shows the selected element's computed default; these references do not create CSS overrides or enter exported packages
 - Numeric font size, dimension, and position controls default to `px`, while rotation defaults to `deg`; units can be changed or supplied as complete CSS values
 - Customizable multidimensional radar chart, tag rankings, histogram, and related analysis elements
@@ -39,10 +43,11 @@ npm run dev
 
 The development server is available at `http://localhost:5173` by default.
 
-1. Switch between result previews, select or drag a semantic element, and edit its layout, size, color, and appearance in the Style panel. Hold `Shift` while dragging for pointer-exact positioning without snapping.
-2. At enlarged zoom levels, hold the right mouse button and drag to pan into areas outside the workbench. Click the zoom percentage or Fit Canvas to recenter.
-3. Add text and basic shapes under Components > Custom Elements, or upload a local image directly onto the canvas.
-4. Configure metadata and packaged assets, then export the validated ZIP and extract it to `resources/html/b19/themes/`.
+1. Switch between result previews, select or drag a semantic element, and edit its layout, size, color, and appearance in the Style panel. Hold `Shift` while dragging for pointer-exact positioning without snapping, or use the arrow keys for pixel steps.
+2. To style a conditional block, enable its state under Optional Elements in the preview bar; the element then appears on the canvas and behaves like any other selection.
+3. At enlarged zoom levels, hold the right mouse button and drag to pan into areas outside the workbench. Click the zoom percentage or Fit Canvas to recenter.
+4. Search the Components panel by element name or selector, add text and basic shapes under Custom Elements, or upload a local image directly onto the canvas.
+5. Configure metadata and packaged assets, then export the validated ZIP and extract it to `resources/html/b19/themes/`.
 
 ## Export Format
 
