@@ -1,14 +1,15 @@
 import { useEffect, useRef } from 'react'
 import type { Editor } from 'grapesjs'
-import { createPhiEditor } from '../editor/createEditor'
+import { createPhiEditor, type EditorUploadedAsset } from '../editor/createEditor'
 
 interface GrapesCanvasProps {
   onReady: (editor: Editor) => void
   onUpdate: () => void
   onZoomChange: (zoom: number) => void
+  onAssetUpload: (files: File[]) => Promise<EditorUploadedAsset[]>
 }
 
-export function GrapesCanvas({ onReady, onUpdate, onZoomChange }: GrapesCanvasProps) {
+export function GrapesCanvas({ onReady, onUpdate, onZoomChange, onAssetUpload }: GrapesCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export function GrapesCanvas({ onReady, onUpdate, onZoomChange }: GrapesCanvasPr
       traits,
       onReady,
       onUpdate,
+      onAssetUpload,
     })
     let frame = 0
     let loaded = false
@@ -52,7 +54,7 @@ export function GrapesCanvas({ onReady, onUpdate, onZoomChange }: GrapesCanvasPr
       editor.off('phi:custom:drop', onUpdate)
       editor.destroy()
     }
-  }, [onReady, onUpdate, onZoomChange])
+  }, [onReady, onUpdate, onZoomChange, onAssetUpload])
 
   return <div ref={canvasRef} className="gjs-canvas-host" data-testid="editor-canvas" />
 }

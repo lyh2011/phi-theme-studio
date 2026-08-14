@@ -5,8 +5,21 @@ import grapesjs, {
   type Property,
   type StyleProps,
 } from 'grapesjs'
+import styleBackgroundModule from 'grapesjs-style-bg'
 import { PREVIEW_MARKUP, PROTECTED_CSS } from './preview'
 import { appendCustomComponent, CUSTOM_ELEMENT_KINDS, type CustomElementKind } from './customElements'
+
+// The plugin publishes CommonJS plus ESM declarations. Vite exposes the
+// CommonJS namespace in development, while Node resolves the declared default.
+const styleBackground = (
+  (styleBackgroundModule as unknown as { default?: typeof styleBackgroundModule }).default || styleBackgroundModule
+)
+
+export interface EditorUploadedAsset {
+  [key: string]: unknown
+  src: string
+  name: string
+}
 
 interface CreateEditorOptions {
   container: HTMLElement
@@ -15,6 +28,7 @@ interface CreateEditorOptions {
   traits: HTMLElement
   onReady: (editor: Editor) => void
   onUpdate: () => void
+  onAssetUpload: (files: File[]) => Promise<EditorUploadedAsset[]>
 }
 
 interface ActiveDrag {
@@ -45,6 +59,86 @@ const LENGTH_UNITS_NO_PERCENT = ['px', 'em', 'rem', 'vh', 'vw']
 const BARE_NUMBER_LIST_RE = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[\s,]+[-+]?(?:\d+\.?\d*|\.\d+))*$/
 const COLOR_PROPERTIES = new Set(['color', 'background-color', 'fill', 'stroke'])
 
+interface BackgroundPropertyDefinition {
+  property?: string
+  name?: string
+  label?: string
+  default?: string
+  options?: Array<{ id?: string; label?: string; title?: string; [key: string]: unknown }>
+  [key: string]: unknown
+}
+
+const BACKGROUND_PROPERTY_LABELS: Record<string, string> = {
+  'background-image': '图片',
+  'background-repeat': '重复方式',
+  'background-position': '背景位置',
+  'background-attachment': '滚动方式',
+  'background-size': '缩放方式',
+  'background-image-color': '颜色',
+  'background-image-gradient': '渐变',
+  'background-image-gradient-dir': '方向',
+  'background-image-gradient-type': '类型',
+}
+
+const BACKGROUND_OPTION_LABELS: Record<string, string> = {
+  image: '图片',
+  color: '纯色',
+  grad: '渐变',
+  repeat: '平铺',
+  'repeat-x': '水平平铺',
+  'repeat-y': '垂直平铺',
+  'no-repeat': '不重复',
+  space: '留空平铺',
+  round: '缩放平铺',
+  'left top': '左上',
+  'left center': '左中',
+  'left bottom': '左下',
+  'right top': '右上',
+  'right center': '右中',
+  'right bottom': '右下',
+  'center top': '中上',
+  'center center': '居中',
+  'center bottom': '中下',
+  scroll: '随元素',
+  fixed: '固定',
+  local: '随内容',
+  auto: '原始尺寸',
+  cover: '覆盖',
+  contain: '完整显示',
+  right: '向右',
+  bottom: '向下',
+  left: '向左',
+  top: '向上',
+  linear: '线性',
+  radial: '径向',
+  'repeating-linear': '重复线性',
+  'repeating-radial': '重复径向',
+}
+
+function localizeBackgroundProperty(value: unknown) {
+  const property = value as BackgroundPropertyDefinition
+  const label = property.property ? BACKGROUND_PROPERTY_LABELS[property.property] : undefined
+  const options = property.options?.map((option) => {
+    const optionLabel = option.id ? BACKGROUND_OPTION_LABELS[option.id] : undefined
+    return optionLabel ? { ...option, label: option.label, title: optionLabel, ...(option.label?.startsWith('<svg') ? {} : { label: optionLabel }) } : option
+  })
+  return {
+    ...property,
+    ...(label ? { name: label, label } : {}),
+    ...(property.property === 'background-image-gradient'
+      ? { default: 'linear-gradient(right, #000000 0%, #ffffff 100%)' }
+      : {}),
+    ...(options ? { options } : {}),
+  }
+}
+
+const RADIUS_PROPERTIES = [
+  ['border-top-left-radius', '左上'],
+  ['border-top-right-radius', '右上'],
+  ['border-bottom-right-radius', '右下'],
+  ['border-bottom-left-radius', '左下'],
+].map(([property, name]) => ({ property, name, type: 'number', units: LENGTH_UNITS, min: 0 }))
+
 const STYLE_PROPERTY_DEFINITIONS = [
   { property: 'display', name: '显示' },
   { property: 'position', name: '定位' },
@@ -67,15 +161,17 @@ const STYLE_PROPERTY_DEFINITIONS = [
   { property: 'line-height', name: '行高' },
   { property: 'text-align', name: '对齐' },
   { property: 'text-shadow', name: '文字阴影' },
-  { property: 'background', name: '背景' },
+  // `extend` picks up GrapesJS' built-in composite controls. The background
+  // plugin replaces that built-in with image/color/gradient layers.
+  { property: 'background', name: '背景', extend: 'background' },
   { property: 'background-color', name: '背景色', type: 'color' },
   { property: 'fill', name: 'SVG 填充', type: 'color' },
   { property: 'stroke', name: 'SVG 描边', type: 'color' },
   { property: 'stroke-width', name: '描边宽度', type: 'number', units: LENGTH_UNITS_NO_PERCENT, min: 0 },
   { property: 'border', name: '边框' },
-  { property: 'border-radius', name: '圆角', type: 'number', units: LENGTH_UNITS, min: 0 },
+  { property: 'border-radius', name: '圆角', type: 'composite', properties: RADIUS_PROPERTIES, full: true },
   { property: 'box-shadow', name: '阴影' },
-  { property: 'opacity', name: '透明度' },
+  { property: 'opacity', name: '透明度', extend: 'opacity' },
   { property: 'overflow', name: '溢出' },
   { property: 'translate', name: '平移' },
   { property: 'rotate', name: '旋转' },
@@ -238,6 +334,132 @@ function installStyleInputUnits(container: HTMLElement, editor: Editor) {
   }
   container.addEventListener('change', normalize, true)
   editor.on('destroy', () => container.removeEventListener('change', normalize, true))
+}
+
+const COLOR_PICKER_TRIGGER = '.gjs-field-color-picker, [data-toggle="handler-color-wrap"]'
+
+const STYLE_CONTROL_TOOLTIPS = [
+  ['[data-add-layer]', '添加背景层'],
+  ['[data-close-layer]', '删除背景层'],
+  ['[data-move-layer]', '拖动背景层'],
+  ['.gjs-field-color-picker', '选择颜色'],
+  ['[data-toggle="handler-color-wrap"]', '选择渐变颜色'],
+  ['[data-toggle="handler-close"]', '删除渐变色标'],
+  ['[data-toggle="handler-drag"]', '拖动渐变色标'],
+] as const
+
+function installStyleControlTooltips(container: HTMLElement, editor: Editor) {
+  const apply = () => {
+    for (const [selector, label] of STYLE_CONTROL_TOOLTIPS) {
+      for (const element of container.querySelectorAll<HTMLElement>(selector)) {
+        element.title = label
+        element.setAttribute('aria-label', label)
+        if (element.matches(COLOR_PICKER_TRIGGER)) {
+          element.setAttribute('role', 'button')
+          if (!element.hasAttribute('tabindex')) element.tabIndex = 0
+        }
+      }
+    }
+  }
+  apply()
+  const Observer = container.ownerDocument.defaultView?.MutationObserver
+  if (!Observer) return
+  const observer = new Observer(apply)
+  observer.observe(container, { childList: true, subtree: true })
+  editor.on('destroy', () => observer.disconnect())
+}
+
+interface PickerRectangle {
+  left: number
+  right: number
+  top: number
+  bottom: number
+}
+
+interface PickerSize {
+  width: number
+  height: number
+}
+
+export function colorPickerPopupPosition(
+  anchor: PickerRectangle,
+  popup: PickerSize,
+  viewport: PickerSize,
+  margin = 8,
+  gap = 6,
+) {
+  const maxLeft = Math.max(margin, viewport.width - popup.width - margin)
+  const left = Math.min(Math.max(anchor.right - popup.width, margin), maxLeft)
+  const below = anchor.bottom + gap
+  const above = anchor.top - popup.height - gap
+  const preferredTop = below + popup.height <= viewport.height - margin ? below : above
+  const maxTop = Math.max(margin, viewport.height - popup.height - margin)
+  const top = Math.min(Math.max(preferredTop, margin), maxTop)
+  return { left, top }
+}
+
+function installColorPickerPositioning(container: HTMLElement, editor: Editor) {
+  const ownerDocument = container.ownerDocument
+  const ownerWindow = ownerDocument.defaultView
+  if (!ownerWindow) return
+
+  let activeTrigger: HTMLElement | undefined
+  let frame = 0
+  const reposition = () => {
+    frame = 0
+    if (!activeTrigger?.isConnected) return
+    const popup = [...ownerDocument.querySelectorAll<HTMLElement>('.sp-container:not(.sp-hidden)')]
+      .find((element) => element.offsetWidth > 0 && element.offsetHeight > 0)
+    if (!popup) return
+    const anchor = activeTrigger.getBoundingClientRect()
+    const bounds = popup.getBoundingClientRect()
+    const position = colorPickerPopupPosition(
+      anchor,
+      bounds,
+      { width: ownerDocument.documentElement.clientWidth, height: ownerDocument.documentElement.clientHeight },
+    )
+    popup.style.position = 'fixed'
+    popup.style.left = `${position.left}px`
+    popup.style.top = `${position.top}px`
+  }
+  const schedule = () => {
+    if (frame) ownerWindow.cancelAnimationFrame(frame)
+    frame = ownerWindow.requestAnimationFrame(reposition)
+  }
+  const activate = (event: Event) => {
+    if (!(event.target instanceof Element)) return
+    const direct = event.target.closest<HTMLElement>(COLOR_PICKER_TRIGGER)
+    if (direct) {
+      activeTrigger = direct
+      schedule()
+      return
+    }
+    const field = event.target.closest<HTMLElement>('.gjs-field-colorp')
+    const trigger = field?.querySelector<HTMLElement>('.gjs-field-color-picker')
+    if (trigger) trigger.click()
+  }
+  const keyboard = (event: KeyboardEvent) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    if (!(event.target instanceof Element)) return
+    const trigger = event.target.closest<HTMLElement>(COLOR_PICKER_TRIGGER)
+    if (!trigger) return
+    event.preventDefault()
+    trigger.click()
+  }
+
+  container.addEventListener('click', activate, true)
+  container.addEventListener('touchstart', activate, { capture: true, passive: true })
+  container.addEventListener('keydown', keyboard)
+  container.addEventListener('scroll', schedule, true)
+  ownerWindow.addEventListener('resize', schedule)
+  editor.on('destroy', () => {
+    if (frame) ownerWindow.cancelAnimationFrame(frame)
+    container.removeEventListener('click', activate, true)
+    container.removeEventListener('touchstart', activate, true)
+    container.removeEventListener('keydown', keyboard)
+    container.removeEventListener('scroll', schedule, true)
+    ownerWindow.removeEventListener('resize', schedule)
+  })
 }
 
 export function createShiftAwareSnapGuides(defaults: { x?: number; y?: number } = {}) {
@@ -751,13 +973,44 @@ export function createPhiEditor(options: CreateEditorOptions) {
     components: PREVIEW_MARKUP,
     style: '',
     panels: { defaults: [] },
+    plugins: [(instance) => styleBackground(instance, { propExtender: localizeBackgroundProperty })],
+    colorPicker: { appendTo: 'body' },
+    i18n: {
+      locale: 'zh',
+      detectLocale: false,
+      messages: {
+        zh: {
+          assetManager: {
+            modalTitle: '选择元素背景图',
+            uploadTitle: '上传元素背景图',
+          },
+          styleManager: { fileButton: '选择图片' },
+        },
+      },
+    },
+    assetManager: {
+      // The studio owns the package files. GrapesJS only provides the picker
+      // and sends accepted local files back through this callback.
+      upload: 'phi-theme-studio-local',
+      embedAsBase64: false,
+      showUrlInput: false,
+      multiUpload: false,
+      noAssets: '暂无元素背景图',
+      uploadFile: async (event, done) => {
+        const target = event.target as HTMLInputElement | null
+        const files = event.dataTransfer?.files || target?.files
+        if (!files?.length) return
+        const uploaded = await options.onAssetUpload(Array.from(files))
+        done?.({ data: uploaded })
+      },
+    },
     selectorManager: { componentFirst: false },
     layerManager: { appendTo: options.layers },
     traitManager: { appendTo: options.traits },
     styleManager: {
       appendTo: options.styles,
       clearProperties: true,
-      // Native color inputs are used for all color-bearing properties below.
+      // GrapesJS renders Spectrum-backed controls for color properties below.
       custom: false,
       sectors: [
         {
@@ -807,6 +1060,8 @@ export function createPhiEditor(options: CreateEditorOptions) {
   })
 
   installStyleInputUnits(options.styles, editor)
+  installStyleControlTooltips(options.styles, editor)
+  installColorPickerPositioning(options.styles, editor)
   installStableStyleBridge(editor)
   installComputedStyleDefaults(editor, options.styles)
   editor.on('load', () => {

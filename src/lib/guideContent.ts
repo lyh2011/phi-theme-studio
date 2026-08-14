@@ -27,6 +27,10 @@ export const GUIDE_STEPS: GuideStep[] = [
         text: '你在网页里直接改查分图的样子，改完导出一个 ZIP 压缩包，丢进 phi-plugin 就能用。全程不需要懂 CSS。',
       },
       {
+        kind: 'text',
+        text: '本编辑器基于 Temmie 为 phi-plugin 贡献的自定义主题功能开发。',
+      },
+      {
         kind: 'steps',
         items: [
           { label: '中间', text: '查分图的预览，最后出图就是这个样子。上方可以切 B19 / B27 / B30 / B33 / 数据分析。' },
@@ -73,6 +77,8 @@ export const GUIDE_STEPS: GuideStep[] = [
           { label: '挪位置', text: '选中后直接用鼠标拖。想微调就按方向键，一次 1 像素，按住 Shift 一次 10 像素。' },
           { label: '改大小', text: '拖选中框四周那 8 个小方块。' },
           { label: '改颜色、字号', text: '在右边「样式」面板里改。颜色点一下色块会弹出取色器。' },
+          { label: '改背景和形状', text: '展开「外观」，背景可以选择图片、纯色或渐变，还能分别调整四角圆角和整体透明度。' },
+          { label: '添加基本图形', text: '在左栏「组件 > 自定义元素」中添加矩形、圆形、三角形或线条，再像其他元素一样调整背景、圆角和透明度。' },
         ],
       },
       {
@@ -94,7 +100,8 @@ export const GUIDE_STEPS: GuideStep[] = [
       {
         kind: 'steps',
         items: [
-          { label: '「资源」页签', text: '换背景图、换字体、换 9 个评级图标（phi、FC、V、S、A、B、C、F、NEW）。点上传按钮选文件即可，换完预览会立刻变。' },
+          { label: '元素背景图', text: '选中成绩卡、玩家昵称背景框或其他元素，在「样式」的「外观 > 背景」中选择图片并上传；同一张图可以继续用在其他元素上。' },
+          { label: '「资源」页签', text: '换整张查分图的背景、字体和 9 个评级图标（phi、FC、V、S、A、B、C、F、NEW）。点上传按钮选文件即可，换完预览会立刻变。' },
           { label: '「主题」页签', text: '填主题名称、ID、作者、说明，以及 AT / IN / HD / EZ 四个难度的颜色。' },
         ],
       },

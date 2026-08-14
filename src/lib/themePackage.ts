@@ -209,16 +209,20 @@ function walkAssetFunctions(nodes: valueParser.Node[], callback: (url: string) =
 export function rewriteCssUrls(css: string, mapUrl: (url: string) => string) {
   const root = postcss.parse(css)
   root.walkDecls((declaration) => {
-    const parsed = valueParser(declaration.value)
-    parsed.walk((node) => {
-      if (node.type !== 'function' || decodeCssEscapes(node.value).toLowerCase() !== 'url') return
-      const original = normalizeCssUrl(valueParser.stringify(node.nodes))
-      const mapped = mapUrl(original)
-      node.nodes = [{ type: 'word', value: JSON.stringify(mapped), sourceIndex: 0, sourceEndIndex: mapped.length }]
-    })
-    declaration.value = parsed.toString()
+    declaration.value = rewriteCssValueUrls(declaration.value, mapUrl)
   })
   return root.toString()
+}
+
+function rewriteCssValueUrls(value: string, mapUrl: (url: string) => string) {
+  const parsed = valueParser(value)
+  parsed.walk((node) => {
+    if (node.type !== 'function' || decodeCssEscapes(node.value).toLowerCase() !== 'url') return
+    const original = normalizeCssUrl(valueParser.stringify(node.nodes))
+    const mapped = mapUrl(original)
+    node.nodes = [{ type: 'word', value: JSON.stringify(mapped), sourceIndex: 0, sourceEndIndex: mapped.length }]
+  })
+  return parsed.toString()
 }
 
 const GENERATED_BLOCKS = [
@@ -291,10 +295,13 @@ export function validateThemeCss(css: string, previewUrlToPath?: Map<string, str
   return root.toString().trim()
 }
 
-function mapStringsDeep(value: unknown, replacements: Map<string, string>, key = ''): unknown {
+function mapStringsDeep(value: unknown, replacements: Map<string, string>, key = '', styleValue = false): unknown {
   if (typeof value === 'string') {
     if (replacements.has(value)) return replacements.get(value)
-    if (key === 'style' || key === 'cssText' || key === 'value' && value.includes('url(')) {
+    if (styleValue || key === 'value' && value.includes('url(')) {
+      return rewriteCssValueUrls(value, (url) => replacements.get(url) || url)
+    }
+    if (key === 'cssText') {
       try {
         return rewriteCssUrls(value, (url) => replacements.get(url) || url)
       } catch {
@@ -303,21 +310,27 @@ function mapStringsDeep(value: unknown, replacements: Map<string, string>, key =
     }
     return value
   }
-  if (Array.isArray(value)) return value.map((item) => mapStringsDeep(item, replacements, key))
+  if (Array.isArray(value)) return value.map((item) => mapStringsDeep(item, replacements, key, styleValue))
   if (value && typeof value === 'object') {
+    const childIsStyleValue = styleValue || key === 'style'
     return Object.fromEntries(
-      Object.entries(value).map(([childKey, item]) => [childKey, mapStringsDeep(item, replacements, childKey)]),
+      Object.entries(value).map(([childKey, item]) => [
+        childKey,
+        mapStringsDeep(item, replacements, childKey, childIsStyleValue),
+      ]),
     )
   }
   return value
 }
 
-function collectProjectUrls(value: unknown, urls: Set<string>, key = '') {
+function collectProjectUrls(value: unknown, urls: Set<string>, key = '', styleValue = false) {
   if (typeof value === 'string') {
     if (/^(?:blob:|assets\/|\.\/assets\/)/.test(value)) urls.add(value)
-    if (key === 'style' || key === 'cssText' || key === 'value' && value.includes('url(')) {
+    if (styleValue || key === 'value' && value.includes('url(')) {
+      walkAssetFunctions(valueParser(value).nodes, (url) => urls.add(url))
+    } else if (key === 'cssText') {
       try {
-        const root = postcss.parse(`.x { value: ${value}; }`)
+        const root = postcss.parse(value)
         root.walkDecls((declaration) => walkAssetFunctions(valueParser(declaration.value).nodes, (url) => urls.add(url)))
       } catch {
         // Invalid transient editor values are reported by validateThemeCss when exported as CSS.
@@ -326,11 +339,14 @@ function collectProjectUrls(value: unknown, urls: Set<string>, key = '') {
     return
   }
   if (Array.isArray(value)) {
-    for (const item of value) collectProjectUrls(item, urls, key)
+    for (const item of value) collectProjectUrls(item, urls, key, styleValue)
     return
   }
   if (value && typeof value === 'object') {
-    for (const [childKey, item] of Object.entries(value)) collectProjectUrls(item, urls, childKey)
+    const childIsStyleValue = styleValue || key === 'style'
+    for (const [childKey, item] of Object.entries(value)) {
+      collectProjectUrls(item, urls, childKey, childIsStyleValue)
+    }
   }
 }
 

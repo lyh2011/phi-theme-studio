@@ -10,6 +10,21 @@ https://github.com/GrapesJS/grapesjs
 Copyright (c) Artur Arseniev
 Licensed under the BSD 3-Clause License.
 
+This project uses GrapesJS Style Background:
+https://github.com/GrapesJS/style-bg
+Copyright (c) 2020-current Grapesjs Style Bg
+Licensed under the MIT License.
+
+This project uses GrapesJS Style Gradient:
+https://github.com/GrapesJS/style-gradient
+Copyright (c) 2016-current, Artur Arseniev
+Licensed under the BSD 3-Clause License.
+
+This project uses Grapick:
+https://github.com/artf/grapick
+Author: Artur Arseniev
+Licensed under the MIT License.
+
 The bundled public/font/phi.ttf font is "Source Han Sans & Saira Hybrid",
 distributed by phi-plugin and licensed under the Apache License 2.0. A copy
 of the license is available at LICENSES/Apache-2.0.txt.

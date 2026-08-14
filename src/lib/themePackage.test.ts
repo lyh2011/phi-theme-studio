@@ -160,6 +160,73 @@ describe('theme package round trip', () => {
     for (const importedAsset of imported.assets) URL.revokeObjectURL(importedAsset.previewUrl)
   })
 
+  it('round-trips a background image applied to an arbitrary element', async () => {
+    const asset: PackageAsset = {
+      path: 'assets/elements/card.png',
+      mime: 'image/png',
+      bytes: new Uint8Array([137, 80, 78, 71]),
+      previewUrl: 'blob:card',
+    }
+    const css = [
+      '.song {',
+      '  background-image: url("blob:card");',
+      '  background-size: cover;',
+      '  border-radius: 12px;',
+      '  opacity: 0.85;',
+      '}',
+    ].join('\n')
+    const backgroundProject = {
+      ...projectData,
+      styles: [{
+        selectors: ['song'],
+        style: {
+          'background-image': 'url("blob:card")',
+          'background-size': 'cover',
+          'border-radius': '12px',
+          opacity: '0.85',
+        },
+      }],
+    }
+    const blob = await exportThemePackage({
+      draft: { ...DEFAULT_DRAFT, id: 'element-background' },
+      resources: DEFAULT_RESOURCES,
+      assets: [asset],
+      css,
+      customTemplate: '',
+      projectData: backgroundProject,
+    })
+    const zip = await JSZip.loadAsync(await blob.arrayBuffer())
+
+    expect(zip.file('element-background/assets/elements/card.png')).toBeTruthy()
+    const packagedCss = await zip.file('element-background/b19.css')!.async('string')
+    expect(packagedCss).toContain('background-image: url("assets/elements/card.png")')
+    expect(packagedCss).not.toContain('blob:card')
+
+    const studioText = await zip.file('element-background/studio.json')!.async('string')
+    const studio = JSON.parse(studioText)
+    expect(studioText).not.toContain('blob:card')
+    expect(studio.css).toContain('background-image: url("assets/elements/card.png")')
+    expect(studio.projectData.styles[0].style['background-image'])
+      .toBe('url("assets/elements/card.png")')
+
+    let imported: Awaited<ReturnType<typeof importThemePackage>> | undefined
+    try {
+      imported = await importThemePackage(new File([blob], 'element-background.zip', { type: 'application/zip' }))
+      const importedAsset = imported.assets.find((candidate) => candidate.path === asset.path)
+      expect(importedAsset).toBeTruthy()
+      expect(imported.css).toContain('background-image: url("assets/elements/card.png")')
+      expect(imported.css).not.toContain('blob:card')
+
+      const importedProject = imported.projectData as {
+        styles: Array<{ style: Record<string, string> }>
+      }
+      expect(importedProject.styles[0].style['background-image'])
+        .toBe(`url("${importedAsset!.previewUrl}")`)
+    } finally {
+      for (const importedAsset of imported?.assets ?? []) URL.revokeObjectURL(importedAsset.previewUrl)
+    }
+  })
+
   it('inlines the phi-plugin base stylesheet in standalone mode and strips it on import', async () => {
     const draft = { ...DEFAULT_DRAFT, id: 'standalone-theme' }
     const blob = await exportThemePackage({

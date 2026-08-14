@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   computedStylePlaceholder,
+  colorPickerPopupPosition,
   createShiftAwareSnapGuides,
   normalizeStyleInputUnit,
   nudgeDelta,
@@ -83,5 +84,23 @@ describe('computed style defaults', () => {
     expect(computedStylePlaceholder('auto', 'number', ['px'])).toBe('auto')
     expect(computedStylePlaceholder('50%', 'number', ['px'])).toBe('50%')
     expect(computedStylePlaceholder('rgb(255, 255, 255)', 'color')).toBe('rgb(255, 255, 255)')
+  })
+})
+
+describe('color picker positioning', () => {
+  it('opens below and right-aligns with its trigger when there is room', () => {
+    expect(colorPickerPopupPosition(
+      { left: 1200, right: 1268, top: 530, bottom: 560 },
+      { width: 194, height: 238 },
+      { width: 1440, height: 1000 },
+    )).toEqual({ left: 1074, top: 566 })
+  })
+
+  it('moves above low controls and remains inside a mobile viewport', () => {
+    expect(colorPickerPopupPosition(
+      { left: 350, right: 382, top: 780, bottom: 810 },
+      { width: 236, height: 215 },
+      { width: 390, height: 844 },
+    )).toEqual({ left: 146, top: 559 })
   })
 })

@@ -33,7 +33,13 @@ import { PackagePanel } from './components/PackagePanel'
 import { PreviewOptionsMenu } from './components/PreviewOptionsMenu'
 import { SourceDialog } from './components/SourceDialog'
 import { ThemeForm } from './components/ThemeForm'
-import { clearSelectedOverrides, describeSelection, resetEditorDocument, selectAncestor } from './editor/createEditor'
+import {
+  clearSelectedOverrides,
+  describeSelection,
+  resetEditorDocument,
+  selectAncestor,
+  type EditorUploadedAsset,
+} from './editor/createEditor'
 import {
   appendCustomComponent,
   restoreCustomComponents,
@@ -89,6 +95,7 @@ type Toast = { kind: 'success' | 'error' | 'info'; message: string }
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 const MAX_CANVAS_ZOOM = 300
+const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'])
 const PREVIEW_PAGE_LABELS: Record<PreviewPage, string> = {
   b19: 'B19',
   b27: 'B27',
@@ -114,6 +121,10 @@ function assetUrlMap(assets: PackageAsset[]) {
     map.set(`./${asset.path}`, asset.path)
   }
   return map
+}
+
+function isSupportedImage(file: File) {
+  return IMAGE_EXTENSIONS.has(extensionOf(file.name))
 }
 
 function App() {
@@ -150,6 +161,44 @@ function App() {
     setToast({ message, kind })
   }, [])
 
+  const uploadEditorAssets = useCallback(async (files: File[]): Promise<EditorUploadedAsset[]> => {
+    const uploaded: PackageAsset[] = []
+    const usedPaths = new Set(assetsRef.current.map((asset) => asset.path))
+    let serial = 0
+
+    for (const file of files) {
+      if (file.size > MAX_UPLOAD_BYTES) {
+        notify(`${file.name} 超过 20 MB，未加入主题包`, 'error')
+        continue
+      }
+      if (!isSupportedImage(file)) {
+        notify(`${file.name} 不是支持的图片格式`, 'error')
+        continue
+      }
+
+      let path = ''
+      do {
+        const suffix = `${Date.now().toString(36)}-${serial++}`
+        path = `assets/elements/${normalizedAssetName(file.name, `background-${suffix}`)}`
+      } while (usedPaths.has(path))
+      usedPaths.add(path)
+
+      try {
+        uploaded.push(await assetFromFile(file, path))
+      } catch (error) {
+        notify(`${file.name} 读取失败：${error instanceof Error ? error.message : String(error)}`, 'error')
+      }
+    }
+
+    if (!uploaded.length) return []
+    const next = [...assetsRef.current, ...uploaded]
+    assetsRef.current = next
+    setAssets(next)
+    setSaveState('dirty')
+    notify(`${uploaded.length} 张元素背景图已加入主题包`, 'success')
+    return uploaded.map((asset) => ({ src: asset.previewUrl, name: asset.path }))
+  }, [notify])
+
   useEffect(() => {
     if (!toast) return
     const timeout = window.setTimeout(() => setToast(null), 3600)
@@ -159,6 +208,22 @@ function App() {
   useEffect(() => {
     assetsRef.current = assets
   }, [assets])
+
+  useEffect(() => {
+    if (!editor) return
+    const imageAssets = assets.filter((asset) => asset.mime.startsWith('image/'))
+    const activeUrls = new Set(imageAssets.map((asset) => asset.previewUrl))
+    const collection = editor.AssetManager.getAll()
+
+    for (const asset of [...collection.models]) {
+      if (!activeUrls.has(asset.getSrc())) editor.AssetManager.remove(asset)
+    }
+    for (const asset of imageAssets) {
+      if (!editor.AssetManager.get(asset.previewUrl)) {
+        editor.AssetManager.add({ src: asset.previewUrl, name: asset.path, type: 'image' })
+      }
+    }
+  }, [editor, assets])
 
   useEffect(() => () => {
     mountedRef.current = false
@@ -400,7 +465,7 @@ function App() {
     const extension = extensionOf(file.name)
     const allowed = target.kind === 'font'
       ? ['ttf', 'otf', 'woff', 'woff2'].includes(extension)
-      : ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'].includes(extension)
+      : IMAGE_EXTENSIONS.has(extension)
     if (!allowed) {
       notify('文件类型不受支持', 'error')
       return
@@ -566,7 +631,7 @@ function App() {
       notify('单个资源不能超过 20 MB', 'error')
       return
     }
-    if (!['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'].includes(extensionOf(file.name))) {
+    if (!isSupportedImage(file)) {
       notify('仅支持 PNG、JPEG、WebP、GIF 或 AVIF 图片', 'error')
       return
     }
@@ -617,6 +682,18 @@ function App() {
           </button>
           <button type="button" className="icon-button" title="主题源码" onClick={() => setSourceOpen(true)}><Code2 size={17} /></button>
           <button type="button" className="icon-button" title="使用指南" onClick={() => guide.setOpen(true)}><CircleHelp size={17} /></button>
+          <a
+            className="icon-button"
+            href="https://github.com/lyh2011/phi-theme-studio"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="GitHub 仓库"
+            aria-label="GitHub 仓库"
+          >
+            <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.73c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+            </svg>
+          </a>
         </div>
 
         <div className="topbar-status" title={saveLabel}>
@@ -682,7 +759,12 @@ function App() {
             <span className="preview-dimensions">1200 x {PREVIEW_PAGE_HEIGHTS[previewPage]}</span>
           </div>
           <div className="canvas-stage">
-            <GrapesCanvas onReady={handleEditorReady} onUpdate={handleEditorUpdate} onZoomChange={setZoom} />
+            <GrapesCanvas
+              onReady={handleEditorReady}
+              onUpdate={handleEditorUpdate}
+              onZoomChange={setZoom}
+              onAssetUpload={uploadEditorAssets}
+            />
           </div>
           <footer className="canvas-statusbar">
             <span><Check size={13} />{PREVIEW_PAGE_LABELS[previewPage]} 预览</span>

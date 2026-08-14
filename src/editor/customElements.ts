@@ -49,17 +49,17 @@ function stylesFor(options: CustomElementOptions) {
     style['font-family'] = 'inherit'
     style['text-shadow'] = '0 1px 3px rgba(0,0,0,.65)'
   } else if (options.kind === 'rect') {
-    style.background = options.background || '#12a8c7'
+    style['background-color'] = options.background || '#12a8c7'
     style.border = '2px solid rgba(255,255,255,.8)'
   } else if (options.kind === 'circle') {
-    style.background = options.background || '#e3a33b'
+    style['background-color'] = options.background || '#e3a33b'
     style.border = '2px solid rgba(255,255,255,.8)'
     style['border-radius'] = '50%'
   } else if (options.kind === 'triangle') {
-    style.background = options.background || '#d95a4c'
+    style['background-color'] = options.background || '#d95a4c'
     style['clip-path'] = 'polygon(50% 0, 100% 100%, 0 100%)'
   } else if (options.kind === 'line') {
-    style.background = options.background || '#ffffff'
+    style['background-color'] = options.background || '#ffffff'
     style.height = `${Math.max(1, height)}px`
   }
   return style

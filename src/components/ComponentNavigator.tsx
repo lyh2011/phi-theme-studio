@@ -78,6 +78,7 @@ const sharedGroups: NavigatorGroup[] = [
     targets: [
       { label: '头像', selector: '.avatar', icon: CircleUser },
       { label: '玩家 ID', selector: '.playerId', icon: Type },
+      { label: '玩家昵称背景框', selector: '.blackBlock', icon: Square },
       { label: '玩家 RKS', selector: '.rks', icon: Gauge },
       { label: '课题模式', selector: '.Challenge', icon: Star },
       { label: '更新时间', selector: '.date', icon: CalendarClock },

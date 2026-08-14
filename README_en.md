@@ -20,7 +20,7 @@ New here? Open the in-app guide from the question mark button in the toolbar. A 
 - Dragging and resizing for semantic and custom elements, with pointer movement compensated for the current canvas zoom; hold `Shift` to temporarily disable snapping
 - Arrow keys nudge the selected element by one pixel, or ten while holding `Shift`
 - Resize handles sit outside the selection, so even text elements barely a dozen pixels tall can be dragged without triggering an accidental resize
-- Layout, typography, appearance, transforms, and SVG `fill`/`stroke` controls in the style panel, including native color pickers
+- Layout, typography, appearance, transforms, and SVG `fill`/`stroke` controls in the style panel; any element can layer image, solid-color, or gradient backgrounds and adjust each corner radius and overall opacity
 - The style panel header shows an ancestor breadcrumb (click to select the containing element), the exported selector, and the override count, and can clear all overrides at once
 - Every style control shows the selected element's computed default; these references do not create CSS overrides or enter exported packages
 - Numeric font size, dimension, and position controls default to `px`, while rotation defaults to `deg`; units can be changed or supplied as complete CSS values
@@ -46,7 +46,7 @@ npm run dev
 
 The development server is available at `http://localhost:5173` by default.
 
-1. Switch between result previews, select or drag a semantic element, and edit its layout, size, color, and appearance in the Style panel. Hold `Shift` while dragging for pointer-exact positioning without snapping, or use the arrow keys for pixel steps.
+1. Switch between result previews, select or drag a semantic element, and edit its layout, size, color, and appearance in the Style panel. Under Appearance > Background, score cards, the player-name backing frame, and any other element can use uploaded images, gradients, corner radii, and opacity. Hold `Shift` while dragging for pointer-exact positioning without snapping, or use the arrow keys for pixel steps.
 2. To style a conditional block, enable its state under Optional Elements in the preview bar; the element then appears on the canvas and behaves like any other selection.
 3. At enlarged zoom levels, hold the right mouse button and drag to pan into areas outside the workbench. Click the zoom percentage or Fit Canvas to recenter.
 4. Search the Components panel by element name or selector, add text and basic shapes under Custom Elements, or upload a local image directly onto the canvas.
@@ -65,6 +65,8 @@ my-theme/
     ├── font.woff2
     ├── custom/
     │   └── image.png
+    ├── elements/
+    │   └── background.png
     └── rating/
         ├── FC.png
         └── phi.png

@@ -21,6 +21,8 @@
   "dependencies": {
     "dompurify": "^3.4.13",
     "grapesjs": "^0.23.5",
+    "grapesjs-style-bg": "^2.0.2",
+    "grapick": "^0.1.13",
     "idb-keyval": "^6.3.0",
     "jszip": "^3.10.1",
     "lucide-react": "^1.31.0",
