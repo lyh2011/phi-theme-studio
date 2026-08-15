@@ -6,6 +6,7 @@ import grapesjs, {
   type StyleProps,
 } from 'grapesjs'
 import styleBackgroundModule from 'grapesjs-style-bg'
+import valueParser, { type Node as ValueNode } from 'postcss-value-parser'
 import { PREVIEW_MARKUP, PROTECTED_CSS } from './preview'
 import { appendCustomComponent, CUSTOM_ELEMENT_KINDS, type CustomElementKind } from './customElements'
 
@@ -58,6 +59,66 @@ const LENGTH_UNITS = ['px', '%', 'em', 'rem', 'vh', 'vw']
 const LENGTH_UNITS_NO_PERCENT = ['px', 'em', 'rem', 'vh', 'vw']
 const BARE_NUMBER_LIST_RE = /^[-+]?(?:\d+\.?\d*|\.\d+)(?:[\s,]+[-+]?(?:\d+\.?\d*|\.\d+))*$/
 const COLOR_PROPERTIES = new Set(['color', 'background-color', 'fill', 'stroke'])
+
+const BACKGROUND_LAYER_DEFAULTS: Record<string, string> = {
+  'background-image': 'none',
+  'background-position': '0%',
+  'background-position-x': '0%',
+  'background-position-y': '0%',
+  'background-size': 'auto',
+  'background-repeat': 'repeat',
+  'background-attachment': 'scroll',
+  'background-origin': 'padding-box',
+  'background-clip': 'border-box',
+  'background-blend-mode': 'normal',
+}
+
+export function repairBackgroundLayerValue(property: string, value: string) {
+  const fallback = BACKGROUND_LAYER_DEFAULTS[property]
+  if (!fallback) return value
+
+  const layers: ValueNode[][] = [[]]
+  for (const node of valueParser(value).nodes) {
+    if (node.type === 'div' && node.value === ',') {
+      layers.push([])
+    } else {
+      layers[layers.length - 1].push(node)
+    }
+  }
+  if (layers.length < 2) return value
+
+  let changed = false
+  const repaired = layers.map((nodes) => {
+    const layer = valueParser.stringify(nodes).trim()
+    if (layer.toLowerCase() !== 'initial') return layer
+    changed = true
+    return fallback
+  })
+  return changed ? repaired.join(', ') : value
+}
+
+export function repairBackgroundLayerStyle(style: StyleProps) {
+  const repaired: StyleProps = {}
+  for (const [property, value] of Object.entries(style)) {
+    if (typeof value !== 'string') continue
+    const nextValue = repairBackgroundLayerValue(property, value)
+    if (nextValue !== value) repaired[property] = nextValue
+  }
+  return repaired
+}
+
+function repairEditorBackgroundLayers(editor: Editor) {
+  for (const rule of editor.Css.getRules()) {
+    const repaired = repairBackgroundLayerStyle(rule.getStyle())
+    if (Object.keys(repaired).length) rule.addStyle(repaired)
+  }
+}
+
+export function setEditorStyle(editor: Editor, style: Parameters<Editor['setStyle']>[0]) {
+  editor.setStyle(style)
+  repairEditorBackgroundLayers(editor)
+  return editor
+}
 
 interface BackgroundPropertyDefinition {
   property?: string
@@ -1180,7 +1241,7 @@ export function createPhiEditor(options: CreateEditorOptions) {
 
 export function resetEditorDocument(editor: Editor, css = '') {
   editor.setComponents(PREVIEW_MARKUP)
-  editor.setStyle(css)
+  setEditorStyle(editor, css)
   lockEditorDocument(editor)
   editor.UndoManager.clear()
   editor.Canvas.fitViewport({ gap: 28, zoom: (zoom) => Math.min(zoom, 80) })

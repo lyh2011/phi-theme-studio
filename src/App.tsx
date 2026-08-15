@@ -40,6 +40,7 @@ import {
   selectAncestor,
   selectedShapeMode,
   selectedStatsTableLayout,
+  setEditorStyle,
   setSelectedShapeMode,
   setStatsTableLayout,
   type ComponentShapeMode,
@@ -248,6 +249,7 @@ function App() {
     instance.on('component:selected', (component) => {
       setSelectedName(component.getName() || component.get('name') || '组件')
       setSelectionTick((value) => value + 1)
+      setRightTab('style')
     })
     instance.on('component:deselected', () => setSelectionTick((value) => value + 1))
     void (async () => {
@@ -268,7 +270,7 @@ function App() {
           setExportMode(persisted.exportMode || DEFAULT_EXPORT_MODE)
           const restoredCss = projectData.styles
           resetEditorDocument(instance)
-          if (Array.isArray(restoredCss)) instance.setStyle(restoredCss)
+          if (Array.isArray(restoredCss)) setEditorStyle(instance, restoredCss)
           // Custom components are kept in project data and appended after the
           // stable runtime preview so the base template remains intact.
           restoreCustomComponents(instance, projectData)
@@ -638,7 +640,7 @@ function App() {
   const applySource = (css: string, template: string) => {
     if (!editor) return
     validateThemeCss(css, assetUrlMap(assets))
-    editor.setStyle(cssForPreview(css, assets))
+    setEditorStyle(editor, cssForPreview(css, assets))
     setCustomTemplate(template)
     setRevision((value) => value + 1)
     setSaveState('dirty')
@@ -760,7 +762,11 @@ function App() {
               editor={editor}
               page={previewPage}
               previewOptions={previewOptions}
-              onSelect={setSelectedName}
+              onSelect={(label) => {
+                setSelectedName(label)
+                setRightTab('style')
+                setMobilePanel('right')
+              }}
               onAddCustom={(kind) => addCustomElement(kind)}
               onUploadCustomImage={() => customImageInputRef.current?.click()}
             />

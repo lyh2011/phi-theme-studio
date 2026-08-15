@@ -53,18 +53,18 @@ const demoAssetUrl = (path: string) => `${import.meta.env.BASE_URL}demo/${path}`
 const defaultFontUrl = () => `${import.meta.env.BASE_URL}font/phi.ttf`
 
 const songSeeds = [
-  ['Luminescence', 'IN', '15.8', '16.31', 'phi', '1000000', '100.00', '01'],
-  ['Stasis', 'AT', '16.7', '16.55', 'FC', '998741', '99.91', '02'],
-  ['Distorted Fate', 'IN', '15.7', '16.42', 'V', '992806', '99.76', '03'],
-  ['DESTRUCTION 3,2,1', 'AT', '17.3', '16.80', 'S', '957285', '99.33', '04'],
-  ['Retribution', 'IN', '16.5', '16.28', 'V', '981768', '99.62', '05'],
-  ['Chronostasis', 'AT', '16.4', '16.15', 'S', '963044', '99.08', '06'],
-  ['Bounded Quietude', 'IN', '16.3', '16.10', 'V', '996571', '99.76', '01'],
-  ['Artificial Existence', 'HD', '15.9', '15.92', 'A', '916947', '97.94', '02'],
-  ['Energy Synergy Matrix', 'EZ', '15.4', '15.41', 'FC', '987620', '99.88', '03'],
-  ['Indelible Scar', 'AT', '16.2', '16.02', 'V', '977803', '99.29', '04'],
-  ['Class Memories', 'IN', '16.1', '15.98', 'S', '943552', '99.43', '05'],
-  ['Snow Desert', 'HD', '15.8', '15.76', 'FC', '990826', '99.34', '06'],
+  ['ENERGY SYNERGY MATRIX', 'IN', '15.8', '16.31', 'phi', '1000000', '100.00', '01'],
+  ['Class Memories', 'AT', '16.7', '16.55', 'FC', '998741', '99.91', '02'],
+  ['Artificial Existence', 'IN', '15.7', '16.42', 'V', '992806', '99.76', '03'],
+  ['Sultan Rage', 'AT', '17.3', '16.80', 'S', '957285', '99.33', '04'],
+  ['Snow Desert', 'IN', '16.5', '16.28', 'V', '981768', '99.62', '05'],
+  ['Indelible Scar', 'AT', '16.4', '16.15', 'S', '963044', '99.08', '06'],
+  ['ENERGY SYNERGY MATRIX', 'IN', '16.3', '16.10', 'V', '996571', '99.76', '01'],
+  ['Class Memories', 'HD', '15.9', '15.92', 'A', '916947', '97.94', '02'],
+  ['Artificial Existence', 'EZ', '15.4', '15.41', 'FC', '987620', '99.88', '03'],
+  ['Sultan Rage', 'AT', '16.2', '16.02', 'V', '977803', '99.29', '04'],
+  ['Snow Desert', 'IN', '16.1', '15.98', 'S', '943552', '99.43', '05'],
+  ['Indelible Scar', 'HD', '15.8', '15.76', 'FC', '990826', '99.34', '06'],
 ] as const
 
 const semantic = (name: string, selector: string) => (
@@ -133,7 +133,6 @@ function songCard(index: number) {
   const bestIndex = index - 2
   const number = phi ? `P${index + 1}` : `#${bestIndex}`
   const kind = phi ? 'phi_song' : bestIndex <= 27 ? 'b_song' : ''
-  const repeated = index >= songSeeds.length ? ` ${Math.floor(index / songSeeds.length) + 1}` : ''
   // The third Phi slot doubles as the .Nosignal placeholder position, matching
   // the runtime template where a missing record replaces the whole card.
   const replaceable = index === 2 ? ' data-phi-optional-not="nosignal"' : ''
@@ -148,7 +147,7 @@ function songCard(index: number) {
         </div>
       </div>
       <div class="info-${rank}" ${semantic(`成绩信息 ${rank}`, `.info-${rank}`)}>
-        <div class="songname" ${semantic('曲名', '.songname')}><p ${semantic('曲名文字', '.songname p')}>${title}${repeated}</p></div>
+        <div class="songname" ${semantic('曲名', '.songname')}><p ${semantic('曲名文字', '.songname p')}>${title}</p></div>
         <div class="songinfo" ${semantic('分数信息', '.songinfo')}>
           <div class="Rating" ${semantic('评级图标', '.Rating')}>
             <img ${semantic('评级图标本体', '.Rating img')} data-rating="${rating}" src="${demoAssetUrl(`rating/${rating}.png`)}" alt="${rating}">

@@ -7,9 +7,37 @@ import {
   normalizeStyleInputUnit,
   nudgeDelta,
   parseTranslatePair,
+  repairBackgroundLayerStyle,
+  repairBackgroundLayerValue,
   statsRowOffsets,
   STYLE_PROPERTY_NAMES,
 } from './createEditor'
+
+describe('parsed background layers', () => {
+  it('replaces invalid initial items without splitting commas inside gradients', () => {
+    expect(repairBackgroundLayerStyle({
+      'background-image': 'linear-gradient(red, blue), url("blob:test"), initial',
+      'background-position-x': 'initial, center, initial',
+      'background-position-y': 'initial, top, initial',
+      'background-size': 'initial, cover, initial',
+      'background-repeat': 'initial, no-repeat, initial',
+    })).toEqual({
+      'background-image': 'linear-gradient(red, blue), url("blob:test"), none',
+      'background-position-x': '0%, center, 0%',
+      'background-position-y': '0%, top, 0%',
+      'background-size': 'auto, cover, auto',
+      'background-repeat': 'repeat, no-repeat, repeat',
+    })
+  })
+
+  it('preserves a whole-property initial and valid layered values', () => {
+    expect(repairBackgroundLayerValue('background-image', 'initial')).toBe('initial')
+    expect(repairBackgroundLayerValue(
+      'background-image',
+      'linear-gradient(red, blue), url("blob:test"), none',
+    )).toBe('linear-gradient(red, blue), url("blob:test"), none')
+  })
+})
 
 describe('component shape modes', () => {
   it('switches clipped components between their native angle and a rectangle', () => {
