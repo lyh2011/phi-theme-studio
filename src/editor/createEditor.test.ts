@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { Component } from 'grapesjs'
 import {
   computedStylePlaceholder,
   clipPathForShape,
@@ -9,9 +10,19 @@ import {
   parseTranslatePair,
   repairBackgroundLayerStyle,
   repairBackgroundLayerValue,
+  shapeControlTargetSelector,
+  statsTableControlTargetSelector,
   statsRowOffsets,
   STYLE_PROPERTY_NAMES,
 } from './createEditor'
+
+function mockComponent(selector: string, classes: string[] = [], parent?: Component) {
+  return {
+    getAttributes: () => ({ 'data-phi-selector': selector }),
+    getClasses: () => classes,
+    parent: () => parent,
+  } as unknown as Component
+}
 
 describe('parsed background layers', () => {
   it('replaces invalid initial items without splitting commas inside gradients', () => {
@@ -54,6 +65,21 @@ describe('component shape modes', () => {
       'calc(var(--row) * 1)',
       '0',
     ])
+  })
+
+  it('finds controls from selectable descendants instead of requiring the outer edge', () => {
+    const recordInfo = mockComponent('.recordInfo', ['recordInfo', 'clip-box'])
+    const sheet = mockComponent('.sheet', ['sheet'], recordInfo)
+    const artwork = mockComponent('.ill', ['ill', 'clip-box'])
+    const artworkImage = mockComponent('.ill img', [], artwork)
+    const difficulty = mockComponent('.rank-IN', ['rank-IN', 'clip-box'])
+    const difficultyText = mockComponent('.rank-IN .org p', [], difficulty)
+
+    expect(shapeControlTargetSelector(sheet)).toBe('.recordInfo')
+    expect(statsTableControlTargetSelector(sheet)).toBe('.recordInfo')
+    expect(shapeControlTargetSelector(artworkImage)).toBe('.ill')
+    expect(shapeControlTargetSelector(difficultyText)).toBe('.rank-IN')
+    expect(shapeControlTargetSelector(mockComponent('.songname p'))).toBe('')
   })
 })
 

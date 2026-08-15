@@ -648,6 +648,32 @@ function clippedComponentClasses(component: Component) {
   return component.getClasses().filter((className) => CLIPPED_COMPONENT_CLASSES.has(className))
 }
 
+function closestRuntimeComponent(
+  component: Component | undefined,
+  predicate: (candidate: Component) => boolean,
+) {
+  for (let candidate = component; candidate; candidate = candidate.parent()) {
+    if (getRuntimeSelector(candidate) && predicate(candidate)) return candidate
+  }
+  return undefined
+}
+
+function shapeControlTarget(component: Component | undefined) {
+  return closestRuntimeComponent(component, (candidate) => clippedComponentClasses(candidate).length > 0)
+}
+
+function statsTableControlTarget(component: Component | undefined) {
+  return closestRuntimeComponent(component, (candidate) => getRuntimeSelector(candidate) === '.recordInfo')
+}
+
+export function shapeControlTargetSelector(component: Component | undefined) {
+  return getRuntimeSelector(shapeControlTarget(component))
+}
+
+export function statsTableControlTargetSelector(component: Component | undefined) {
+  return getRuntimeSelector(statsTableControlTarget(component))
+}
+
 function shapeSelectors(selector: string) {
   return DIFFICULTY_SHAPE_SELECTORS.includes(selector as (typeof DIFFICULTY_SHAPE_SELECTORS)[number])
     ? [...DIFFICULTY_SHAPE_SELECTORS]
@@ -661,7 +687,7 @@ function addRuleStyle(editor: Editor, selector: string, style: StyleProps) {
 }
 
 export function selectedShapeMode(editor: Editor | null): SelectedShapeMode | undefined {
-  const component = editor?.getSelected()
+  const component = shapeControlTarget(editor?.getSelected())
   const selector = getRuntimeSelector(component)
   const classes = component ? clippedComponentClasses(component) : []
   const element = component?.getEl()
@@ -674,7 +700,7 @@ export function selectedShapeMode(editor: Editor | null): SelectedShapeMode | un
 }
 
 export function setSelectedShapeMode(editor: Editor, mode: ComponentShapeMode) {
-  const component = editor.getSelected()
+  const component = shapeControlTarget(editor.getSelected())
   const selector = getRuntimeSelector(component)
   const classes = component ? clippedComponentClasses(component) : []
   if (!component || !selector || !classes.length) return false
@@ -687,8 +713,8 @@ export function setSelectedShapeMode(editor: Editor, mode: ComponentShapeMode) {
 }
 
 export function selectedStatsTableLayout(editor: Editor | null): StatsTableLayout | undefined {
-  const component = editor?.getSelected()
-  if (!component || getRuntimeSelector(component) !== '.recordInfo') return undefined
+  const component = statsTableControlTarget(editor?.getSelected())
+  if (!component) return undefined
   const rows = component.getEl()?.querySelectorAll<HTMLElement>('.row')
   const view = component.getEl()?.ownerDocument.defaultView
   if (!rows?.length || !view) return 'slanted'
@@ -697,8 +723,8 @@ export function selectedStatsTableLayout(editor: Editor | null): StatsTableLayou
 }
 
 export function setStatsTableLayout(editor: Editor, mode: StatsTableLayout) {
-  const component = editor.getSelected()
-  if (!component || getRuntimeSelector(component) !== '.recordInfo') return false
+  const component = statsTableControlTarget(editor.getSelected())
+  if (!component) return false
   statsRowOffsets(mode).forEach((left, index) => {
     addRuleStyle(editor, `.recordInfo .row:nth-child(${index + 1})`, {
       left: `${left} !important`,
