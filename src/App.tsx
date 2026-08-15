@@ -38,7 +38,13 @@ import {
   describeSelection,
   resetEditorDocument,
   selectAncestor,
+  selectedShapeMode,
+  selectedStatsTableLayout,
+  setSelectedShapeMode,
+  setStatsTableLayout,
+  type ComponentShapeMode,
   type EditorUploadedAsset,
+  type StatsTableLayout,
 } from './editor/createEditor'
 import {
   appendCustomComponent,
@@ -360,6 +366,32 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [editor, revision, selectionTick],
   )
+  const shapeMode = useMemo(
+    () => selectedShapeMode(editor),
+    // GrapesJS mutates computed styles in place; these counters invalidate the snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editor, revision, selectionTick],
+  )
+  const statsTableLayout = useMemo(
+    () => selectedStatsTableLayout(editor),
+    // GrapesJS mutates computed styles in place; these counters invalidate the snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editor, revision, selectionTick],
+  )
+
+  const applyShapeMode = (mode: ComponentShapeMode) => {
+    if (!editor || !setSelectedShapeMode(editor, mode)) return
+    setRevision((value) => value + 1)
+    setSelectionTick((value) => value + 1)
+    setSaveState('dirty')
+  }
+
+  const applyStatsTableLayout = (mode: StatsTableLayout) => {
+    if (!editor || !setStatsTableLayout(editor, mode)) return
+    setRevision((value) => value + 1)
+    setSelectionTick((value) => value + 1)
+    setSaveState('dirty')
+  }
 
   const resetSelectedStyles = () => {
     if (!editor) return
@@ -820,6 +852,54 @@ function App() {
                 {selection.overrides ? `${selection.overrides} 项覆盖` : '无覆盖'}
               </button>
             </div>
+            {(shapeMode || statsTableLayout) && (
+              <div className="component-mode-controls">
+                {shapeMode && (
+                  <div className="component-mode-row">
+                    <span>形状</span>
+                    <div className="component-mode-segments" role="group" aria-label={`${selection.name}形状`}>
+                      <button
+                        type="button"
+                        className={shapeMode.mode === 'parallelogram' ? 'active' : ''}
+                        aria-pressed={shapeMode.mode === 'parallelogram'}
+                        onClick={() => applyShapeMode('parallelogram')}
+                      >
+                        <span className="shape-mode-glyph is-slanted" aria-hidden="true" />
+                        {shapeMode.slantedLabel}
+                      </button>
+                      <button
+                        type="button"
+                        className={shapeMode.mode === 'rectangle' ? 'active' : ''}
+                        aria-pressed={shapeMode.mode === 'rectangle'}
+                        onClick={() => applyShapeMode('rectangle')}
+                      >
+                        <span className="shape-mode-glyph" aria-hidden="true" />
+                        长方形
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {statsTableLayout && (
+                  <div className="component-mode-row">
+                    <span>表格排布</span>
+                    <div className="component-mode-segments" role="group" aria-label="成绩统计表排布">
+                      <button
+                        type="button"
+                        className={statsTableLayout === 'slanted' ? 'active' : ''}
+                        aria-pressed={statsTableLayout === 'slanted'}
+                        onClick={() => applyStatsTableLayout('slanted')}
+                      >斜排</button>
+                      <button
+                        type="button"
+                        className={statsTableLayout === 'orthogonal' ? 'active' : ''}
+                        aria-pressed={statsTableLayout === 'orthogonal'}
+                        onClick={() => applyStatsTableLayout('orthogonal')}
+                      >对齐</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <div id="gjs-style-manager" />
             <div id="gjs-trait-manager" />
           </div>

@@ -676,17 +676,19 @@ export async function importThemePackage(file: File): Promise<ImportedTheme> {
     const unsafeName = (entry as typeof entry & { unsafeOriginalName?: string }).unsafeOriginalName
     const name = unsafeName || entry.name
     if (!safeAssetPath(name)) throw new Error(`ZIP 包含不安全路径：${name}`)
-    if (!ALLOWED_EXTENSIONS.has(pathExtension(entry.name))) throw new Error(`不支持的文件类型：${entry.name}`)
   }
+  const unsupportedEntries = entries.filter((entry) => !ALLOWED_EXTENSIONS.has(pathExtension(entry.name)))
+  const unsupportedNames = new Set(unsupportedEntries.map((entry) => entry.name))
+  const supportedEntries = entries.filter((entry) => !unsupportedNames.has(entry.name))
   const infoEntries = entries.filter((entry) => entry.name.endsWith('/info.yaml') || entry.name === 'info.yaml')
   if (infoEntries.length !== 1) throw new Error('主题包必须且只能包含一个 info.yaml')
   const infoEntry = infoEntries[0]
   const rootPrefix = infoEntry.name.slice(0, -'info.yaml'.length)
   if (rootPrefix && rootPrefix.split('/').filter(Boolean).length !== 1) throw new Error('主题包只能包含一个顶层主题目录')
-  if (!rootPrefix && entries.some((entry) => entry.name.includes('/'))) {
+  if (!rootPrefix && supportedEntries.some((entry) => entry.name.includes('/'))) {
     throw new Error('无顶层目录的主题包不能混入子目录文件')
   }
-  for (const entry of entries) {
+  for (const entry of supportedEntries) {
     if (!entry.name.startsWith(rootPrefix)) throw new Error(`ZIP 文件不在主题根目录内：${entry.name}`)
     const relative = entry.name.slice(rootPrefix.length)
     if (!normalizePackagePath(relative)) throw new Error(`ZIP 包含无效资源路径：${entry.name}`)
@@ -711,6 +713,13 @@ export async function importThemePackage(file: File): Promise<ImportedTheme> {
   const id = rawManifest.id || inferredId
   if (!ID_RE.test(id) || RESERVED_IDS.has(id)) throw new Error(`info.yaml 中的主题 ID 不可用：${id}`)
   const warnings: string[] = []
+  if (unsupportedEntries.length) {
+    const shown = unsupportedEntries.slice(0, 3).map((entry) => entry.name)
+    const remaining = unsupportedEntries.length - shown.length
+    warnings.push(
+      `已忽略 ${unsupportedEntries.length} 个不支持的文件：${shown.join('、')}${remaining ? ` 等（另 ${remaining} 个）` : ''}`,
+    )
+  }
   if (rootPrefix && inferredId !== id) warnings.push('ZIP 顶层目录与主题 ID 不一致，导出时会自动规范化。')
 
   const colors = { ...DEFAULT_DRAFT.colors }
@@ -735,6 +744,17 @@ export async function importThemePackage(file: File): Promise<ImportedTheme> {
   for (const path of [resources.background, resources.font, ...Object.values(resources.icons)]) {
     if (path && !safeAssetPath(path)) throw new Error(`info.yaml 包含不安全资源路径：${path}`)
   }
+  const unsupportedPaths = new Set(
+    unsupportedEntries
+      .filter((entry) => entry.name.startsWith(rootPrefix))
+      .map((entry) => entry.name.slice(rootPrefix.length)),
+  )
+  if (resources.background && unsupportedPaths.has(resources.background)) delete resources.background
+  if (resources.font && unsupportedPaths.has(resources.font)) delete resources.font
+  for (const key of RATING_KEYS) {
+    const path = resources.icons[key]
+    if (path && unsupportedPaths.has(path)) delete resources.icons[key]
+  }
 
   const runtimeNames = new Set([
     infoEntry.name,
@@ -744,7 +764,7 @@ export async function importThemePackage(file: File): Promise<ImportedTheme> {
   ].filter((name): name is string => Boolean(name)))
   const assets: PackageAsset[] = []
   try {
-    for (const entry of entries) {
+    for (const entry of supportedEntries) {
       if (runtimeNames.has(entry.name)) continue
       const bytes = await readBytes(entry, MAX_FILE_SIZE, entry.name)
       const relativePath = entry.name.slice(rootPrefix.length)
@@ -757,7 +777,7 @@ export async function importThemePackage(file: File): Promise<ImportedTheme> {
     }
 
     const cssPath = resolveRootPath(rootPrefix, rawManifest.css || 'b19.css')
-    const cssEntry = cssPath ? zip.file(cssPath) as ZipEntry | null : null
+    const cssEntry = cssPath && !unsupportedNames.has(cssPath) ? zip.file(cssPath) as ZipEntry | null : null
     const rawCss = cssEntry ? await readText(cssEntry, MAX_TEXT_SIZE, cssEntry.name) : ''
     const css = cssEntry ? cleanImportedCss(rawCss) : ''
     let exportMode = detectExportMode(rawCss)
@@ -768,7 +788,7 @@ export async function importThemePackage(file: File): Promise<ImportedTheme> {
     validateThemeCss(css, cssAssets)
     if (!cssEntry) warnings.push('主题包未包含 CSS，将从空白覆盖样式开始。')
     const templatePath = resolveRootPath(rootPrefix, rawManifest.template)
-    const templateEntry = templatePath ? zip.file(templatePath) as ZipEntry | null : null
+    const templateEntry = templatePath && !unsupportedNames.has(templatePath) ? zip.file(templatePath) as ZipEntry | null : null
     let customTemplate = templateEntry ? await readText(templateEntry, MAX_TEXT_SIZE, templateEntry.name) : ''
     validateThemeTemplate(customTemplate, assetPaths)
 

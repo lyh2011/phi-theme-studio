@@ -547,6 +547,106 @@ export interface SelectionInfo {
   ancestors: SelectionAncestor[]
 }
 
+export type ComponentShapeMode = 'parallelogram' | 'rectangle'
+export type StatsTableLayout = 'slanted' | 'orthogonal'
+
+export interface SelectedShapeMode {
+  mode: ComponentShapeMode
+  slantedLabel: '平行四边形' | '斜角'
+}
+
+const CLIPPED_COMPONENT_CLASSES = new Set([
+  'clip-box',
+  'clip-box-left',
+  'clip-box-right',
+])
+const DIFFICULTY_SHAPE_SELECTORS = ['.rank-AT', '.rank-IN', '.rank-HD', '.rank-EZ'] as const
+const PARALLELOGRAM_CLIP_PATH = 'polygon(100% 0, calc(100% - calc(var(--height) * var(--clipSlope))) 100%, 0 100%, calc(var(--height) * var(--clipSlope)) 0)'
+const LEFT_ANGLE_CLIP_PATH = 'polygon(100% 0, 100% 100%, 0 100%, calc(var(--height) * var(--clipSlope)) 0)'
+const RIGHT_ANGLE_CLIP_PATH = 'polygon(100% 0, calc(100% - calc(var(--height) * var(--clipSlope))) 100%, 0 100%, 0 0)'
+
+export function clipPathForShape(mode: ComponentShapeMode, classes: readonly string[] = []) {
+  if (mode === 'rectangle') return 'none'
+  if (classes.includes('clip-box-left')) return LEFT_ANGLE_CLIP_PATH
+  if (classes.includes('clip-box-right')) return RIGHT_ANGLE_CLIP_PATH
+  return PARALLELOGRAM_CLIP_PATH
+}
+
+export function statsRowOffsets(mode: StatsTableLayout) {
+  return mode === 'orthogonal'
+    ? ['0', '0', '0', '0']
+    : [
+        'calc(var(--row) * 3)',
+        'calc(var(--row) * 2)',
+        'calc(var(--row) * 1)',
+        '0',
+      ]
+}
+
+function clippedComponentClasses(component: Component) {
+  return component.getClasses().filter((className) => CLIPPED_COMPONENT_CLASSES.has(className))
+}
+
+function shapeSelectors(selector: string) {
+  return DIFFICULTY_SHAPE_SELECTORS.includes(selector as (typeof DIFFICULTY_SHAPE_SELECTORS)[number])
+    ? [...DIFFICULTY_SHAPE_SELECTORS]
+    : [selector]
+}
+
+function addRuleStyle(editor: Editor, selector: string, style: StyleProps) {
+  let rule = editor.Css.getRule(selector)
+  if (!rule) rule = editor.Css.setRule(selector)
+  rule?.addStyle(style)
+}
+
+export function selectedShapeMode(editor: Editor | null): SelectedShapeMode | undefined {
+  const component = editor?.getSelected()
+  const selector = getRuntimeSelector(component)
+  const classes = component ? clippedComponentClasses(component) : []
+  const element = component?.getEl()
+  const view = element?.ownerDocument.defaultView
+  if (!editor || !component || !selector || !classes.length || !element || !view) return undefined
+  return {
+    mode: view.getComputedStyle(element).clipPath === 'none' ? 'rectangle' : 'parallelogram',
+    slantedLabel: classes.some((className) => className !== 'clip-box') ? '斜角' : '平行四边形',
+  }
+}
+
+export function setSelectedShapeMode(editor: Editor, mode: ComponentShapeMode) {
+  const component = editor.getSelected()
+  const selector = getRuntimeSelector(component)
+  const classes = component ? clippedComponentClasses(component) : []
+  if (!component || !selector || !classes.length) return false
+  const clipPath = `${clipPathForShape(mode, classes)} !important`
+  for (const target of shapeSelectors(selector)) {
+    addRuleStyle(editor, target, { 'clip-path': clipPath })
+  }
+  selectRuntimeStyle(editor, component)
+  return true
+}
+
+export function selectedStatsTableLayout(editor: Editor | null): StatsTableLayout | undefined {
+  const component = editor?.getSelected()
+  if (!component || getRuntimeSelector(component) !== '.recordInfo') return undefined
+  const rows = component.getEl()?.querySelectorAll<HTMLElement>('.row')
+  const view = component.getEl()?.ownerDocument.defaultView
+  if (!rows?.length || !view) return 'slanted'
+  const offsets = [...rows].map((row) => view.getComputedStyle(row).left)
+  return new Set(offsets).size === 1 ? 'orthogonal' : 'slanted'
+}
+
+export function setStatsTableLayout(editor: Editor, mode: StatsTableLayout) {
+  const component = editor.getSelected()
+  if (!component || getRuntimeSelector(component) !== '.recordInfo') return false
+  statsRowOffsets(mode).forEach((left, index) => {
+    addRuleStyle(editor, `.recordInfo .row:nth-child(${index + 1})`, {
+      left: `${left} !important`,
+    })
+  })
+  selectRuntimeStyle(editor, component)
+  return true
+}
+
 const MAX_ANCESTORS = 3
 
 function componentName(component: Component) {

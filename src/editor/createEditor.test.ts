@@ -1,13 +1,33 @@
 import { describe, expect, it } from 'vitest'
 import {
   computedStylePlaceholder,
+  clipPathForShape,
   colorPickerPopupPosition,
   createShiftAwareSnapGuides,
   normalizeStyleInputUnit,
   nudgeDelta,
   parseTranslatePair,
+  statsRowOffsets,
   STYLE_PROPERTY_NAMES,
 } from './createEditor'
+
+describe('component shape modes', () => {
+  it('switches clipped components between their native angle and a rectangle', () => {
+    expect(clipPathForShape('rectangle', ['clip-box'])).toBe('none')
+    expect(clipPathForShape('parallelogram', ['clip-box'])).toContain('var(--clipSlope)')
+    expect(clipPathForShape('parallelogram', ['clip-box-left'])).toMatch(/^polygon\(100% 0, 100% 100%/)
+  })
+
+  it('provides aligned and staggered offsets for the statistics table', () => {
+    expect(statsRowOffsets('orthogonal')).toEqual(['0', '0', '0', '0'])
+    expect(statsRowOffsets('slanted')).toEqual([
+      'calc(var(--row) * 3)',
+      'calc(var(--row) * 2)',
+      'calc(var(--row) * 1)',
+      '0',
+    ])
+  })
+})
 
 describe('shift precision dragging', () => {
   it('disables both snap axes while Shift is held and restores their thresholds', () => {

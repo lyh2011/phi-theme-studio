@@ -682,6 +682,70 @@
 .override-reset:disabled { opacity: 0.55; }
 .override-reset:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 
+.component-mode-controls {
+  display: grid;
+  gap: 7px;
+  padding: 9px 12px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+
+.component-mode-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: #606970;
+  font-size: 10px;
+}
+
+.component-mode-segments {
+  min-width: 0;
+  height: 30px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  padding: 2px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.component-mode-segments button {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  padding: 0 6px;
+  color: #687279;
+  background: transparent;
+  border: 0;
+  border-radius: 2px;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.component-mode-segments button:hover { color: var(--teal-dark); }
+.component-mode-segments button.active {
+  color: #fff;
+  background: var(--teal);
+  box-shadow: 0 1px 2px rgba(20, 35, 39, 0.16);
+}
+.component-mode-segments button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+
+.shape-mode-glyph {
+  width: 14px;
+  height: 9px;
+  flex: 0 0 14px;
+  border: 1px solid currentColor;
+}
+
+.shape-mode-glyph.is-slanted { transform: skewX(-16deg) scaleX(0.88); }
+
 #gjs-trait-manager:empty { display: none; }
 
 /* GrapesJS manager integration */

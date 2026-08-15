@@ -423,6 +423,21 @@ describe('theme package round trip', () => {
     await expect(importThemePackage(new File([blob], 'mixed-root.zip'))).rejects.toThrow(/不在主题根目录/)
   })
 
+  it('ignores unsupported files and reports them as import warnings', async () => {
+    const zip = new JSZip()
+    zip.file('supported/info.yaml', 'id: supported\nname: Supported')
+    zip.file('supported/source.psd', new Uint8Array([1, 2, 3]))
+    zip.file('__MACOSX/.DS_Store', new Uint8Array([4, 5, 6]))
+    const blob = await zip.generateAsync({ type: 'blob' })
+
+    const imported = await importThemePackage(new File([blob], 'unsupported-files.zip'))
+
+    expect(imported.draft.id).toBe('supported')
+    expect(imported.assets).toEqual([])
+    expect(imported.warnings.join(' ')).toMatch(/source\.psd/)
+    expect(imported.warnings.join(' ')).toMatch(/\.DS_Store/)
+  })
+
   it('ignores studio projects with scripts and falls back to package CSS', async () => {
     const zip = new JSZip()
     zip.file('safe/info.yaml', 'id: safe\nname: Safe\ncss: b19.css')
