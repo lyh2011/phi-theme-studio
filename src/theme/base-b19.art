@@ -1,7 +1,7 @@
 {{extend defaultLayout}}
 
 {{block 'css'}}
-{{if themeInfo && themeInfo.cssUrl}}
+{{if themeInfo && themeInfo.cssUrl && themeInfo.cssMode == "replace"}}
 <link rel="stylesheet" href="{{themeInfo.cssUrl}}">
 {{else}}
 <link rel="stylesheet" href="{{_res_path}}html/b19/b19.css">
@@ -122,7 +122,7 @@
             </div>
             <div class="songinfo">
                 <div class="Rating">
-                    <img src="{{ratingIcons && ratingIcons[song.Rating] ? ratingIcons[song.Rating] : (themeInfo && themeInfo.icons && themeInfo.icons[song.Rating] ? themeInfo.icons[song.Rating] : (_res_path + 'html/otherimg/' + song.Rating + '.png'))}}" alt="{{song.Rating}}" style="{{ratingIconStyles && ratingIconStyles[song.Rating] ? ratingIconStyles[song.Rating] : ''}}">
+                    <img src="{{themeInfo && themeInfo.icons && themeInfo.icons[song.Rating] ? themeInfo.icons[song.Rating] : (_res_path + 'html/otherimg/' + song.Rating + '.png')}}" alt="{{song.Rating}}">
                 </div>
                 <div class="chengji">
                     <div class="score">
@@ -158,7 +158,7 @@
             ></path>
             {{/if}}
             </svg>
-            <p>Avg: {{song.accAvg.toFixed(4)}}%</p>
+            <p>{{song.accAvg && song.accAvg.toFixed ? ('Avg: ' + song.accAvg.toFixed(4) + '%') : song.accAvg}}</p>
         </div>
         {{/if}}
         {{if song.cpToOld}}
@@ -256,7 +256,7 @@
             </div>
             <div class="songinfo">
                 <div class="Rating">
-                    <img src="{{ratingIcons && ratingIcons[song.Rating] ? ratingIcons[song.Rating] : (themeInfo && themeInfo.icons && themeInfo.icons[song.Rating] ? themeInfo.icons[song.Rating] : (_res_path + 'html/otherimg/' + song.Rating + '.png'))}}" alt="{{song.Rating}}" style="{{ratingIconStyles && ratingIconStyles[song.Rating] ? ratingIconStyles[song.Rating] : ''}}">
+                    <img src="{{themeInfo && themeInfo.icons && themeInfo.icons[song.Rating] ? themeInfo.icons[song.Rating] : (_res_path + 'html/otherimg/' + song.Rating + '.png')}}" alt="{{song.Rating}}">
                 </div>
                 <div class="chengji">
                     <div class="score">
@@ -322,7 +322,7 @@
     {{/each}}
 
 </div>
-{{if b30Analysis}}
+{{if b30Analysis && b30Analysis.histogram}}
 <div class="over_flow">
     <div class="flow_line_box_l">
         <div class="flow_line"></div>
@@ -357,7 +357,7 @@
             <div class="tag-analysis-content">
                 <div class="tag-radar-column">
                     <div class="tag-radar-title"><span></span><p>分类汇总</p></div>
-                    {{if b30Analysis.tagAnalysis && b30Analysis.tagAnalysis.radar.categories.length}}
+                    {{if b30Analysis.tagAnalysis && b30Analysis.tagAnalysis.radar && b30Analysis.tagAnalysis.radar.categories && b30Analysis.tagAnalysis.radar.categories.length}}
                     <svg class="tag-radar" viewBox="0 0 200 184" aria-label="分类标签能力雷达图">
                         {{each b30Analysis.tagAnalysis.radar.grids grid}}
                         <polygon class="tag-radar-grid" points="{{grid}}"></polygon>
@@ -379,24 +379,24 @@
                 <div class="tag-ranking-column">
                     <div class="tag-ranking-group strong-tags">
                         <div class="tag-column-title"><span></span><p>擅长词条</p></div>
-                        {{if b30Analysis.tagAnalysis}}
+                        {{if b30Analysis.tagAnalysis && b30Analysis.tagAnalysis.strong}}
                         {{each b30Analysis.tagAnalysis.strong tag}}
                         <div class="tag-result-row">
                             <p class="tag-rank">{{$index + 1}}</p>
                             <p class="tag-name">{{tag.name}}</p>
-                            <p class="tag-rks">{{tag.rks.toFixed(2)}}</p>
+                            <p class="tag-rks">{{tag.displayRks || (tag.rks && tag.rks.toFixed ? tag.rks.toFixed(2) : tag.rks)}}</p>
                         </div>
                         {{/each}}
                         {{/if}}
                     </div>
                     <div class="tag-ranking-group weak-tags">
                         <div class="tag-column-title"><span></span><p>薄弱词条</p></div>
-                        {{if b30Analysis.tagAnalysis}}
+                        {{if b30Analysis.tagAnalysis && b30Analysis.tagAnalysis.weak}}
                         {{each b30Analysis.tagAnalysis.weak tag}}
                         <div class="tag-result-row">
                             <p class="tag-rank">{{$index + 1}}</p>
                             <p class="tag-name">{{tag.name}}</p>
-                            <p class="tag-rks">{{tag.rks.toFixed(2)}}</p>
+                            <p class="tag-rks">{{tag.displayRks || (tag.rks && tag.rks.toFixed ? tag.rks.toFixed(2) : tag.rks)}}</p>
                         </div>
                         {{/each}}
                         {{/if}}

@@ -1,0 +1,417 @@
+@import "../common/common.css";
+
+html,
+body {
+    min-height: 0;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: content-box;
+}
+
+img {
+    display: inline;
+    max-width: none;
+}
+
+body {
+    flex-direction: column;
+    display: flex;
+    width: 1200px;
+    height: 4237px;
+    font-family: "PHI", "NotoSansArabic", "NotoSansSymbols2", "NOTO", "NotoSansJP", "HIMALAYA", "吞弥恰俊", sans-serif;
+    align-items: center;
+    color: white;
+    margin: 0px;
+    position: relative;
+    overflow: hidden;
+}
+
+body p {
+    color: white;
+    margin: 0px;
+    margin-block: 0;
+    margin-inline: 0;
+}
+
+.background img {
+    height: 100%;
+    min-width: 100%;
+    /* filter: blur(100px) brightness(75%); */
+}
+
+.num,
+.title,
+.dif,
+.left,
+.right,
+.rks {
+    backdrop-filter: blur(30px);
+}
+
+.help-group {
+    width: 100%;
+    padding-left: 1%;
+    height: 80px;
+    display: flex;
+    backdrop-filter: blur(10px);
+    align-items: center;
+    justify-content: center;
+    font-size: 43px;
+}
+
+.help_box {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    z-index: 1;
+    overflow: auto;
+    width: 90%;
+    flex-wrap: wrap;
+    align-content: center;
+    overflow: hidden;
+}
+
+.line {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    FONT-VARIANT: JIS04;
+    width: 33.33333333333333333333%;
+    height: 121px;
+    /* margin-bottom: 2.5%; */
+    background-color: #2d81e64a;
+    backdrop-filter: blur(10px);
+}
+
+.order {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 40%;
+    background: #87ceeb4a;
+    border: skyblue 1px solid;
+    box-sizing: border-box;
+}
+
+.order p {
+    color: white;
+    font-size: 30px;
+    text-align: center;
+}
+
+.info_box {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    width: 60%;
+    height: 100%;
+}
+
+.up {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+    height: 20%;
+    color: white;
+    font-size: 18px;
+    white-space: nowrap;
+    position: relative;
+}
+
+.num,
+.song,
+.Master {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.num {
+    text-align: center;
+    width: 7%;
+    padding-right: 1%;
+    background-color: #649cca88;
+    clip-path: polygon(0% 0%, 100% 0%, 86% 100%, 0% 100%);
+}
+
+.song {
+    width: 90%;
+    background-color: #87ceeb88;
+    padding-left: 2%;
+    padding-right: 1%;
+    margin-left: -0.8%;
+    justify-content: flex-start;
+    clip-path: polygon(1.3% 0%, 100% 0%, 100% 100%, 0% 100%);
+}
+
+.song p {
+    font-size: 16px;
+}
+
+.Master {
+    width: 21%;
+    padding-left: 1%;
+    right: 0;
+    background: #ff6161;
+    position: absolute;
+    clip-path: polygon(6% 0%, 100% 0%, 100% 100%, 0% 100%);
+}
+
+.down {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+    height: 80%;
+    margin: 1%;
+    width: 97.9%;
+}
+
+.desc {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.desc p {
+    font-size: 15px;
+}
+
+/* The Bot layout runs adjustFontSize() after rendering. The standalone editor
+   fixture has no runtime script, so mirror its measured per-cell results. */
+.help_box:nth-of-type(8) > .line:nth-of-type(14) .order p {
+    font-size: 17px;
+}
+
+.help_box:nth-of-type(8) > .line:nth-of-type(15) .order p {
+    font-size: 18px;
+}
+
+.help_box:nth-of-type(2) > .line:nth-of-type(12) .order p {
+    font-size: 20px;
+}
+
+.help_box:nth-of-type(4) > .line:nth-of-type(1) .order p,
+.help_box:nth-of-type(4) > .line:nth-of-type(2) .order p,
+.help_box:nth-of-type(4) > .line:nth-of-type(3) .order p,
+.help_box:nth-of-type(4) > .line:nth-of-type(4) .order p,
+.help_box:nth-of-type(4) > .line:nth-of-type(5) .order p,
+.help_box:nth-of-type(4) > .line:nth-of-type(6) .order p {
+    font-size: 22px;
+}
+
+.help_box:nth-of-type(2) > .line:nth-of-type(15) .order p,
+.help_box:nth-of-type(3) > .line:nth-of-type(2) .order p,
+.help_box:nth-of-type(5) > .line:nth-of-type(3) .order p,
+.help_box:nth-of-type(5) > .line:nth-of-type(7) .order p {
+    font-size: 24px;
+}
+
+.help_box:nth-of-type(8) > .line:nth-of-type(7) .order p {
+    font-size: 25px;
+}
+
+.help_box:nth-of-type(3) > .line:nth-of-type(1) .order p,
+.help_box:nth-of-type(8) > .line:nth-of-type(4) .order p,
+.help_box:nth-of-type(8) > .line:nth-of-type(5) .order p {
+    font-size: 26px;
+}
+
+.help_box:nth-of-type(2) > .line:nth-of-type(6) .song p,
+.help_box:nth-of-type(2) > .line:nth-of-type(10) .song p {
+    font-size: 7px;
+}
+
+.help_box:nth-of-type(2) > .line:nth-of-type(12) .song p,
+.help_box:nth-of-type(3) > .line:nth-of-type(13) .song p,
+.help_box:nth-of-type(4) > .line:nth-of-type(1) .song p {
+    font-size: 9px;
+}
+
+.help_box:nth-of-type(3) > .line:nth-of-type(3) .song p,
+.help_box:nth-of-type(3) > .line:nth-of-type(10) .song p,
+.help_box:nth-of-type(3) > .line:nth-of-type(14) .song p,
+.help_box:nth-of-type(6) > .line:nth-of-type(3) .song p {
+    font-size: 10px;
+}
+
+.help_box:nth-of-type(3) > .line:nth-of-type(7) .song p,
+.help_box:nth-of-type(4) > .line:nth-of-type(5) .song p,
+.help_box:nth-of-type(6) > .line:nth-of-type(1) .song p {
+    font-size: 11px;
+}
+
+.help_box:nth-of-type(1) > .line:nth-of-type(1) .song p,
+.help_box:nth-of-type(3) > .line:nth-of-type(6) .song p,
+.help_box:nth-of-type(4) > .line:nth-of-type(4) .song p {
+    font-size: 12px;
+}
+
+.help_box:nth-of-type(8) > .line:nth-of-type(4) .song p {
+    font-size: 14px;
+}
+
+.help_box:nth-of-type(5) > .line:nth-of-type(3) .song p,
+.help_box:nth-of-type(6) > .line:nth-of-type(2) .song p {
+    font-size: 15px;
+}
+
+.help_box:nth-of-type(2) > .line:nth-of-type(6) .desc p {
+    font-size: 10px;
+}
+
+.help_box:nth-of-type(1) > .line:nth-of-type(2) .desc p,
+.help_box:nth-of-type(6) > .line:nth-of-type(4) .desc p,
+.help_box:nth-of-type(8) > .line:nth-of-type(13) .desc p {
+    font-size: 12px;
+}
+
+.help_box:nth-of-type(6) > .line:nth-of-type(9) .desc p {
+    font-size: 13px;
+}
+
+.help_box:nth-of-type(3) > .line:nth-of-type(13) .desc p,
+.help_box:nth-of-type(3) > .line:nth-of-type(14) .desc p {
+    font-size: 14px;
+}
+
+.desc img {
+    height: 100%;
+}
+
+.left,
+.right {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    width: 38%;
+    height: 100%;
+}
+
+.left {
+    padding-right: 10%;
+    padding-left: 3%;
+    background-color: #667d8688;
+    clip-path: polygon(0% 0%, 100% 0%, 91% 100%, 0% 100%);
+}
+
+.suggest {
+    position: absolute;
+    font-size: 16px;
+    top: 15%;
+    left: 33%;
+    color: greenyellow;
+}
+
+.right {
+    padding-left: 10%;
+    padding-right: 3%;
+    margin-left: -3%;
+    background-color: #87ceeb88;
+    clip-path: polygon(9% 0%, 100% 0%, 100% 100%, 0% 100%);
+}
+
+.box-title {
+    font-size: 22px;
+    height: 33%;
+}
+
+.box-content {
+    font-size: 33px;
+    margin-top: -5%;
+    margin-bottom: -5%;
+}
+
+.score {
+    width: 39%;
+    margin-left: 1%;
+    padding-left: 1%;
+    background-color: #31718c88;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    border: 3px #2eb1e688 solid;
+    box-sizing: border-box;
+}
+
+.score-title {
+    font-size: 23px;
+    height: 41%;
+}
+
+.score-content {
+    font-size: 35px;
+    margin-top: -5%;
+    margin-bottom: -3%;
+}
+
+.Rating {
+    position: absolute;
+    display: flex;
+    /* right: 2%; */
+    /* width: 8%; */
+    height: 90%;
+    right: 28%;
+}
+
+.Rating img {
+    width: 100%;
+}
+
+.createdbox {
+    padding-bottom: 100px;
+    padding-top: 70px;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    height: 209px;
+    padding-bottom: 0;
+    box-sizing: border-box;
+    color: white;
+    font-size: 16px;
+    letter-spacing: 0;
+}
+
+.phi-plugin,
+.ver {
+    display: flex;
+}
+
+.createdbox p {
+    color: white;
+    font-family: "Aldrich", "PHI";
+}
+
+.phi-plugin p {
+    font-size: 40px;
+    text-shadow: 0 0 20px #00baff;
+}
+
+.ver p {
+    font-size: 25px;
+    text-shadow: 0 0 20px #fff700;
+}
+
+/* GrapesJS wraps the fixture in a full-width root element. Keep the command
+   groups centered exactly as they are when they are direct children of body. */
+.help_box {
+    margin-left: auto;
+    margin-right: auto;
+}

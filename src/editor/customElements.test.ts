@@ -4,6 +4,7 @@ import baseB19Art from '../theme/base-b19.art?raw'
 import {
   buildCustomTemplate,
   collectCustomNodes,
+  compactProjectData,
   sourceTemplateForEditing,
   templateForProject,
 } from './customElements'
@@ -44,6 +45,30 @@ describe('custom element project data', () => {
     })
 
     expect(collectCustomNodes(project)).toEqual([text, image])
+  })
+
+  it('compacts fixed fixture DOM while preserving custom element subtrees', () => {
+    const custom = customNode('text', {}, '')
+    Object.assign(custom, {
+      components: [
+        { type: 'textnode', content: '保留 ' },
+        { tagName: 'strong', components: [{ type: 'textnode', content: '富文本' }] },
+      ],
+    })
+    const project = {
+      ...projectWith({
+        tagName: 'main',
+        attributes: { 'data-large-fixed-fixture': 'x'.repeat(100_000) },
+        components: [{ tagName: 'section' }],
+      }, custom),
+      styles: [{ selectors: ['fixed'], style: { color: 'red' } }],
+    } as unknown as ProjectData
+
+    const compact = compactProjectData(project)
+
+    expect(JSON.stringify(compact)).not.toContain('data-large-fixed-fixture')
+    expect((compact as { styles?: unknown[] }).styles).toEqual([])
+    expect(collectCustomNodes(compact)).toEqual([custom])
   })
 })
 
@@ -105,6 +130,16 @@ describe('custom element ArtTemplate generation', () => {
     expect(generated).toMatch(/{{block ['"]main['"]}}/)
     expect(generated).toContain('data-phi-custom="circle"')
     expect(generated).toContain('{{/block}}')
+  })
+
+  it('keeps the plugin base stylesheet when a generated template uses overlay CSS', () => {
+    const generated = templateForProject('', projectWith(customNode('circle')))
+
+    expect(generated).toContain('themeInfo.cssMode == "replace"')
+    expect(generated).toContain('{{_res_path}}html/b19/b19.css')
+    expect(generated).toContain('themeInfo.icons[song.Rating]')
+    expect(generated).not.toContain('ratingIcons')
+    expect(generated).not.toContain('ratingIconStyles')
   })
 
   it('replaces generated elements after re-import and strips the bundled base from source editing', () => {

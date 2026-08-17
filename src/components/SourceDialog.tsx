@@ -6,13 +6,24 @@ interface SourceDialogProps {
   css: string
   template: string
   yaml: string
+  cssLabel?: string
+  templateEditable?: boolean
   onClose: () => void
   onApply: (css: string, template: string) => void
 }
 
 type SourceTab = 'css' | 'template' | 'yaml'
 
-export function SourceDialog({ open, css, template, yaml, onClose, onApply }: SourceDialogProps) {
+export function SourceDialog({
+  open,
+  css,
+  template,
+  yaml,
+  cssLabel = 'b19.css',
+  templateEditable = true,
+  onClose,
+  onApply,
+}: SourceDialogProps) {
   const [tab, setTab] = useState<SourceTab>('css')
   const [cssValue, setCssValue] = useState(css)
   const [templateValue, setTemplateValue] = useState(template)
@@ -20,10 +31,11 @@ export function SourceDialog({ open, css, template, yaml, onClose, onApply }: So
 
   useEffect(() => {
     if (!open) return
+    setTab('css')
     setCssValue(css)
     setTemplateValue(template)
     setError('')
-  }, [open, css, template])
+  }, [open, css, template, templateEditable])
 
   if (!open) return null
   const apply = () => {
@@ -48,8 +60,8 @@ export function SourceDialog({ open, css, template, yaml, onClose, onApply }: So
           <button type="button" className="icon-button" title="关闭" onClick={onClose}><X size={18} /></button>
         </header>
         <nav className="source-tabs" aria-label="源码类型">
-          <button type="button" className={tab === 'css' ? 'active' : ''} onClick={() => setTab('css')}>b19.css</button>
-          <button type="button" className={tab === 'template' ? 'active' : ''} onClick={() => setTab('template')}>b19.art</button>
+          <button type="button" className={tab === 'css' ? 'active' : ''} onClick={() => setTab('css')}>{cssLabel}</button>
+          {templateEditable && <button type="button" className={tab === 'template' ? 'active' : ''} onClick={() => setTab('template')}>b19.art</button>}
           <button type="button" className={tab === 'yaml' ? 'active' : ''} onClick={() => setTab('yaml')}>info.yaml</button>
         </nav>
         <div className="source-editor">

@@ -9,6 +9,7 @@ import styleBackgroundModule from 'grapesjs-style-bg'
 import valueParser, { type Node as ValueNode } from 'postcss-value-parser'
 import { PREVIEW_MARKUP, PROTECTED_CSS } from './preview'
 import { appendCustomComponent, CUSTOM_ELEMENT_KINDS, type CustomElementKind } from './customElements'
+import { componentLabelForSelector, localizeComponentName } from './componentLabels'
 
 // The plugin publishes CommonJS plus ESM declarations. Vite exposes the
 // CommonJS namespace in development, while Node resolves the declared default.
@@ -27,6 +28,10 @@ interface CreateEditorOptions {
   layers: HTMLElement
   styles: HTMLElement
   traits: HTMLElement
+  /** Initial static page markup. Defaults to the B19 fixture. */
+  components?: string
+  /** Additional protected CSS for the initial page fixture. */
+  protectedCss?: string
   onReady: (editor: Editor) => void
   onUpdate: () => void
   onAssetUpload: (files: File[]) => Promise<EditorUploadedAsset[]>
@@ -549,7 +554,14 @@ function lockComponent(component: Component) {
   const runtimeSelector = getRuntimeSelector(component)
   const customKind = component.getAttributes()['data-phi-custom']
   const isCustom = typeof customKind === 'string' && customKind.length > 0
+  const configuredName = component.get('name')
+  const name = typeof configuredName === 'string' && configuredName
+    ? localizeComponentName(configuredName)
+    : runtimeSelector
+      ? componentLabelForSelector(runtimeSelector)
+      : localizeComponentName(component.getName() || '组件')
   component.set({
+    name,
     // Translate mode changes visual position only; the runtime template structure stays fixed.
     draggable: Boolean(runtimeSelector) || isCustom,
     droppable: false,
@@ -566,7 +578,10 @@ function lockComponent(component: Component) {
 
 export function lockEditorDocument(editor: Editor) {
   const wrapper = editor.getWrapper()
-  if (wrapper) lockComponent(wrapper)
+  if (wrapper) {
+    wrapper.set('name', '画布')
+    lockComponent(wrapper)
+  }
   editor.setDragMode('translate')
 }
 
@@ -1156,8 +1171,11 @@ export function createPhiEditor(options: CreateEditorOptions) {
     // Keep the frame scrollable at every zoom level. The outer stage remains
     // clipped, while the iframe itself can be reached by right-button panning.
     canvas: { scrollableCanvas: true },
-    protectedCss: PROTECTED_CSS,
-    components: PREVIEW_MARKUP,
+    // `undefined` keeps the legacy B19 defaults; an explicit empty string is
+    // useful for the multi-page workspace, which replaces the frame base CSS
+    // through setCanvasBaseCss when the active render target changes.
+    protectedCss: options.protectedCss ?? PROTECTED_CSS,
+    components: options.components ?? PREVIEW_MARKUP,
     style: '',
     panels: { defaults: [] },
     plugins: [(instance) => styleBackground(instance, { propExtender: localizeBackgroundProperty })],
@@ -1265,10 +1283,29 @@ export function createPhiEditor(options: CreateEditorOptions) {
   return editor
 }
 
-export function resetEditorDocument(editor: Editor, css = '') {
-  editor.setComponents(PREVIEW_MARKUP)
+/**
+ * Replace the active fixture while keeping the GrapesJS instance alive.
+ * Page-specific base styles are injected into the iframe separately so they
+ * never become exportable user overrides.
+ */
+export function resetEditorDocument(editor: Editor, css = '', components = PREVIEW_MARKUP) {
+  editor.setComponents(components)
   setEditorStyle(editor, css)
   lockEditorDocument(editor)
   editor.UndoManager.clear()
   editor.Canvas.fitViewport({ gap: 28, zoom: (zoom) => Math.min(zoom, 80) })
+}
+
+/** Inject or replace a non-exported stylesheet in the active canvas frame. */
+export function setCanvasBaseCss(editor: Editor, css: string, id = 'phi-page-base-css') {
+  const document = editor.Canvas.getDocument()
+  if (!document) return
+  let style = document.getElementById(id) as HTMLStyleElement | null
+  if (!style) {
+    style = document.createElement('style')
+    style.id = id
+    style.dataset.phiProtected = 'true'
+    document.head.append(style)
+  }
+  style.textContent = css
 }

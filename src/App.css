@@ -386,21 +386,58 @@
   min-width: 0;
   height: 100%;
   display: grid;
-  grid-template-rows: 42px minmax(0, 1fr) 28px;
+  /* The desktop view bar has a third line for the canvas dimensions. */
+  grid-template-rows: 94px minmax(0, 1fr) 28px;
   background: var(--canvas);
 }
 
 .canvas-viewbar {
   min-width: 0;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 4px;
   padding: 5px 10px;
   color: #c5cbcf;
   background: #252a2e;
   border-bottom: 1px solid #3b4247;
 }
+
+.page-segmented,
+.preview-subbar {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-segmented {
+  flex: 0 0 30px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.page-segmented::-webkit-scrollbar { height: 3px; }
+.page-segmented::-webkit-scrollbar-thumb { background: #4b555b; border-radius: 3px; }
+
+.page-segmented button {
+  flex: 0 0 auto;
+  height: 26px;
+  padding: 0 10px;
+  color: #aeb6bb;
+  background: #171b1e;
+  border: 1px solid #3b4247;
+  border-radius: 4px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.page-segmented button:hover { color: #fff; background: #30363a; }
+.page-segmented button.active { color: #fff; background: var(--teal); border-color: var(--teal); font-weight: 650; }
+.page-segmented button:focus-visible { outline: 2px solid #6bd1c7; outline-offset: -2px; }
+
+.preview-subbar { flex: 0 0 30px; justify-content: center; }
 
 .preview-segmented {
   min-width: 0;
@@ -1484,9 +1521,27 @@
   .topbar-status { display: none; }
   .inspector-tabs button span { display: none; }
   .preview-dimensions { display: none; }
+  .canvas-column { grid-template-rows: 76px minmax(0, 1fr) 28px; }
 }
 
 @media (max-width: 900px) {
+  .topbar {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .brand-block { width: 180px; flex: 0 0 180px; }
+  .mobile-panel-buttons,
+  .editor-toolbar,
+  .topbar-actions { flex: 0 0 auto; }
+  .editor-toolbar { min-width: max-content; }
+  .topbar-actions { margin-left: 0; }
+  .topbar-actions .compact {
+    width: 34px;
+    min-width: 34px;
+    padding: 0;
+    font-size: 0;
+    gap: 0;
+  }
   .studio-workspace { grid-template-columns: minmax(0, 1fr); }
   .mobile-panel-buttons { display: flex; }
   .left-sidebar,
@@ -1554,6 +1609,7 @@
     align-content: center;
     gap: 4px 8px;
     padding: 0 8px;
+    overflow-x: visible;
   }
   .brand-block {
     width: calc(100% - 186px);
@@ -1577,14 +1633,18 @@
   .right-sidebar { top: 96px; }
   .canvas-statusbar { grid-template-columns: 1fr auto; }
   .canvas-statusbar .selected-component { display: none; }
-  .canvas-column { grid-template-rows: 48px minmax(0, 1fr) 28px; }
+  .canvas-column { grid-template-rows: 76px minmax(0, 1fr) 28px; }
   .canvas-viewbar {
-    justify-content: flex-start;
+    justify-content: center;
+    flex-direction: column;
     padding: 6px 8px;
-    overflow-x: auto;
+    overflow: hidden;
     scrollbar-width: none;
   }
   .canvas-viewbar::-webkit-scrollbar { display: none; }
+  .page-segmented { flex: 0 0 30px; }
+  .page-segmented::-webkit-scrollbar { display: none; }
+  .preview-subbar { justify-content: flex-start; overflow-x: auto; }
   .preview-segmented {
     min-width: max-content;
     grid-template-columns: repeat(5, auto);

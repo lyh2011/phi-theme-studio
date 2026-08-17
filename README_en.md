@@ -12,7 +12,8 @@ New here? Open the in-app guide from the question mark button in the toolbar. A 
 
 ## Features
 
-- B19, B27, B30, B33 (Overflow), and B30 analysis previews
+- B19, B27, B30, B33 (Overflow), and B30 analysis states
+- Independent visual CSS editing for daily sign-in, save update, challenge mode, Arcaea-style B19, suggestions, constant table, score list, B30 history, plugin settings, user settings, constant history, and help pages
 - Optional-element toggles reveal the conditional blocks phi-plugin only renders for certain saves or plugin settings: version notices, average ACC badges, constant comparisons, the no-signal placeholder, insufficient tag data, and the wide histogram layout
 - GrapesJS selection and dragging of semantic result elements, emitted as stable runtime CSS selectors for phi-plugin
 - The component index covers player info, score cards, conditional blocks, and analysis panels, and is searchable by name or selector
@@ -29,9 +30,9 @@ New here? Open the in-app guide from the question mark button in the toolbar. A 
 - Preview defaults to phi-plugin's PHI font and allows a packaged theme font to override it
 - Theme metadata and live AT/IN/HD/EZ preview color controls
 - Background, font, and rating icon asset management
-- Import existing phi-plugin theme ZIP files
-- Export directly extractable `resources/html/b19/themes/` packages, as either an override or a self-contained stylesheet
-- Editable project configuration stored in `studio.json` for later re-import
+- Import legacy single-page and current multi-page phi-plugin theme ZIP files
+- Export directly extractable multi-page `resources/html/b19/themes/` packages, with override or self-contained B19 styles
+- Per-page editable state stored in `studio.json` v2 for later re-import
 - IndexedDB autosave, undo/redo, and advanced source editing
 - CSS, asset path, ZIP Slip, file count, and size validation
 - Untrusted `studio.json` script filtering and decompressed ZIP size limits
@@ -46,7 +47,7 @@ npm run dev
 
 The development server is available at `http://localhost:5173` by default.
 
-1. Switch between result previews, select or drag a semantic element, and edit its layout, size, color, and appearance in the Style panel. Under Appearance > Background, score cards, the player-name backing frame, and any other element can use uploaded images, gradients, corner radii, and opacity. Hold `Shift` while dragging for pointer-exact positioning without snapping, or use the arrow keys for pixel steps.
+1. Choose a phi-plugin page from the first tab row; B19 also exposes its five result states in a second row. Select or drag a semantic element, then edit its layout, size, color, and appearance in the Style panel.
 2. To style a conditional block, enable its state under Optional Elements in the preview bar; the element then appears on the canvas and behaves like any other selection.
 3. At enlarged zoom levels, hold the right mouse button and drag to pan into areas outside the workbench. Click the zoom percentage or Fit Canvas to recenter.
 4. Search the Components panel by element name or selector, add text and basic shapes under Custom Elements, or upload a local image directly onto the canvas.
@@ -58,6 +59,10 @@ The development server is available at `http://localhost:5173` by default.
 my-theme/
 ├── info.yaml
 ├── b19.css
+├── pages/
+│   ├── sign-sign.css
+│   ├── setting-userSetting.css
+│   └── ...                 # one overlay per standalone page
 ├── b19.art                 # generated for canvas custom elements or an advanced template
 ├── studio.json
 └── assets/
@@ -74,7 +79,7 @@ my-theme/
 
 ### Stylesheet Shape
 
-The Export panel offers two shapes for `b19.css`. Both render identically under phi-plugin; they differ only in where the base styles come from.
+The Export panel offers two shapes for `b19.css`. Both render identically under phi-plugin; they differ only in where the B19 base styles come from. Stylesheets under `pages/` are always overlays on their corresponding plugin page.
 
 **Override mode (default)** ships only your changes and imports the current phi-plugin base stylesheet:
 
@@ -96,13 +101,13 @@ Packages stay tiny and pick up upstream fixes automatically, at the cost of foll
 
 The appearance is pinned against upstream edits, at the cost of missing upstream improvements. The generated block is marked with comments and stripped on import, so the editor still shows only your own overrides.
 
-All five previews share the same theme CSS. `studio.json` records the chosen shape and the editable configuration, and is ignored by phi-plugin.
+The five B19 states share `b19.css`; every standalone page keeps its own stylesheet, so switching pages cannot leak rules between canvases. `studio.json` v2 records all page states and the chosen shape, and is ignored by phi-plugin. Legacy v1 projects remain importable.
 
 Difficulty colors, theme fonts, and backgrounds are not written into the CSS: phi-plugin injects `:root { --AT/--IN/--HD/--EZ }` and `@font-face` from `info.yaml` in `common/layout/default.art`.
 
 Text, shapes, and images added to the canvas are stored in `studio.json` and injected into a real exported `b19.art`, so they are present in phi-plugin renders rather than only in the editor project. Uploaded images are packaged under `assets/custom/` and referenced through `{{themeInfo.baseUrl}}`. The manifest automatically receives `template: b19.art` in this case.
 
-Custom `b19.art` files are preserved as opaque source because GrapesJS cannot safely round-trip ArtTemplate control statements such as `{{each}}` and `{{if}}`. The visual canvas edits the fixed expanded preview structure and its CSS rather than template control flow. When canvas custom elements exist, the editor appends their markup to the preserved source during export; if no custom template was supplied, it generates one from the real bundled phi-plugin template.
+On the B19 page, custom `b19.art` files are preserved as opaque source because GrapesJS cannot safely round-trip ArtTemplate control statements such as `{{each}}` and `{{if}}`. The visual canvas edits the fixed expanded preview structure and its CSS rather than template control flow. Other pages keep the plugin-provided ArtTemplate and expose CSS-only editing.
 
 ## Verification
 
@@ -110,6 +115,7 @@ Custom `b19.art` files are preserved as opaque source because GrapesJS cannot sa
 npm run typecheck
 npm run lint
 npm test
+npm run test:pages
 npm run build
 ```
 

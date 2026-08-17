@@ -1,0 +1,113 @@
+<div class="background" data-gjs-name="Page background" data-phi-selector=".background"><img src="/demo/difficulty-history-artwork.png" alt="Distorted Fate blurred artwork" data-phi-default-src="/demo/difficulty-history-artwork.png"></div>
+<div class="header" data-phi-selector=".header">
+  <div class="ill-box" data-phi-selector=".ill-box"><img src="/demo/difficulty-history-artwork.png" alt="Distorted Fate artwork"></div>
+  <div class="title-box" data-phi-selector=".title-box">
+    <div class="white-bar" data-phi-selector=".white-bar"></div>
+    <div class="title-content" data-phi-selector=".title-content">
+      <div class="title" data-phi-selector=".title"><p>上线版本&amp;日期</p></div>
+      <div class="content" data-phi-selector=".content"><p>版本: v3.4.0</p><p>日期: 2023-12-12</p></div>
+      <div class="title"><p>定数变化折线图</p></div>
+      <div class="content">
+        <div class="chart-container" data-phi-selector=".chart-container">
+          <svg id="difficultyChart" viewBox="0 0 800 250" width="800" height="250" role="img" aria-label="Distorted Fate difficulty changes by version" data-song-id="DistortedFate.Sakuzyo" data-scale="drawDifficultyChart" data-padding="0.1">
+            <g class="chart-plot" transform="translate(60 30)" data-margin-top="30" data-margin-right="30" data-margin-bottom="50" data-margin-left="60">
+              <g class="chart-axis" aria-hidden="true" data-phi-selector=".chart-axis">
+                <line x1="0" y1="170" x2="710" y2="170"></line>
+                <line x1="0" y1="0" x2="0" y2="170"></line>
+              </g>
+              <g class="chart-ticks chart-ticks-x" aria-hidden="true" data-phi-selector=".chart-ticks">
+                <line x1="0" y1="170" x2="0" y2="176"></line><line x1="142" y1="170" x2="142" y2="176"></line><line x1="284" y1="170" x2="284" y2="176"></line><line x1="426" y1="170" x2="426" y2="176"></line><line x1="568" y1="170" x2="568" y2="176"></line><line x1="710" y1="170" x2="710" y2="176"></line>
+              </g>
+              <g class="chart-ticks chart-ticks-y" aria-hidden="true">
+                <line x1="-6" y1="170" x2="0" y2="170"></line><line x1="-6" y1="136" x2="0" y2="136"></line><line x1="-6" y1="102" x2="0" y2="102"></line><line x1="-6" y1="68" x2="0" y2="68"></line><line x1="-6" y1="34" x2="0" y2="34"></line><line x1="-6" y1="0" x2="0" y2="0"></line>
+              </g>
+
+              <g class="chart-series chart-series-EZ" data-rank="EZ">
+                <path class="chart-line" data-rank="EZ" data-values="3.19.5@2026-07-30=8.1|3.9.0@2024-08-29=8.1|3.4.0@2023-12-12=7.5" d="M650.833333 147.247475 L219.809830 147.247475 L59.166667 155.833333" fill="none" data-phi-selector=".chart-line"></path>
+                <g class="chart-mark" data-version="3.19.5" data-date="2026-07-30" data-x="1785402000" data-difficulty="8.1">
+                  <circle class="chart-point" data-rank="EZ" data-version="3.19.5" data-date="2026-07-30" data-x="1785402000" data-difficulty="8.1" cx="650.833333" cy="147.247475" r="4" data-phi-selector=".chart-point"></circle>
+                  <line class="chart-guide chart-guide-x" x1="650.833333" y1="147.247475" x2="650.833333" y2="170" data-phi-selector=".chart-guide"></line><text class="chart-label chart-label-x" x="650.833333" y="185" text-anchor="middle" data-phi-selector=".chart-label">v3.19.5</text>
+                  <line class="chart-guide chart-guide-y" x1="650.833333" y1="147.247475" x2="0" y2="147.247475"></line><text class="chart-label chart-label-y" x="-10" y="147.247475" text-anchor="end" dominant-baseline="middle">8.1</text>
+                </g>
+                <g class="chart-mark" data-version="3.9.0" data-date="2024-08-29" data-x="1724911551" data-difficulty="8.1">
+                  <circle class="chart-point" data-rank="EZ" data-version="3.9.0" data-date="2024-08-29" data-x="1724911551" data-difficulty="8.1" cx="219.809830" cy="147.247475" r="4"></circle>
+                  <line class="chart-guide chart-guide-x" x1="219.809830" y1="147.247475" x2="219.809830" y2="170"></line><text class="chart-label chart-label-x" x="219.809830" y="185" text-anchor="middle">v3.9.0</text>
+                  <line class="chart-guide chart-guide-y" x1="219.809830" y1="147.247475" x2="0" y2="147.247475"></line><text class="chart-label chart-label-y" x="-10" y="147.247475" text-anchor="end" dominant-baseline="middle">8.1</text>
+                </g>
+                <g class="chart-mark" data-version="3.4.0" data-date="2023-12-12" data-x="1702366662" data-difficulty="7.5">
+                  <circle class="chart-point" data-rank="EZ" data-version="3.4.0" data-date="2023-12-12" data-x="1702366662" data-difficulty="7.5" cx="59.166667" cy="155.833333" r="4"></circle>
+                  <line class="chart-guide chart-guide-x" x1="59.166667" y1="155.833333" x2="59.166667" y2="170"></line><text class="chart-label chart-label-x" x="59.166667" y="185" text-anchor="middle">v3.4.0</text>
+                  <line class="chart-guide chart-guide-y" x1="59.166667" y1="155.833333" x2="0" y2="155.833333"></line><text class="chart-label chart-label-y" x="-10" y="155.833333" text-anchor="end" dominant-baseline="middle">7.5</text>
+                </g>
+              </g>
+
+              <g class="chart-series chart-series-HD" data-rank="HD">
+                <path class="chart-line" data-rank="HD" data-values="3.19.5@2026-07-30=13.5|3.5.0@2024-02-23=13.5|3.4.0@2023-12-12=12.9" d="M650.833333 69.974747 L104.136364 69.974747 L59.166667 78.560606" fill="none"></path>
+                <g class="chart-mark" data-version="3.19.5" data-date="2026-07-30" data-x="1785402000" data-difficulty="13.5">
+                  <circle class="chart-point" data-rank="HD" data-version="3.19.5" data-date="2026-07-30" data-x="1785402000" data-difficulty="13.5" cx="650.833333" cy="69.974747" r="4"></circle>
+                  <line class="chart-guide chart-guide-x" x1="650.833333" y1="69.974747" x2="650.833333" y2="170"></line><text class="chart-label chart-label-x" x="650.833333" y="185" text-anchor="middle">v3.19.5</text>
+                  <line class="chart-guide chart-guide-y" x1="650.833333" y1="69.974747" x2="0" y2="69.974747"></line><text class="chart-label chart-label-y" x="-10" y="69.974747" text-anchor="end" dominant-baseline="middle">13.5</text>
+                </g>
+                <g class="chart-mark" data-version="3.5.0" data-date="2024-02-23" data-x="1708677773" data-difficulty="13.5">
+                  <circle class="chart-point" data-rank="HD" data-version="3.5.0" data-date="2024-02-23" data-x="1708677773" data-difficulty="13.5" cx="104.136364" cy="69.974747" r="4"></circle>
+                  <line class="chart-guide chart-guide-x" x1="104.136364" y1="69.974747" x2="104.136364" y2="170"></line><text class="chart-label chart-label-x" x="104.136364" y="185" text-anchor="middle">v3.5.0</text>
+                  <line class="chart-guide chart-guide-y" x1="104.136364" y1="69.974747" x2="0" y2="69.974747"></line><text class="chart-label chart-label-y" x="-10" y="69.974747" text-anchor="end" dominant-baseline="middle">13.5</text>
+                </g>
+                <g class="chart-mark" data-version="3.4.0" data-date="2023-12-12" data-x="1702366662" data-difficulty="12.9">
+                  <circle class="chart-point" data-rank="HD" data-version="3.4.0" data-date="2023-12-12" data-x="1702366662" data-difficulty="12.9" cx="59.166667" cy="78.560606" r="4"></circle>
+                  <line class="chart-guide chart-guide-x" x1="59.166667" y1="78.560606" x2="59.166667" y2="170"></line><text class="chart-label chart-label-x" x="59.166667" y="185" text-anchor="middle">v3.4.0</text>
+                  <line class="chart-guide chart-guide-y" x1="59.166667" y1="78.560606" x2="0" y2="78.560606"></line><text class="chart-label chart-label-y" x="-10" y="78.560606" text-anchor="end" dominant-baseline="middle">12.9</text>
+                </g>
+              </g>
+
+              <g class="chart-series chart-series-IN" data-rank="IN">
+                <path class="chart-line" data-rank="IN" data-values="3.19.5@2026-07-30=16.3|3.11.0@2025-02-14=16.3|3.4.0@2023-12-12=15.9" d="M650.833333 29.907407 L324.056383 29.907407 L59.166667 35.631313" fill="none"></path>
+                <g class="chart-mark" data-version="3.19.5" data-date="2026-07-30" data-x="1785402000" data-difficulty="16.3">
+                  <circle class="chart-point" data-rank="IN" data-version="3.19.5" data-date="2026-07-30" data-x="1785402000" data-difficulty="16.3" cx="650.833333" cy="29.907407" r="4"></circle>
+                  <line class="chart-guide chart-guide-x" x1="650.833333" y1="29.907407" x2="650.833333" y2="170"></line><text class="chart-label chart-label-x" x="650.833333" y="185" text-anchor="middle">v3.19.5</text>
+                  <line class="chart-guide chart-guide-y" x1="650.833333" y1="29.907407" x2="0" y2="29.907407"></line><text class="chart-label chart-label-y" x="-10" y="29.907407" text-anchor="end" dominant-baseline="middle">16.3</text>
+                </g>
+                <g class="chart-mark" data-version="3.11.0" data-date="2025-02-14" data-x="1739541660" data-difficulty="16.3">
+                  <circle class="chart-point" data-rank="IN" data-version="3.11.0" data-date="2025-02-14" data-x="1739541660" data-difficulty="16.3" cx="324.056383" cy="29.907407" r="4"></circle>
+                  <line class="chart-guide chart-guide-x" x1="324.056383" y1="29.907407" x2="324.056383" y2="170"></line><text class="chart-label chart-label-x" x="324.056383" y="185" text-anchor="middle">v3.11.0</text>
+                  <line class="chart-guide chart-guide-y" x1="324.056383" y1="29.907407" x2="0" y2="29.907407"></line><text class="chart-label chart-label-y" x="-10" y="29.907407" text-anchor="end" dominant-baseline="middle">16.3</text>
+                </g>
+                <g class="chart-mark" data-version="3.4.0" data-date="2023-12-12" data-x="1702366662" data-difficulty="15.9">
+                  <circle class="chart-point" data-rank="IN" data-version="3.4.0" data-date="2023-12-12" data-x="1702366662" data-difficulty="15.9" cx="59.166667" cy="35.631313" r="4"></circle>
+                  <line class="chart-guide chart-guide-x" x1="59.166667" y1="35.631313" x2="59.166667" y2="170"></line><text class="chart-label chart-label-x" x="59.166667" y="185" text-anchor="middle">v3.4.0</text>
+                  <line class="chart-guide chart-guide-y" x1="59.166667" y1="35.631313" x2="0" y2="35.631313"></line><text class="chart-label chart-label-y" x="-10" y="35.631313" text-anchor="end" dominant-baseline="middle">15.9</text>
+                </g>
+              </g>
+
+              <g class="chart-series chart-series-AT" data-rank="AT">
+                <path class="chart-line" data-rank="AT" data-values="3.19.5@2026-07-30=17.4|3.11.0@2025-02-14=17.4|3.4.0@2023-12-12=16.7" d="M650.833333 14.166667 L324.056383 14.166667 L59.166667 24.183502" fill="none"></path>
+                <g class="chart-mark" data-version="3.19.5" data-date="2026-07-30" data-x="1785402000" data-difficulty="17.4">
+                  <circle class="chart-point" data-rank="AT" data-version="3.19.5" data-date="2026-07-30" data-x="1785402000" data-difficulty="17.4" cx="650.833333" cy="14.166667" r="4"></circle>
+                  <line class="chart-guide chart-guide-x" x1="650.833333" y1="14.166667" x2="650.833333" y2="170"></line><text class="chart-label chart-label-x" x="650.833333" y="185" text-anchor="middle">v3.19.5</text>
+                  <line class="chart-guide chart-guide-y" x1="650.833333" y1="14.166667" x2="0" y2="14.166667"></line><text class="chart-label chart-label-y" x="-10" y="14.166667" text-anchor="end" dominant-baseline="middle">17.4</text>
+                </g>
+                <g class="chart-mark" data-version="3.11.0" data-date="2025-02-14" data-x="1739541660" data-difficulty="17.4">
+                  <circle class="chart-point" data-rank="AT" data-version="3.11.0" data-date="2025-02-14" data-x="1739541660" data-difficulty="17.4" cx="324.056383" cy="14.166667" r="4"></circle>
+                  <line class="chart-guide chart-guide-x" x1="324.056383" y1="14.166667" x2="324.056383" y2="170"></line><text class="chart-label chart-label-x" x="324.056383" y="185" text-anchor="middle">v3.11.0</text>
+                  <line class="chart-guide chart-guide-y" x1="324.056383" y1="14.166667" x2="0" y2="14.166667"></line><text class="chart-label chart-label-y" x="-10" y="14.166667" text-anchor="end" dominant-baseline="middle">17.4</text>
+                </g>
+                <g class="chart-mark" data-version="3.4.0" data-date="2023-12-12" data-x="1702366662" data-difficulty="16.7">
+                  <circle class="chart-point" data-rank="AT" data-version="3.4.0" data-date="2023-12-12" data-x="1702366662" data-difficulty="16.7" cx="59.166667" cy="24.183502" r="4"></circle>
+                  <line class="chart-guide chart-guide-x" x1="59.166667" y1="24.183502" x2="59.166667" y2="170"></line><text class="chart-label chart-label-x" x="59.166667" y="185" text-anchor="middle">v3.4.0</text>
+                  <line class="chart-guide chart-guide-y" x1="59.166667" y1="24.183502" x2="0" y2="24.183502"></line><text class="chart-label chart-label-y" x="-10" y="24.183502" text-anchor="end" dominant-baseline="middle">16.7</text>
+                </g>
+              </g>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="difficulty" data-phi-selector=".difficulty">
+  <div class="AT-box a-box" data-rank="AT" data-phi-selector=".a-box"><div class="dif-box clip-box" data-phi-selector=".dif-box"><p>AT</p></div><div class="data-box" data-phi-selector=".data-box"><div class="a-num" data-version="3.19.5" data-date="2026-07-30" data-x="1785402000" data-difficulty="17.4" data-phi-selector=".a-num"><div class="num-box clip-box" data-phi-selector=".num-box"><p>17.4</p></div><div class="ver-box clip-box" data-phi-selector=".ver-box"><div class="update-ver" data-phi-selector=".update-ver"><p>v3.19.5</p></div><div class="update-date" data-phi-selector=".update-date"><p>2026-07-30</p></div></div></div><div class="a-num" data-version="3.11.0" data-date="2025-02-14" data-x="1739541660" data-difficulty="17.4"><div class="num-box clip-box"><p>17.4</p></div><div class="ver-box clip-box"><div class="update-ver"><p>v3.11.0</p></div><div class="update-date"><p>2025-02-14</p></div></div></div><div class="a-num" data-version="3.4.0" data-date="2023-12-12" data-x="1702366662" data-difficulty="16.7"><div class="num-box clip-box"><p>16.7</p></div><div class="ver-box clip-box"><div class="update-ver"><p>v3.4.0</p></div><div class="update-date"><p>2023-12-12</p></div></div></div></div></div>
+  <div class="IN-box a-box" data-rank="IN"><div class="dif-box clip-box"><p>IN</p></div><div class="data-box"><div class="a-num" data-version="3.19.5" data-date="2026-07-30" data-x="1785402000" data-difficulty="16.3"><div class="num-box clip-box"><p>16.3</p></div><div class="ver-box clip-box"><div class="update-ver"><p>v3.19.5</p></div><div class="update-date"><p>2026-07-30</p></div></div></div><div class="a-num" data-version="3.11.0" data-date="2025-02-14" data-x="1739541660" data-difficulty="16.3"><div class="num-box clip-box"><p>16.3</p></div><div class="ver-box clip-box"><div class="update-ver"><p>v3.11.0</p></div><div class="update-date"><p>2025-02-14</p></div></div></div><div class="a-num" data-version="3.4.0" data-date="2023-12-12" data-x="1702366662" data-difficulty="15.9"><div class="num-box clip-box"><p>15.9</p></div><div class="ver-box clip-box"><div class="update-ver"><p>v3.4.0</p></div><div class="update-date"><p>2023-12-12</p></div></div></div></div></div>
+  <div class="HD-box a-box" data-rank="HD"><div class="dif-box clip-box"><p>HD</p></div><div class="data-box"><div class="a-num" data-version="3.19.5" data-date="2026-07-30" data-x="1785402000" data-difficulty="13.5"><div class="num-box clip-box"><p>13.5</p></div><div class="ver-box clip-box"><div class="update-ver"><p>v3.19.5</p></div><div class="update-date"><p>2026-07-30</p></div></div></div><div class="a-num" data-version="3.5.0" data-date="2024-02-23" data-x="1708677773" data-difficulty="13.5"><div class="num-box clip-box"><p>13.5</p></div><div class="ver-box clip-box"><div class="update-ver"><p>v3.5.0</p></div><div class="update-date"><p>2024-02-23</p></div></div></div><div class="a-num" data-version="3.4.0" data-date="2023-12-12" data-x="1702366662" data-difficulty="12.9"><div class="num-box clip-box"><p>12.9</p></div><div class="ver-box clip-box"><div class="update-ver"><p>v3.4.0</p></div><div class="update-date"><p>2023-12-12</p></div></div></div></div></div>
+  <div class="EZ-box a-box" data-rank="EZ"><div class="dif-box clip-box"><p>EZ</p></div><div class="data-box"><div class="a-num" data-version="3.19.5" data-date="2026-07-30" data-x="1785402000" data-difficulty="8.1"><div class="num-box clip-box"><p>8.1</p></div><div class="ver-box clip-box"><div class="update-ver"><p>v3.19.5</p></div><div class="update-date"><p>2026-07-30</p></div></div></div><div class="a-num" data-version="3.9.0" data-date="2024-08-29" data-x="1724911551" data-difficulty="8.1"><div class="num-box clip-box"><p>8.1</p></div><div class="ver-box clip-box"><div class="update-ver"><p>v3.9.0</p></div><div class="update-date"><p>2024-08-29</p></div></div></div><div class="a-num" data-version="3.4.0" data-date="2023-12-12" data-x="1702366662" data-difficulty="7.5"><div class="num-box clip-box"><p>7.5</p></div><div class="ver-box clip-box"><div class="update-ver"><p>v3.4.0</p></div><div class="update-date"><p>2023-12-12</p></div></div></div></div></div>
+</div>
+<div class="createdbox" data-phi-selector=".createdbox"><div class="phi-plugin" data-phi-selector=".phi-plugin"><p>Phi-Plugin</p></div><div class="ver" data-phi-selector=".ver"><p>v1.0.2</p></div></div>

@@ -16,7 +16,10 @@
     "test": "vitest run",
     "docs:guide": "node --experimental-strip-types scripts/build-guide.mjs",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:pages": "playwright test e2e/pageGeometry.spec.ts",
+    "render:previews": "node scripts/render-theme-previews.mjs",
+    "render:bot-previews": "node scripts/render-bot-theme-previews.mjs"
   },
   "dependencies": {
     "dompurify": "^3.4.13",

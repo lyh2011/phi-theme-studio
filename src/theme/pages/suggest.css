@@ -1,0 +1,56 @@
+:root { --AT: var(--phi-theme-AT, #6e6e6e); --IN: var(--phi-theme-IN, #ff0000); --HD: var(--phi-theme-HD, #00b0f0); --EZ: var(--phi-theme-EZ, #92d050); }
+body { width: 1200px; height: 1206px; display: flex; flex-direction: column; align-items: center; position: relative; padding-bottom: 80px; overflow: hidden; color: #fff; font-family: "PHI", "HIMALAYA", "吞弥恰俊"; }
+body p { margin: 0; color: #fff; }
+.background img { width: 100%; height: 100%; min-width: 100%; object-fit: cover; }
+.head_title { display: flex; justify-content: center; align-items: center; width: 94%; margin: 20px; z-index: 1; }
+.head_title p { color: #fff; font-family: "Aldrich", "PHI"; font-size: 50px; text-shadow: 0 0 20px #00baff; }
+.group_list { display: flex; flex-direction: column; gap: 14px; z-index: 1; margin-bottom: 30px; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.group_title { width: 220px; height: 30px; padding-left: 12px; display: flex; align-items: center; background: #000a; border-left: 4px solid #fffA; backdrop-filter: blur(10px); }
+.group_title p { font-family: "Aldrich", "PHI"; font-size: 20px; }
+.row_box { display: flex; flex-direction: row; align-items: center; gap: 12px; width: 984px; overflow: hidden; padding-bottom: 4px; }
+.line { position: relative; flex: 0 0 320px; width: 320px; height: 82px; display: flex; flex-direction: row; justify-content: center; overflow: hidden; border-radius: 3px; background: #00151d54; backdrop-filter: blur(10px); }
+.song_name { position: absolute; z-index: 1; width: 100%; height: 20px; display: flex; flex-direction: row; align-items: center; color: #fff; font-size: 10px; white-space: nowrap; }
+.num, .song, .dif { height: 100%; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(20px); }
+.num { width: 12%; background: #4a7aa1cc; text-align: center; }
+.song {
+  display: flex;
+  width: 72%;
+  min-width: 0;
+  padding: 0 4px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #0008;
+  line-height: 20px;
+  text-align: center;
+  white-space: nowrap;
+}
+.song > span {
+  display: block;
+  overflow: visible;
+  font-size: 10px;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+.song.song-fit-8 > span { font-size: 8px; }
+.song.song-fit-7 > span { font-size: 7px; }
+.song.song-fit-5 > span { font-size: 5px; }
+.dif { width: 16%; flex-shrink: 0; }
+.AT { background: color-mix(in srgb, var(--AT) 53.33%, transparent); }.IN { background: color-mix(in srgb, var(--IN) 53.33%, transparent); }.HD { background: color-mix(in srgb, var(--HD) 53.33%, transparent); }.EZ { background: color-mix(in srgb, var(--EZ) 53.33%, transparent); }
+.ill_box { width: 49%; height: 100%; }
+.ill_box img { width: 100%; height: 100%; min-width: 100%; object-fit: cover; }
+.info_box { width: 51%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; backdrop-filter: blur(10px); }
+.down { width: 97%; height: 75%; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center; }
+.acc { position: relative; width: 100%; height: 42%; display: flex; flex-direction: row; justify-content: space-around; align-items: center; overflow: hidden; border-radius: 2px; background: #87ceeb69; font-size: 10px; }
+.box-content, .suggest { width: 50%; text-align: center; }
+.suggest { padding: 2px 0; border-radius: 20px; color: #fff; font-weight: 700; background: var(--bkg-color, #0008); }
+.suggest-kind-0 { --bkg-color: hsl(0 80% 60% / .675); }.suggest-kind-1 { --bkg-color: hsl(34 80% 60% / .675); }.suggest-kind-2 { --bkg-color: hsl(136 80% 60% / .675); }.suggest-kind-3 { --bkg-color: hsl(183 80% 60% / .675); }.suggest-kind-4, .suggest-kind-5 { --bkg-color: hsl(276 80% 60% / .675); }
+.score_rating { width: 100%; height: 42%; display: flex; flex-direction: row; align-items: center; }
+.score { width: 70%; height: 100%; display: flex; align-items: center; justify-content: center; border-radius: 2px; background: #87ceeb69; font-size: 14px; }
+.rating { width: 30%; height: 100%; display: flex; justify-content: center; }
+.rating img { width: auto; height: 100%; object-fit: contain; }
+.createdbox { width: 100%; margin: 0; padding: 0; border: 0; display: flex; flex-direction: row; align-items: flex-start; justify-content: center; z-index: 1; font-family: "Aldrich", "PHI"; }
+.phi-plugin, .ver { display: flex; z-index: 1; }
+.phi-plugin p { color: #fff; font-size: 30px; text-shadow: 0 0 20px #00baff; }
+.ver p { color: #fff; font-size: 16px; text-shadow: 0 0 20px #fff700; }

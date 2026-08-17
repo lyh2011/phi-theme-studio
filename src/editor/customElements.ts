@@ -163,6 +163,19 @@ export function collectCustomNodes(projectData: ProjectData) {
   return result
 }
 
+/**
+ * Keep only the DOM that cannot be reconstructed from the fixed page fixture.
+ * Page CSS is stored separately in studio.json, so serializing the fixture and
+ * GrapesJS style cache here only duplicates data for every edited page.
+ */
+export function compactProjectData(projectData: ProjectData): ProjectData {
+  const components = collectCustomNodes(projectData).map((node) => JSON.parse(JSON.stringify(node)) as ProjectNode)
+  return {
+    pages: [{ frames: [{ component: { type: 'wrapper', components } }] }],
+    styles: [],
+  } as ProjectData
+}
+
 export function restoreCustomComponents(editor: Editor, projectData: ProjectData | undefined) {
   if (!projectData) return []
   const wrapper = editor.getWrapper()

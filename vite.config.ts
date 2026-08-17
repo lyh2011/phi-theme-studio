@@ -16,5 +16,9 @@ export default defineConfig({
     // CSS processing Vitest stubs them out and the packaging tests would assert
     // against an empty base stylesheet.
     css: true,
+    // Playwright specs live in `e2e/` and must be run through `npm run test:pages`.
+    // Keeping Vitest discovery inside `src/` prevents the two runners from
+    // loading each other's globals.
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
   },
 })

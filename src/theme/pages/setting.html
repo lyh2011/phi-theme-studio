@@ -1,0 +1,314 @@
+<div class="background" data-gjs-name="Page background" data-phi-selector=".background">
+  <img src="/demo/background.png" alt="曲绘-模糊">
+</div>
+
+<div class="big-title" data-gjs-name="Settings title" data-phi-selector=".big-title">
+  <p>Phi-Plugin 控制面板</p>
+</div>
+
+<div class="box" data-gjs-name="Settings" data-phi-selector=".box">
+  <div class="lineBox" data-field="renderScale" data-kind="space" data-gjs-name="Render scale" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>渲染精度</p></div>
+        <div class="info" data-phi-selector=".info"><p>对所有的图片生效，设置渲染精度</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space"><p name="pvis">100</p></div>
+        <div class="drc" data-phi-selector=".drc"><p>%</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="randerQuality" data-kind="space" data-gjs-name="Render quality" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>渲染质量</p></div>
+        <div class="info" data-phi-selector=".info"><p>对所有的图片生效，设置渲染的质量</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space"><p name="pvis">100</p></div>
+        <div class="drc" data-phi-selector=".drc"><p>%</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="timeout" data-kind="space" data-gjs-name="Render timeout" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>渲染超时时间</p></div>
+        <div class="info" data-phi-selector=".info"><p>对所有的图片生效，超时后重启puppeteer，单位ms</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space"><p name="pvis">20000</p></div>
+        <div class="drc" data-phi-selector=".drc"><p>ms</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="waitingTimeout" data-kind="space" data-gjs-name="Waiting timeout" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>等待超时时间</p></div>
+        <div class="info" data-phi-selector=".info"><p>对所有的图片生效，单位ms</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space"><p name="pvis">10000</p></div>
+        <div class="drc" data-phi-selector=".drc"><p>ms</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="renderNum" data-kind="space" data-gjs-name="Concurrent renders" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>并行渲染数量</p></div>
+        <div class="info" data-phi-selector=".info"><p>并行数量越多，占用的资源越多，建议谨慎修改，修改后重启生效</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space"><p name="pvis">1</p></div>
+        <div class="drc" data-phi-selector=".drc"><p></p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox divider" data-gjs-name="Divider" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p></p></div>
+        <div class="info" data-phi-selector=".info"><p></p></div>
+      </div>
+      <div class="right" data-phi-selector=".right"></div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="commentsAPage" data-kind="space" data-gjs-name="Comments per page" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>每页评论条数</p></div>
+        <div class="info" data-phi-selector=".info"><p>/song 每页评论最大渲染条数</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space"><p name="pvis">10</p></div>
+        <div class="drc" data-phi-selector=".drc"><p></p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="B19MaxNum" data-kind="space" data-gjs-name="B19 maximum" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>B19最大限制</p></div>
+        <div class="info" data-phi-selector=".info"><p>用户可以获取B19图片成绩的最大数量，建议不要太大</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space"><p name="pvis">50</p></div>
+        <div class="drc" data-phi-selector=".drc"><p></p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="HistoryDayNum" data-kind="space" data-gjs-name="History per day" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>历史成绩单日数量</p></div>
+        <div class="info" data-phi-selector=".info"><p>/update 展现历史成绩的单日最大数量，至少为2</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space"><p name="pvis">10</p></div>
+        <div class="drc" data-phi-selector=".drc"><p></p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="HistoryScoreDate" data-kind="space" data-gjs-name="History days" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>历史成绩展示天数</p></div>
+        <div class="info" data-phi-selector=".info"><p>/update 展现历史成绩的最大天数</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space"><p name="pvis">10</p></div>
+        <div class="drc" data-phi-selector=".drc"><p></p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="HistoryScoreNum" data-kind="space" data-gjs-name="History maximum" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>历史成绩展示数量</p></div>
+        <div class="info" data-phi-selector=".info"><p>/update 展现历史成绩的最大数量</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space"><p name="pvis">50</p></div>
+        <div class="drc" data-phi-selector=".drc"><p></p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="listScoreMaxNum" data-kind="space" data-gjs-name="List maximum" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>/list 最大数量</p></div>
+        <div class="info" data-phi-selector=".info"><p>/list 最大渲染成绩数量，建议为3的倍数</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space"><p name="pvis">180</p></div>
+        <div class="drc" data-phi-selector=".drc"><p></p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox divider" data-gjs-name="Divider" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p></p></div>
+        <div class="info" data-phi-selector=".info"><p></p></div>
+      </div>
+      <div class="right" data-phi-selector=".right"></div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="WordB19Img" data-kind="switch" data-gjs-name="B19 illustrations" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>文字版B19曲绘图片</p></div>
+        <div class="info" data-phi-selector=".info"><p>关闭可大幅度提升发送速度</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space">
+          <div class="switch-false" data-phi-selector=".switch-false"></div>
+          <div class="switchDrc-false" data-phi-selector=".switchDrc-false"><p>OFF</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="WordSuggImg" data-kind="switch" data-gjs-name="Suggest illustrations" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>Suggest曲绘图片</p></div>
+        <div class="info" data-phi-selector=".info"><p>关闭可大幅度提升发送速度</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space">
+          <div class="switch-false" data-phi-selector=".switch-false"></div>
+          <div class="switchDrc-false" data-phi-selector=".switchDrc-false"><p>OFF</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="defaultGlobal" data-kind="switch" data-gjs-name="Default server" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>默认使用国际服</p></div>
+        <div class="info" data-phi-selector=".info"><p>开启后默认使用国际服查询，关闭后默认使用国服查询</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space">
+          <div class="switch-false" data-phi-selector=".switch-false"></div>
+          <div class="switchDrc-false" data-phi-selector=".switchDrc-false"><p>OFF</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="onLinePhiIllUrl" data-kind="space" data-gjs-name="Illustration source" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>在线曲绘来源</p></div>
+        <div class="info" data-phi-selector=".info"><p>仅在未下载曲绘时有效，不影响下载曲绘指令。在线曲绘将重复下载曲绘资源，建议使用 /下载曲绘 将曲绘缓存到本地</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space"><p name="pvis">GitHub raw</p></div>
+        <div class="drc" data-phi-selector=".drc"><p></p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="githubProxy" data-kind="space" data-gjs-name="GitHub proxy" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>GitHub代理</p></div><div class="info" data-phi-selector=".info"><p>仅在在线曲绘来源为 GitHub raw 或下载曲绘源为 GitHub 时生效。填 false 为不使用代理，也可填写代理地址，如 https://gh-proxy.com</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">https://gh-proxy.com</p></div><div class="drc" data-phi-selector=".drc"><p></p></div></div></div></div>
+
+  <div class="lineBox" data-field="downIllUrl" data-kind="space" data-gjs-name="Illustration download source" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>下载曲绘源</p></div><div class="info" data-phi-selector=".info"><p>下载曲绘的源，实时生效。选择 GitHub 时会使用上面的 GitHub代理配置</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">github</p></div><div class="drc" data-phi-selector=".drc"><p></p></div></div></div></div>
+
+  <div class="lineBox" data-field="watchInfoPath" data-kind="switch" data-gjs-name="Watch information files" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>监听信息文件</p></div><div class="info" data-phi-selector=".info"><p>是否监听信息文件变化，如果机器人有自动更新插件功能建议开启，如遇监听文件数量超限请尝试关闭</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><div class="switch-false" data-phi-selector=".switch-false"></div><div class="switchDrc-false" data-phi-selector=".switchDrc-false"><p>OFF</p></div></div></div></div></div>
+
+  <div class="lineBox" data-field="allowComment" data-kind="switch" data-gjs-name="Song comments" data-phi-selector=".lineBox">
+    <div class="line" data-phi-selector=".line">
+      <div class="square" data-phi-selector=".square"></div>
+      <div class="left" data-phi-selector=".left">
+        <div class="title" data-phi-selector=".title"><p>曲目评论</p></div>
+        <div class="info" data-phi-selector=".info"><p>是否开启曲目评论功能，该功能目前暂无敏感词校验</p></div>
+      </div>
+      <div class="right" data-phi-selector=".right">
+        <div class="space" data-phi-selector=".space">
+          <div class="switchDrc-true" data-phi-selector=".switchDrc-true"><p>ON</p></div>
+          <div class="switch-true" data-phi-selector=".switch-true"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lineBox" data-field="autoPullPhiIll" data-kind="switch" data-gjs-name="Automatic illustration updates" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>自动更新曲绘</p></div><div class="info" data-phi-selector=".info"><p>开启后手动更新插件时自动更新曲绘文件</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><div class="switch-false" data-phi-selector=".switch-false"></div><div class="switchDrc-false" data-phi-selector=".switchDrc-false"><p>OFF</p></div></div></div></div></div>
+
+  <div class="lineBox" data-field="isGuild" data-kind="switch" data-gjs-name="Guild mode" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>频道模式</p></div><div class="info" data-phi-selector=".info"><p>开启后文字版仅限私聊，关闭文字版图片，文字版将折叠为长消息</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><div class="switch-false" data-phi-selector=".switch-false"></div><div class="switchDrc-false" data-phi-selector=".switchDrc-false"><p>OFF</p></div></div></div></div></div>
+
+  <div class="lineBox" data-field="TapTapLoginQRcode" data-kind="switch" data-gjs-name="Binding QR code" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>绑定二维码</p></div><div class="info" data-phi-selector=".info"><p>登录TapTap绑定是否发送二维码，开启仅发送二维码，关闭直接发送链接</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><div class="switchDrc-true" data-phi-selector=".switchDrc-true"><p>ON</p></div><div class="switch-true" data-phi-selector=".switch-true"></div></div></div></div></div>
+
+  <div class="lineBox" data-field="cmdhead" data-kind="space" data-gjs-name="Command prefix" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>命令头</p></div><div class="info" data-phi-selector=".info"><p>命令正则匹配开头，不包含#/，支持正则表达式，'\' 请双写( \s --&gt; \\s )，最外层可以不加括号</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">phi</p></div><div class="drc" data-phi-selector=".drc"><p></p></div></div></div></div>
+
+  <div class="lineBox" data-field="openPhiPluginApi" data-kind="switch" data-gjs-name="Combined lookup" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>联合查分</p></div><div class="info" data-phi-selector=".info"><p>是否启用Phigros联合查分API</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><div class="switchDrc-true" data-phi-selector=".switchDrc-true"><p>ON</p></div><div class="switch-true" data-phi-selector=".switch-true"></div></div></div></div></div>
+
+  <div class="lineBox" data-field="mutiNickWaitTimeOut" data-kind="space" data-gjs-name="Multiple song selection timeout" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>多个曲目回复序号等待时长</p></div><div class="info" data-phi-selector=".info"><p>别名重复触发多个曲目选择时，等待回复序号的时长，单位：秒</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">10</p></div><div class="drc" data-phi-selector=".drc"><p></p></div></div></div></div>
+
+  <div class="lineBox" data-field="otherinfo" data-kind="space" data-gjs-name="Song library mode" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>曲库</p></div><div class="info" data-phi-selector=".info"><p>使用曲库的模式，若启用自定义则重名的以自定义为准</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">原版曲库</p></div><div class="drc" data-phi-selector=".drc"><p></p></div></div></div></div>
+
+  <div class="lineBox" data-field="GuessTipCd" data-kind="space" data-gjs-name="Artwork guessing hint interval" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>提示间隔</p></div><div class="info" data-phi-selector=".info"><p>猜曲绘的提示间隔时间，单位：秒</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">15</p></div><div class="drc" data-phi-selector=".drc"><p>s</p></div></div></div></div>
+
+  <div class="lineBox" data-field="GuessTipRecall" data-kind="switch" data-gjs-name="Recall artwork guessing hints" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>猜曲绘撤回</p></div><div class="info" data-phi-selector=".info"><p>是否在下一条提示发出的时候撤回上一条</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><div class="switch-false" data-phi-selector=".switch-false"></div><div class="switchDrc-false" data-phi-selector=".switchDrc-false"><p>OFF</p></div></div></div></div></div>
+
+  <div class="lineBox" data-field="LetterNum" data-kind="space" data-gjs-name="Letter count" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>字母条数</p></div><div class="info" data-phi-selector=".info"><p>开字母的条数</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">8</p></div><div class="drc" data-phi-selector=".drc"><p></p></div></div></div></div>
+
+  <div class="lineBox" data-field="letterMarkdown" data-kind="switch" data-gjs-name="Letter Markdown messages" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>开字母发送MD消息</p></div><div class="info" data-phi-selector=".info"><p>开字母是否发送Markdown消息，开启发送Markdown消息，关闭直接发送文字版</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><div class="switch-false" data-phi-selector=".switch-false"></div><div class="switchDrc-false" data-phi-selector=".switchDrc-false"><p>OFF</p></div></div></div></div></div>
+
+  <div class="lineBox" data-field="LetterIllustration" data-kind="space" data-gjs-name="Letter game illustration" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>发送曲绘</p></div><div class="info" data-phi-selector=".info"><p>猜对后是否发送以及发送什么曲绘，水印版需要占用渲染资源，不发图片更快</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">水印版</p></div><div class="drc" data-phi-selector=".drc"><p></p></div></div></div></div>
+
+  <div class="lineBox" data-field="LetterRevealCd" data-kind="space" data-gjs-name="Letter reveal interval" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>字母提示间隔</p></div><div class="info" data-phi-selector=".info"><p>开字母的全局开字母间隔时间，单位：秒</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">0</p></div><div class="drc" data-phi-selector=".drc"><p>s</p></div></div></div></div>
+
+  <div class="lineBox" data-field="LetterGuessCd" data-kind="space" data-gjs-name="Letter guess interval" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>字母开启间隔</p></div><div class="info" data-phi-selector=".info"><p>开字母的全局开启间隔时间，单位：秒</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">0</p></div><div class="drc" data-phi-selector=".drc"><p>s</p></div></div></div></div>
+
+  <div class="lineBox" data-field="LetterTipCd" data-kind="space" data-gjs-name="Letter hint interval" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>字母提示间隔</p></div><div class="info" data-phi-selector=".info"><p>开字母的全局提示间隔时间，单位：秒</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">0</p></div><div class="drc" data-phi-selector=".drc"><p>s</p></div></div></div></div>
+
+  <div class="lineBox" data-field="LetterTimeLength" data-kind="space" data-gjs-name="Letter game idle timeout" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>猜字母待机时长</p></div><div class="info" data-phi-selector=".info"><p>无人回答多长时间后结束，单位：秒</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">300</p></div><div class="drc" data-phi-selector=".drc"><p>s</p></div></div></div></div>
+
+  <div class="lineBox" data-field="GuessTipsTipCD" data-kind="space" data-gjs-name="Song hint cooldown" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>提示冷却</p></div><div class="info" data-phi-selector=".info"><p>提示猜歌提示的冷却时间间隔，单位：秒</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">5</p></div><div class="drc" data-phi-selector=".drc"><p>s</p></div></div></div></div>
+
+  <div class="lineBox" data-field="GuessTipsTipNum" data-kind="space" data-gjs-name="Song hint count" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>提示条数</p></div><div class="info" data-phi-selector=".info"><p>提示猜歌的提示条数（除曲绘外），若总提示条数小于设定条数则将会发送全部提示</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">6</p></div><div class="drc" data-phi-selector=".drc"><p></p></div></div></div></div>
+
+  <div class="lineBox" data-field="GuessTipsTimeout" data-kind="space" data-gjs-name="Song hint game duration" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>游戏时长</p></div><div class="info" data-phi-selector=".info"><p>提示猜歌超时时长，单位：秒</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">600</p></div><div class="drc" data-phi-selector=".drc"><p>s</p></div></div></div></div>
+
+  <div class="lineBox" data-field="GuessTipsAnsTime" data-kind="space" data-gjs-name="Song answer extra time" data-phi-selector=".lineBox"><div class="line" data-phi-selector=".line"><div class="square" data-phi-selector=".square"></div><div class="left" data-phi-selector=".left"><div class="title" data-phi-selector=".title"><p>额外时间</p></div><div class="info" data-phi-selector=".info"><p>发送曲绘后多久公布答案，单位：秒</p></div></div><div class="right" data-phi-selector=".right"><div class="space" data-phi-selector=".space"><p name="pvis">30</p></div><div class="drc" data-phi-selector=".drc"><p>s</p></div></div></div></div>
+</div>
+
+<div class="createdbox" data-gjs-name="Created by" data-phi-selector=".createdbox">
+  <div class="phi-plugin" data-phi-selector=".phi-plugin"><p>Phi-Plugin</p></div>
+  <div class="ver" data-phi-selector=".ver"><p>v1.0.2</p></div>
+</div>

@@ -20,11 +20,11 @@ const issueIcon = {
 const MODE_COPY: Record<ExportMode, { label: string; hint: string }> = {
   override: {
     label: '覆盖模式',
-    hint: '只导出你改动的规则，其余样式 @import phi-plugin 的 b19.css，能自动跟随上游修复',
+    hint: 'B19 只导出改动并引用插件基础样式；其它页面导出独立覆盖层，可跟随上游修复',
   },
   standalone: {
     label: '自包含模式',
-    hint: '把基础样式一并写进 b19.css（与内置 milthm 主题一致），不受上游改动影响，但也拿不到上游改进',
+    hint: '把 B19 基础样式写进主题包；其它页面仍使用独立覆盖层，不改写插件模板',
   },
 }
 

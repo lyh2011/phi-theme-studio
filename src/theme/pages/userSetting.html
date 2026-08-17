@@ -1,0 +1,294 @@
+<div class="background" data-gjs-name="Page background" data-phi-selector=".background">
+  <img src="/demo/background.png" alt="曲绘-模糊">
+</div>
+
+<div class="page-wrap" data-gjs-name="User settings page" data-phi-selector=".page-wrap">
+  <div class="panel" data-gjs-name="Settings panel" data-phi-selector=".panel">
+    <div class="title-box" data-phi-setting-variant="personal" data-gjs-name="Panel title" data-phi-selector=".title-box">
+      <p class="page-title" data-phi-selector=".page-title">Phi-Plugin 用户设置</p>
+      <p class="page-desc" data-phi-selector=".page-desc">以下选项为你的个人偏好展示，选择结果将用于对应图片渲染。</p>
+    </div>
+
+    <div class="setting-group setting-theme" data-setting-key="theme" data-phi-setting-variant="personal" data-gjs-name="Theme setting" data-phi-selector=".setting-theme">
+      <div class="setting-head" data-phi-selector=".setting-head">
+        <p class="setting-title" data-phi-selector=".setting-title">主题风格</p>
+        <p class="setting-current" data-phi-selector=".setting-current">当前：[0]默认</p>
+      </div>
+      <p class="setting-desc" data-phi-selector=".setting-desc">使用/myset theme &lt;序号&gt;修改，控制图片页面的整体视觉风格，仅影响你的个人渲染结果。</p>
+      <div class="option-row" data-phi-selector=".option-row">
+        <div class="option-card selected" data-option-value="default" data-gjs-name="Default theme" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[0]默认</p>
+            <span class="option-tag" data-phi-selector=".option-tag">已选中</span>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">使用插件基础主题，使用随机曲绘作为背景。</p>
+        </div>
+        <div class="option-card" data-option-value="snow" data-gjs-name="Snow theme" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[1]寒冬</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">在默认的基础上加入飘落雪花元素。</p>
+        </div>
+        <div class="option-card" data-option-value="star" data-gjs-name="Star theme" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[2]使一颗心免于哀伤</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">飞萤之火自无梦的长夜亮起，绽放在终竟的明天。</p>
+        </div>
+        <div class="option-card" data-option-value="dss2" data-gjs-name="DSS2 theme" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[3]大师赛2</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">Phigros 大师赛第二赛季主题配色</p>
+        </div>
+        <div class="option-card" data-option-value="milthm" data-gjs-name="Milthm theme" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[4]Milthm</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">所有词语，都是雨的旋律</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-group setting-b30AvgKind" data-setting-key="b30AvgKind" data-phi-setting-variant="personal" data-gjs-name="B30 average kind" data-phi-selector=".setting-b30AvgKind">
+      <div class="setting-head" data-phi-selector=".setting-head">
+        <p class="setting-title" data-phi-selector=".setting-title">B30统计数据展示</p>
+        <p class="setting-current" data-phi-selector=".setting-current">当前：[0]全部统计</p>
+      </div>
+      <p class="setting-desc" data-phi-selector=".setting-desc">使用/myset avgkind &lt;序号&gt;修改，控制 B30 均值条展示的数据，可按全部平均数、仅 B30平均数 或 百分比绝对位置。</p>
+      <div class="option-row" data-phi-selector=".option-row">
+        <div class="option-card selected" data-gjs-name="All averages" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[0]全部统计</p>
+            <span class="option-tag" data-phi-selector=".option-tag">已选中</span>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">展示在相近rks的玩家中全部成绩的平均值统计，信息最完整。将使用全部四种颜色区分不同的相对位置关系。</p>
+        </div>
+        <div class="option-card" data-gjs-name="B30 averages" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[1]仅 B30</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">展示在相近rks的玩家中只按 B30 成绩平均值统计，关注B30健康度。将使用前两个或后两个颜色，下个选项选择任意一个颜色时将同时使用与其对应的颜色</p>
+        </div>
+        <div class="option-card" data-gjs-name="Top percentile" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[2]仅 Top</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">展示玩家成绩在相近rks的玩家中所有成绩和仅考虑B30成绩中的排名百分比，展示格式：[Top： 全体 / B30]。将全部使用下个选项选择的颜色进行展示</p>
+        </div>
+        <div class="option-card" data-gjs-name="Hidden averages" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[3]隐藏</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">不展示B30均值相关信息，界面更简洁。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-group setting-b30AvgColor" data-setting-key="b30AvgColor" data-phi-setting-variant="personal" data-gjs-name="B30 average color" data-phi-selector=".setting-b30AvgColor">
+      <div class="setting-head" data-phi-selector=".setting-head">
+        <p class="setting-title" data-phi-selector=".setting-title">B30均值条配色</p>
+        <p class="setting-current" data-phi-selector=".setting-current">当前：[2]蓝</p>
+      </div>
+      <p class="setting-desc" data-phi-selector=".setting-desc">使用/myset avgcolor &lt;序号&gt;修改，控制 B30 均值条的主色，用于快速区分你的展示偏好。</p>
+      <div class="option-row" data-phi-selector=".option-row">
+        <div class="option-card" data-gjs-name="Red color" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[0]红</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">高对比暖色，视觉冲击更强。</p>
+        </div>
+        <div class="option-card" data-gjs-name="Gold color" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[1]金</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">偏亮金色，强调成就感和层级感。</p>
+        </div>
+        <div class="option-card selected" data-gjs-name="Blue color" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[2]蓝</p>
+            <span class="option-tag" data-phi-selector=".option-tag">已选中</span>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">冷色调方案，信息阅读更平稳。</p>
+        </div>
+        <div class="option-card" data-gjs-name="Green color" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[3]绿</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">中性偏亮配色，整体观感更清新。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-group setting-allowApiUsage" data-setting-key="allowApiUsage" data-phi-setting-variant="personal" data-gjs-name="API usage" data-phi-selector=".setting-allowApiUsage">
+      <div class="setting-head" data-phi-selector=".setting-head">
+        <p class="setting-title" data-phi-selector=".setting-title">API功能开关</p>
+        <p class="setting-current" data-phi-selector=".setting-current">当前：[0]启用</p>
+      </div>
+      <p class="setting-desc" data-phi-selector=".setting-desc">使用/myset api &lt;序号&gt;修改，关闭后将不再使用在线查分平台相关功能。</p>
+      <div class="option-row" data-phi-selector=".option-row">
+        <div class="option-card selected" data-gjs-name="API enabled" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[0]启用</p>
+            <span class="option-tag" data-phi-selector=".option-tag">已选中</span>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">允许插件使用在线查分平台相关能力。</p>
+        </div>
+        <div class="option-card" data-gjs-name="API disabled" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[1]禁用</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">禁用在线查分平台能力，仅使用本地数据。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-group setting-showB30Analysis" data-setting-key="showB30Analysis" data-phi-setting-variant="personal" data-gjs-name="B30 analysis" data-phi-selector=".setting-showB30Analysis">
+      <div class="setting-head" data-phi-selector=".setting-head">
+        <p class="setting-title" data-phi-selector=".setting-title">B30统计分析</p>
+        <p class="setting-current" data-phi-selector=".setting-current">当前：[0]显示</p>
+      </div>
+      <p class="setting-desc" data-phi-selector=".setting-desc">使用/myset B30分析 &lt;序号&gt;修改，控制 B30 图片末尾的谱面标签能力与等效 RKS 直方图。</p>
+      <div class="option-row" data-phi-selector=".option-row">
+        <div class="option-card selected" data-gjs-name="Analysis shown" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[0]显示</p>
+            <span class="option-tag" data-phi-selector=".option-tag">已选中</span>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">在 B30 图片末尾显示谱面标签能力和等效 RKS 直方图。</p>
+        </div>
+        <div class="option-card" data-gjs-name="Analysis hidden" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[1]隐藏</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">隐藏完整的 B30 统计分析区域。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="title-box" data-phi-setting-variant="api" data-gjs-name="API settings title" data-phi-selector=".title-box">
+      <p class="page-title" data-phi-selector=".page-title">Phi-Plugin API 用户设置</p>
+      <p class="page-desc" data-phi-selector=".page-desc">以下设置会同步到查分平台账户权限。</p>
+    </div>
+
+    <div class="setting-group setting-allowDataCollection" data-setting-key="allowDataCollection" data-phi-setting-variant="api" data-gjs-name="Data collection consent" data-phi-selector=".setting-allowDataCollection">
+      <div class="setting-head" data-phi-selector=".setting-head">
+        <p class="setting-title" data-phi-selector=".setting-title">数据收集同意</p>
+        <p class="setting-current" data-phi-selector=".setting-current">当前：[1]同意</p>
+      </div>
+      <p class="setting-desc" data-phi-selector=".setting-desc">控制是否同意插件收集你的游戏数据（如成绩、游玩时间等）用于统计分析和功能优化，帮助我们改进插件性能和用户体验。关闭后将同步禁用下方所有选项。</p>
+      <div class="option-row" data-phi-selector=".option-row">
+        <div class="option-card selected" data-option-value="true" data-gjs-name="Data collection allowed" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[1]同意</p>
+            <span class="option-tag" data-phi-selector=".option-tag">已选中</span>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc"></p>
+        </div>
+        <div class="option-card" data-option-value="false" data-gjs-name="Data collection refused" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[0]拒绝</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">插件将仅使用本地数据，不会上传任何信息。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-group setting-allowLeaderboard" data-setting-key="allowLeaderboard" data-phi-setting-variant="api" data-gjs-name="Leaderboard display" data-phi-selector=".setting-allowLeaderboard">
+      <div class="setting-head" data-phi-selector=".setting-head">
+        <p class="setting-title" data-phi-selector=".setting-title">排行榜展示</p>
+        <p class="setting-current" data-phi-selector=".setting-current">当前：[1]同意</p>
+      </div>
+      <p class="setting-desc" data-phi-selector=".setting-desc">同意将你的成绩展示在在线排行榜中，供其他玩家查看和比较。</p>
+      <div class="option-row" data-phi-selector=".option-row">
+        <div class="option-card selected" data-option-value="true" data-gjs-name="Leaderboard allowed" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[1]同意</p>
+            <span class="option-tag" data-phi-selector=".option-tag">已选中</span>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc"></p>
+        </div>
+        <div class="option-card" data-option-value="false" data-gjs-name="Leaderboard refused" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[0]拒绝</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">你的成绩将不会在排行榜中展示。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-group setting-allowDataAggregation" data-setting-key="allowDataAggregation" data-phi-setting-variant="api" data-gjs-name="Data aggregation" data-phi-selector=".setting-allowDataAggregation">
+      <div class="setting-head" data-phi-selector=".setting-head">
+        <p class="setting-title" data-phi-selector=".setting-title">数据聚合</p>
+        <p class="setting-current" data-phi-selector=".setting-current">当前：[1]同意</p>
+      </div>
+      <p class="setting-desc" data-phi-selector=".setting-desc">同意将你的成绩数据匿名化后用于整体统计分析，分析结果将用于推分建议以及谱面分析、定位等功能。</p>
+      <div class="option-row" data-phi-selector=".option-row">
+        <div class="option-card selected" data-option-value="true" data-gjs-name="Data aggregation allowed" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[1]同意</p>
+            <span class="option-tag" data-phi-selector=".option-tag">已选中</span>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc"></p>
+        </div>
+        <div class="option-card" data-option-value="false" data-gjs-name="Data aggregation refused" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[0]拒绝</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">拒绝将你的成绩数据用于统计分析，插件将不会使用你的数据进行任何形式的分析或报告。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-group setting-allowPlayerIdSearch" data-setting-key="allowPlayerIdSearch" data-phi-setting-variant="api" data-gjs-name="Player ID search" data-phi-selector=".setting-allowPlayerIdSearch">
+      <div class="setting-head" data-phi-selector=".setting-head">
+        <p class="setting-title" data-phi-selector=".setting-title">玩家ID搜索</p>
+        <p class="setting-current" data-phi-selector=".setting-current">当前：[1]同意</p>
+      </div>
+      <p class="setting-desc" data-phi-selector=".setting-desc">同意其他玩家通过你游戏中的的玩家ID搜索到你的成绩信息，便于社交互动和成绩比较。</p>
+      <div class="option-row" data-phi-selector=".option-row">
+        <div class="option-card selected" data-option-value="true" data-gjs-name="Player ID search allowed" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[1]同意</p>
+            <span class="option-tag" data-phi-selector=".option-tag">已选中</span>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc"></p>
+        </div>
+        <div class="option-card" data-option-value="false" data-gjs-name="Player ID search refused" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[0]拒绝</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">其他人将无法通过你的游戏ID搜索到你的成绩信息。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-group setting-allowUserIdSearch" data-setting-key="allowUserIdSearch" data-phi-setting-variant="api" data-gjs-name="User ID search" data-phi-selector=".setting-allowUserIdSearch">
+      <div class="setting-head" data-phi-selector=".setting-head">
+        <p class="setting-title" data-phi-selector=".setting-title">用户ID搜索</p>
+        <p class="setting-current" data-phi-selector=".setting-current">当前：[1]同意</p>
+      </div>
+      <p class="setting-desc" data-phi-selector=".setting-desc">控制是否同意使用用户ID进行绑定，其他玩家可以通过用户id获取到你的成绩信息</p>
+      <div class="option-row" data-phi-selector=".option-row">
+        <div class="option-card selected" data-option-value="true" data-gjs-name="User ID search allowed" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[1]同意</p>
+            <span class="option-tag" data-phi-selector=".option-tag">已选中</span>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc"></p>
+        </div>
+        <div class="option-card" data-option-value="false" data-gjs-name="User ID search refused" data-phi-selector=".option-card">
+          <div class="option-title-line" data-phi-selector=".option-title-line">
+            <p class="option-title" data-phi-selector=".option-title">[0]拒绝</p>
+          </div>
+          <p class="option-desc" data-phi-selector=".option-desc">禁止使用用户ID获取存档，将禁用用户ID绑定功能。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="createdbox" data-gjs-name="Created by" data-phi-selector=".createdbox">
+    <div class="phi-plugin" data-phi-selector=".phi-plugin"><p>Phi-Plugin</p></div>
+    <div class="ver" data-phi-selector=".ver"><p>v1.0.2</p></div>
+  </div>
+</div>

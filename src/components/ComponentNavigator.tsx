@@ -37,6 +37,8 @@ import {
 } from 'lucide-react'
 import { PREVIEW_OPTIONS, type PreviewOption, type PreviewOptions } from '../editor/preview'
 import type { PreviewPage } from '../editor/preview'
+import { B19_VIEW_IDS, getPageDefinition } from '../editor/pageRegistry'
+import type { RenderTarget } from '../types/theme'
 import {
   findVisibleRuntimeComponent,
   getRuntimeSelector,
@@ -44,6 +46,7 @@ import {
   PHI_CUSTOM_ELEMENT_DRAG_TYPE,
 } from '../editor/createEditor'
 import type { CustomElementKind } from '../editor/customElements'
+import { componentLabelForSelector } from '../editor/componentLabels'
 
 interface NavigatorTarget {
   label: string
@@ -137,14 +140,27 @@ const analysisGroups: NavigatorGroup[] = [
 
 const overflowGroup: NavigatorGroup = {
   id: 'overflow',
-  label: 'Overflow',
-  targets: [{ label: 'Overflow 标题', selector: '[data-phi-overflow]', icon: PanelBottom }],
+  label: '溢出区域',
+  targets: [{ label: '溢出提示', selector: '[data-phi-overflow]', icon: PanelBottom }],
 }
 
-function groupsForPage(page: PreviewPage) {
-  if (page === 'analysis') return [...sharedGroups, ...analysisGroups]
-  if (page === 'b33') return [...sharedGroups, overflowGroup]
-  return sharedGroups
+function groupsForPage(page: PreviewPage | RenderTarget) {
+  if ((B19_VIEW_IDS as readonly string[]).includes(page)) {
+    if (page === 'analysis') return [...sharedGroups, ...analysisGroups]
+    if (page === 'b33') return [...sharedGroups, overflowGroup]
+    return sharedGroups
+  }
+  const definition = getPageDefinition(page)
+  if (!definition) return sharedGroups
+  return definition.selectorGroups.map((group) => ({
+    id: group.id,
+    label: group.label,
+    targets: group.selectors.map((selector) => ({
+      label: componentLabelForSelector(selector, definition.markup, group.label),
+      selector,
+      icon: selector.includes('img') ? Image : selector.includes('title') ? Type : LayoutGrid,
+    })),
+  }))
 }
 
 const OPTION_LABELS = new Map(PREVIEW_OPTIONS.map(({ id, label }) => [id, label]))
@@ -156,8 +172,9 @@ function unavailableReason(target: NavigatorTarget, options: PreviewOptions) {
 
 interface ComponentNavigatorProps {
   editor: Editor | null
-  page: PreviewPage
+  page: PreviewPage | RenderTarget
   previewOptions: PreviewOptions
+  customElementsEnabled?: boolean
   onSelect: (label: string) => void
   onAddCustom: (kind: Exclude<CustomElementKind, 'image'>) => void
   onUploadCustomImage: () => void
@@ -167,6 +184,7 @@ export function ComponentNavigator({
   editor,
   page,
   previewOptions,
+  customElementsEnabled = true,
   onSelect,
   onAddCustom,
   onUploadCustomImage,
@@ -269,8 +287,8 @@ export function ComponentNavigator({
             <button
               key={kind}
               type="button"
-              draggable={Boolean(editor)}
-              disabled={!editor}
+              draggable={Boolean(editor) && customElementsEnabled}
+              disabled={!editor || !customElementsEnabled}
               onClick={() => onAddCustom(kind)}
               onDragStart={(event) => startCustomDrag(event, kind)}
               title={`添加或拖放${label}`}
@@ -279,7 +297,7 @@ export function ComponentNavigator({
               <span>{label}</span>
             </button>
           ))}
-          <button type="button" disabled={!editor} onClick={onUploadCustomImage} title="上传图片到画布">
+          <button type="button" disabled={!editor || !customElementsEnabled} onClick={onUploadCustomImage} title="上传图片到画布">
             <Upload size={17} aria-hidden="true" />
             <span>上传图片</span>
           </button>
