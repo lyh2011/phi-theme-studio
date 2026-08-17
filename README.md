@@ -2,11 +2,11 @@
 
 [English](./README_en.md)
 
-基于 [GrapesJS](https://github.com/GrapesJS/grapesjs) 的 phi-plugin 可视化主题包编辑器。从浏览器中的查分结果画布直接生成可安装的主题 ZIP，不需要手写 `info.yaml`。
+基于 [GrapesJS](https://github.com/GrapesJS/grapesjs) 的 phi-plugin 可视化主题包编辑器。从浏览器中的查分结果画布直接生成可安装的主题 ZIP。
 
 在线编辑器：[https://lyh2011.github.io/phi-theme-studio/](https://lyh2011.github.io/phi-theme-studio/)
 
-第一次使用请看 [使用指南](./docs/使用指南.md)，或直接点编辑器右上角的问号按钮。
+第一次使用请看 [使用指南](./docs/使用指南.md)，或直接点编辑器上方的问号按钮。
 
 ![Phi Theme Studio 编辑器](./docs/editor.png)
 
