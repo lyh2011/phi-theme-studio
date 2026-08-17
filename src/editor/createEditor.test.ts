@@ -5,11 +5,16 @@ import {
   clipPathForShape,
   colorPickerPopupPosition,
   createShiftAwareSnapGuides,
+  derivedTextRuntimeSelector,
+  normalizeImportantRuleState,
   normalizeStyleInputUnit,
   nudgeDelta,
   parseTranslatePair,
   repairBackgroundLayerStyle,
   repairBackgroundLayerValue,
+  runtimeOverrideCombinedSelector,
+  runtimeOverridePrimarySelector,
+  runtimeOverrideTargetSelector,
   shapeControlTargetSelector,
   statsTableControlTargetSelector,
   statsRowOffsets,
@@ -17,6 +22,7 @@ import {
   STYLE_PROPERTY_NAMES,
   STYLE_SELECT_PROPERTY_OPTIONS,
   styleSelectOptions,
+  styleValueWithoutImportant,
 } from './createEditor'
 
 function mockComponent(selector: string, classes: string[] = [], parent?: Component) {
@@ -150,6 +156,61 @@ describe('arrow key nudging', () => {
 })
 
 describe('computed style defaults', () => {
+  it('stores declaration priority separately from StyleManager values', () => {
+    expect(normalizeImportantRuleState({
+      width: '120px !important',
+      color: '#fff',
+      'font-family': ['Phi', 'sans-serif !important'],
+    }, ['height'])).toEqual({
+      style: {
+        width: '120px',
+        color: '#fff',
+        'font-family': ['Phi', 'sans-serif'],
+      },
+      important: ['height', 'width', 'font-family'],
+      styleChanged: true,
+      importantChanged: true,
+    })
+
+    expect(normalizeImportantRuleState({ width: '120px' }, ['width'])).toEqual({
+      style: { width: '120px' },
+      important: ['width'],
+      styleChanged: false,
+      importantChanged: false,
+    })
+
+    expect(normalizeImportantRuleState({ width: '120px !important' }, true)).toEqual({
+      style: { width: '120px' },
+      important: true,
+      styleChanged: true,
+      importantChanged: false,
+    })
+    expect(styleValueWithoutImportant('120px !important')).toBe('120px')
+  })
+
+  it('uses a deterministic dummy selector and a high-specificity live selector', () => {
+    const selector = '.Player_profile_box p'
+    const primary = runtimeOverridePrimarySelector(selector)
+    const target = runtimeOverrideTargetSelector(selector)
+
+    expect(primary).toBe(runtimeOverridePrimarySelector(selector))
+    expect(primary).not.toBe(runtimeOverridePrimarySelector('.Player_profile_box'))
+    expect(primary).toMatch(/^\.phi-theme-studio-override-[a-f\d-]+$/)
+    expect(target).toContain(':root:is(#phi-theme-studio-override-0,:root)')
+    expect(target.match(/:is\(/g)).toHaveLength(8)
+    expect(target).toMatch(/ \.Player_profile_box p$/)
+    expect(runtimeOverrideCombinedSelector(selector)).toBe(`${primary}, ${target}`)
+  })
+
+  it('derives selectable targets for direct paragraph and span text', () => {
+    expect(derivedTextRuntimeSelector('p', '.Player_data_value'))
+      .toBe('.Player_data_value p')
+    expect(derivedTextRuntimeSelector('SPAN', '.Challenge'))
+      .toBe('.Challenge span')
+    expect(derivedTextRuntimeSelector('div', '.Challenge')).toBe('')
+    expect(derivedTextRuntimeSelector('p', '#unstable')).toBe('')
+  })
+
   it('covers every style control exactly once', () => {
     expect(STYLE_PROPERTY_NAMES).toHaveLength(41)
     expect(new Set(STYLE_PROPERTY_NAMES)).toHaveLength(41)

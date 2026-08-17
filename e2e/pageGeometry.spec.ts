@@ -187,7 +187,7 @@ test("player info keeps the reference panel, chart, tick, and stat-card geometry
       })),
       charts: Array.from(document.querySelectorAll(".svg-box"), (chart) => rect(chart)),
       challenge: (() => {
-        const element = document.querySelector<HTMLElement>("#Challenge2")!;
+        const element = document.querySelector<HTMLElement>("#Challenge1")!;
         const style = getComputedStyle(element);
         return {
           rect: rect(element),
@@ -202,12 +202,30 @@ test("player info keeps the reference panel, chart, tick, and stat-card geometry
           text: textRect(element.querySelector("span")!),
         };
       })(),
+      clg: (() => {
+        const element = document.querySelector<HTMLElement>(".Player_data_line-right .Player_data_value")!;
+        const label = element.querySelector("p")!;
+        const style = getComputedStyle(label);
+        return {
+          rect: rect(element),
+          style: {
+            display: getComputedStyle(element).display,
+            fontSize: style.fontSize,
+            opacity: style.opacity,
+            visibility: style.visibility,
+            whiteSpace: style.whiteSpace,
+          },
+          text: label.textContent?.trim(),
+          textRect: textRect(label),
+        };
+      })(),
       images: Array.from(document.images, (image) => ({
         height: image.naturalHeight,
         src: image.getAttribute("src"),
         width: image.naturalWidth,
       })),
       left: rect(document.querySelector(".left")!),
+      lineRight: rect(document.querySelector(".Player_data_line-right")!),
       ranges: Array.from(document.querySelectorAll(".value_box"), (range) =>
         Array.from(range.querySelectorAll("p"), (node) => node.textContent?.trim())),
       right: rect(document.querySelector(".right")!),
@@ -228,15 +246,34 @@ test("player info keeps the reference panel, chart, tick, and stat-card geometry
   expect(metrics.left.right).toBeLessThan(metrics.right.left);
   expect(metrics.right.left - metrics.left.right).toBeGreaterThan(40);
   expect(metrics.challenge.style).toMatchObject({
-    fontSize: "60px",
-    height: "75px",
+    fontSize: "40px",
+    height: "50px",
     spanLineHeight: "normal",
-    top: "40px",
-    width: "150px",
+    top: "0px",
+    width: "100px",
   });
-  expect(metrics.challenge.text.height).toBeGreaterThan(55);
-  expect(metrics.challenge.text.left).toBeGreaterThan(metrics.challenge.rect.left + 30);
-  expect(metrics.challenge.text.right).toBeLessThan(metrics.challenge.rect.right - 30);
+  expect(parseFloat(metrics.challenge.style.right)).toBeGreaterThan(40);
+  expect(metrics.challenge.text.height).toBeGreaterThan(35);
+  expect(metrics.challenge.text.left).toBeGreaterThan(metrics.challenge.rect.left + 15);
+  expect(metrics.challenge.text.right).toBeLessThan(metrics.challenge.rect.right - 15);
+  expect(metrics.clg).toMatchObject({
+    style: {
+      display: "flex",
+      fontSize: "38px",
+      opacity: "1",
+      visibility: "visible",
+      whiteSpace: "nowrap",
+    },
+    text: "-0th Dan-/v3.2.0",
+  });
+  expect(metrics.clg.rect.width).toBeGreaterThan(250);
+  expect(metrics.clg.rect.height).toBeGreaterThan(50);
+  expect(metrics.clg.textRect.width).toBeGreaterThan(200);
+  expect(metrics.clg.textRect.height).toBeGreaterThan(35);
+  expect(metrics.clg.textRect.left).toBeGreaterThan(metrics.lineRight.left);
+  expect(metrics.clg.textRect.right).toBeLessThan(metrics.lineRight.right);
+  expect(metrics.clg.textRect.top).toBeGreaterThan(metrics.lineRight.top);
+  expect(metrics.clg.textRect.bottom).toBeLessThan(metrics.lineRight.bottom);
 
   expect(metrics.charts).toHaveLength(3);
   expect(metrics.segments).toEqual([60, 18, 40]);

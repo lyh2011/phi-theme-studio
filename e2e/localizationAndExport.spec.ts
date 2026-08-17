@@ -23,7 +23,10 @@ const PAGE_TABS = [
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('phi-theme-studio:guide-seen:v1', '1')
-    indexedDB.deleteDatabase('keyval-store')
+    if (!sessionStorage.getItem('phi-theme-studio:e2e-db-reset')) {
+      sessionStorage.setItem('phi-theme-studio:e2e-db-reset', '1')
+      indexedDB.deleteDatabase('keyval-store')
+    }
   })
 })
 
@@ -235,6 +238,178 @@ test('import keeps explicit root page CSS paths without adding visited pages', a
   expect(userinfoCss).not.toContain('[data-gjs-type="wrapper"]')
   expect(Object.keys(zip.files).filter((name) => name.startsWith('root-css/pages/'))).toEqual([])
 })
+
+test('personal info rating cards use the imported S icon resource', async ({ page }) => {
+  await page.goto('/')
+  await editorFrame(page)
+
+  const source = new JSZip()
+  source.file('rating-info/info.yaml', [
+    'name: Rating Info',
+    'id: rating-info',
+    'icon:',
+    '  S: icons/S.png',
+    '',
+  ].join('\n'))
+  source.file('rating-info/icons/S.png', await readFile('public/demo/rating/S.png'))
+  const buffer = Buffer.from(await source.generateAsync({ type: 'uint8array' }))
+
+  await page.locator('input[type=file][accept*="zip"]').setInputFiles({
+    name: 'rating-info.zip',
+    mimeType: 'application/zip',
+    buffer,
+  })
+  await expect(page.locator('.brand-block span')).toHaveText('rating-info')
+  await page.getByRole('tab', { name: '个人信息', exact: true }).click()
+
+  const frame = await editorFrame(page)
+  const infoIcons = frame.locator('.one-stats-box .Rating img[data-rating="S"]')
+  await expect(infoIcons).toHaveCount(4)
+  const sources = await infoIcons.evaluateAll((icons) =>
+    icons.map((icon) => (icon as HTMLImageElement).src),
+  )
+  expect(new Set(sources).size).toBe(1)
+  expect(sources[0]).toMatch(/^blob:/)
+})
+
+test('personal info text and layout controls override imported page selectors', async ({ page }) => {
+  test.setTimeout(60_000)
+  await page.goto('/')
+  await editorFrame(page)
+
+  const source = new JSZip()
+  source.file('specific-info/info.yaml', [
+    'name: Specific Info',
+    'id: specific-info',
+    'css:',
+    '  userinfo/userinfo: userinfo.css',
+    '',
+  ].join('\n'))
+  source.file('specific-info/userinfo.css', [
+    'body .left { width: 590px !important; }',
+    'body .Player_data_line-left .Player_data_value p { font-size: 28px !important; }',
+    'body .Challenge span { font-size: 22px !important; }',
+    'body #Challenge2 { width: 150px !important; }',
+    'body .Player_profile_box p {',
+    '  font-size: 19px !important;',
+    '  line-height: 1.45 !important;',
+    '}',
+  ].join('\n'))
+  const buffer = Buffer.from(await source.generateAsync({ type: 'uint8array' }))
+
+  await page.locator('input[type=file][accept*="zip"]').setInputFiles({
+    name: 'specific-info.zip',
+    mimeType: 'application/zip',
+    buffer,
+  })
+  await expect(page.locator('.brand-block span')).toHaveText('specific-info')
+  await page.getByRole('tab', { name: '个人信息', exact: true }).click()
+  let frame = await editorFrame(page)
+  await expect(frame.locator('.userinfo-page')).toBeVisible()
+  await expect.poll(() => computedStyle(frame, '.left', 'width')).toBe('590px')
+
+  await setNumberStyle(page, '.left', 'width', 700)
+  await expect.poll(() => computedStyle(frame, '.left', 'width')).toBe('700px')
+  const widthInput = page.locator('.gjs-sm-property__width input').first()
+  await widthInput.fill('')
+  await widthInput.dispatchEvent('change')
+  await expect.poll(() => computedStyle(frame, '.left', 'width')).toBe('590px')
+  await page.getByTitle('撤销').click()
+  await expect.poll(() => computedStyle(frame, '.left', 'width')).toBe('700px')
+  await page.getByTitle('重做').click()
+  await expect.poll(() => computedStyle(frame, '.left', 'width')).toBe('590px')
+  await page.getByTitle('撤销').click()
+  await expect.poll(() => computedStyle(frame, '.left', 'width')).toBe('700px')
+
+  await setNumberStyle(
+    page,
+    '.Player_data_line-left .Player_data_value p',
+    'font-size',
+    41,
+    true,
+  )
+  await expect.poll(() => computedStyle(
+    frame,
+    '.Player_data_line-left .Player_data_value p',
+    'font-size',
+  )).toBe('41px')
+
+  await setNumberStyle(page, '.Challenge span', 'font-size', 37, true)
+  await expect.poll(() => computedStyle(frame, '.Challenge span', 'font-size')).toBe('37px')
+
+  await setNumberStyle(page, '.Challenge', 'width', 123)
+  await expect.poll(() => computedStyle(frame, '.Challenge', 'width')).toBe('123px')
+
+  await setNumberStyle(page, '.Player_profile_box p', 'font-size', 44, true)
+  await expect.poll(() => computedStyle(frame, '.Player_profile_box p', 'font-size')).toBe('44px')
+  await page.locator('.override-reset').click()
+  await expect.poll(() => computedStyle(frame, '.Player_profile_box p', 'font-size')).toBe('19px')
+  await page.getByTitle('撤销').click()
+  await expect.poll(() => computedStyle(frame, '.Player_profile_box p', 'font-size')).toBe('44px')
+  await page.getByTitle('重做').click()
+  await expect.poll(() => computedStyle(frame, '.Player_profile_box p', 'font-size')).toBe('19px')
+  await page.getByTitle('撤销').click()
+  await expect.poll(() => computedStyle(frame, '.Player_profile_box p', 'font-size')).toBe('44px')
+  await expect(page.locator('.topbar-status')).toHaveAttribute(
+    'title',
+    /有未保存改动|保存中/,
+  )
+
+  await page.getByTitle('主题源码').click()
+  const sourceEditor = page.getByRole('textbox', { name: 'CSS 源码' })
+  await expect(sourceEditor).toHaveValue(/\.left\s*\{/)
+  const exportedCss = await sourceEditor.inputValue()
+  expect(exportedCss).toContain('.phi-theme-studio-override-')
+  expect(exportedCss).toMatch(/:root:is\(#phi-theme-studio-override-0,\s*:root\)/)
+  expect(exportedCss).toMatch(/:is\(#phi-theme-studio-override-7,\s*:root\) \.left/)
+  expect(exportedCss).toMatch(/\.left\s*\{[^}]*width:\s*700px\s*!important/i)
+  expect(exportedCss).toMatch(/\.Player_profile_box p\s*\{[^}]*font-size:\s*44px\s*!important/i)
+  expect(exportedCss).not.toMatch(/!important\s*!important/i)
+  await page.getByRole('button', { name: '取消', exact: true }).click()
+
+  await expect(page.locator('.topbar-status')).toHaveAttribute('title', '已自动保存')
+  await page.reload()
+  await expect(page.locator('.brand-block span')).toHaveText('specific-info')
+  await expect(page.locator('.topbar-status')).toHaveAttribute('title', '已自动保存')
+  await page.getByRole('tab', { name: '个人信息', exact: true }).click()
+  frame = await editorFrame(page)
+  await expect(frame.locator('.userinfo-page')).toBeVisible()
+  await expect.poll(() => computedStyle(frame, '.left', 'width')).toBe('700px')
+  await expect.poll(() => computedStyle(frame, '.Player_profile_box p', 'font-size')).toBe('44px')
+})
+
+async function setNumberStyle(
+  page: Page,
+  selector: string,
+  property: string,
+  value: number,
+  typography = false,
+) {
+  await page.locator(`.component-nav button[title="${selector}"]`).click()
+  await expect(page.locator('.selection-path code')).toHaveText(selector)
+  await expect(page.locator('#gjs-style-manager')).toHaveAttribute(
+    'data-phi-style-selector',
+    selector,
+  )
+  if (typography) {
+    const sector = page.locator('.gjs-sm-sector__phi-typography')
+    const fields = sector.locator('.gjs-sm-properties')
+    if (!(await fields.isVisible())) await sector.locator('.gjs-sm-sector-title').click()
+  }
+  const control = page.locator(`.gjs-sm-property__${property}`)
+  await expect(control).toHaveAttribute('data-phi-computed-value', /\S/)
+  const unit = control.locator('select.gjs-input-unit')
+  if (await unit.count()) await unit.selectOption('px')
+  const input = control.locator('input').first()
+  await input.fill(String(value))
+  await input.dispatchEvent('change')
+}
+
+async function computedStyle(frame: Frame, selector: string, property: string) {
+  return frame.locator(selector).first().evaluate((element, name) => (
+    getComputedStyle(element).getPropertyValue(name).trim()
+  ), property)
+}
 
 async function editorFrame(page: Page): Promise<Frame> {
   await expect.poll(async () => {

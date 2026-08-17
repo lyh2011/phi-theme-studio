@@ -830,6 +830,10 @@
   background: #fff;
 }
 
+#gjs-style-manager:not([data-phi-style-selector]) .gjs-sm-properties {
+  pointer-events: none;
+}
+
 #gjs-style-manager .gjs-sm-property {
   width: 50%;
   padding: 5px;

@@ -44,6 +44,7 @@ import {
   getRuntimeSelector,
   PHI_COMPONENT_DRAG_TYPE,
   PHI_CUSTOM_ELEMENT_DRAG_TYPE,
+  selectRuntimeStyle,
 } from '../editor/createEditor'
 import type { CustomElementKind } from '../editor/customElements'
 import { componentLabelForSelector } from '../editor/componentLabels'
@@ -207,6 +208,7 @@ export function ComponentNavigator({
     const component = findVisibleRuntimeComponent(editor, selector)
     if (!component) return
     editor.select(component)
+    selectRuntimeStyle(editor, component)
     onSelect(label)
     editor.Canvas.scrollTo(component, { behavior: 'smooth', block: 'center', force: true })
   }
@@ -223,6 +225,7 @@ export function ComponentNavigator({
     event.dataTransfer.setData(PHI_COMPONENT_DRAG_TYPE, runtimeSelector)
     event.dataTransfer.setData('text/plain', runtimeSelector)
     editor.select(component)
+    selectRuntimeStyle(editor, component)
     onSelect(label)
   }
 

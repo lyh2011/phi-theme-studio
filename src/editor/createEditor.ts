@@ -1,6 +1,7 @@
 import grapesjs, {
   type Component,
   type ComponentDragEventData,
+  type CssRule,
   type Editor,
   type Property,
   type StyleProps,
@@ -121,6 +122,7 @@ function repairEditorBackgroundLayers(editor: Editor) {
 
 export function setEditorStyle(editor: Editor, style: Parameters<Editor['setStyle']>[0]) {
   editor.setStyle(style)
+  normalizeEditorRulePriorities(editor)
   repairEditorBackgroundLayers(editor)
   return editor
 }
@@ -378,6 +380,67 @@ export function computedStylePlaceholder(value: string, type: string, units: rea
   return match && (!match[2] || units.includes(match[2])) ? match[1] : value
 }
 
+export function styleValueWithoutImportant(value: string) {
+  return value.replace(/\s*!important\s*$/i, '').trim()
+}
+
+export interface NormalizedImportantRuleState {
+  style: StyleProps
+  important: boolean | string[]
+  styleChanged: boolean
+  importantChanged: boolean
+}
+
+/**
+ * GrapesJS parses authored `!important` suffixes into the style value itself,
+ * even though CssRule has first-class per-property priority metadata. Move the
+ * suffix into that metadata so StyleManager always reads a plain CSS value.
+ */
+export function normalizeImportantRuleState(
+  style: StyleProps,
+  important: boolean | string[] = false,
+): NormalizedImportantRuleState {
+  const priority = new Set(Array.isArray(important) ? important : [])
+  let styleChanged = false
+  const normalized = Object.fromEntries(Object.entries(style).map(([property, value]) => {
+    if (typeof value === 'string') {
+      const nextValue = styleValueWithoutImportant(value)
+      if (nextValue !== value.trim()) {
+        styleChanged = true
+        if (important !== true) priority.add(property)
+        return [property, nextValue]
+      }
+      return [property, value]
+    }
+    if (Array.isArray(value)) {
+      let valueChanged = false
+      const nextValue = value.map((item) => {
+        const normalizedItem = styleValueWithoutImportant(item)
+        if (normalizedItem !== item.trim()) {
+          valueChanged = true
+          if (important !== true) priority.add(property)
+        }
+        return normalizedItem
+      })
+      if (valueChanged) styleChanged = true
+      return [property, valueChanged ? nextValue : value]
+    }
+    return [property, value]
+  })) as StyleProps
+  const nextImportant = important === true ? true : [...priority]
+  const importantChanged = important !== true && (
+    !Array.isArray(important)
+      ? priority.size > 0
+      : important.length !== priority.size || important.some((property) => !priority.has(property))
+  )
+  return {
+    style: normalized,
+    important: importantChanged ? nextImportant : important,
+    styleChanged,
+    importantChanged,
+  }
+}
+
 interface StylePropertyView {
   el?: HTMLElement
 }
@@ -488,7 +551,7 @@ export function syncComputedStyleDefaults(editor: Editor) {
   }
 
   const selector = getRuntimeSelector(component)
-  const target = selector ? editor.Css.getRule(selector) : editor.Styles.getSelected()
+  const target = selector ? getRuntimeOverrideRule(editor, selector) : editor.Styles.getSelected()
   const targetStyle = target?.getStyle() || {}
   const computed = view.getComputedStyle(element)
   const sectors = editor.Styles.getSectors({ array: true })
@@ -499,7 +562,7 @@ export function syncComputedStyleDefaults(editor: Editor) {
       const rawValue = targetStyle[name]
       const hasOverride = rawValue !== undefined && rawValue !== null && String(rawValue).trim() !== ''
       const value = hasOverride
-        ? String(rawValue).trim()
+        ? styleValueWithoutImportant(String(rawValue))
         : computed.getPropertyValue(name).trim() || 'initial'
       renderComputedStyleDefault(property, value, hasOverride)
     }
@@ -514,13 +577,24 @@ function installComputedStyleDefaults(editor: Editor, container: HTMLElement) {
     frame = ownerWindow?.requestAnimationFrame(() => {
       frame = 0
       syncComputedStyleDefaults(editor)
+      const selector = getRuntimeSelector(editor.getSelected())
+      if (selector) container.dataset.phiStyleSelector = selector
+      else delete container.dataset.phiStyleSelector
     }) || 0
   }
-  const events = 'load component:selected component:deselected style:target style:property:update update undo redo phi:preview:update'
-  editor.on(events, schedule)
+  const targetEvents = 'load component:selected component:deselected style:target'
+  const updateEvents = 'style:property:update update undo redo phi:preview:update'
+  const scheduleTarget = () => {
+    delete container.dataset.phiStyleSelector
+    schedule()
+  }
+  editor.on(targetEvents, scheduleTarget)
+  editor.on(updateEvents, schedule)
   editor.on('destroy', () => {
     if (frame) ownerWindow?.cancelAnimationFrame(frame)
-    editor.off(events, schedule)
+    delete container.dataset.phiStyleSelector
+    editor.off(targetEvents, scheduleTarget)
+    editor.off(updateEvents, schedule)
   })
 }
 
@@ -701,14 +775,112 @@ export function createShiftAwareSnapGuides(defaults: { x?: number; y?: number } 
 // keeps exported rules stable while allowing fine-grained targets such as
 // `.Challenge img` and `.playerId p`.
 const RUNTIME_SELECTOR_RE = /^(?:\.[A-Za-z_][\w-]*|[A-Za-z][\w-]*)(?:(?:\s+)(?:\.[A-Za-z_][\w-]*|[A-Za-z][\w-]*))*$/
+const RUNTIME_OVERRIDE_SPECIFICITY_ANCHOR = `:root${Array.from(
+  { length: 8 },
+  (_, index) => `:is(#phi-theme-studio-override-${index},:root)`,
+).join('')}`
+
+export function runtimeOverridePrimarySelector(selector: string) {
+  const encoded = Array.from(selector, (character) => character.codePointAt(0)!.toString(16)).join('-')
+  return `.phi-theme-studio-override-${encoded}`
+}
+
+export function runtimeOverrideTargetSelector(selector: string) {
+  return `${RUNTIME_OVERRIDE_SPECIFICITY_ANCHOR} ${selector}`
+}
+
+export function runtimeOverrideCombinedSelector(selector: string) {
+  return `${runtimeOverridePrimarySelector(selector)}, ${runtimeOverrideTargetSelector(selector)}`
+}
+
+function getRuntimeOverrideRule(editor: Editor, selector: string) {
+  return editor.Css.getRule(runtimeOverrideCombinedSelector(selector))
+}
+
+function ensureRuntimeOverrideRule(editor: Editor, selector: string) {
+  let rule = getRuntimeOverrideRule(editor, selector)
+  if (!rule) {
+    editor.UndoManager.skip(() => {
+      rule = editor.Css.setRule(runtimeOverrideCombinedSelector(selector))
+    })
+  }
+  return rule as CssRule
+}
+
+function hasDeclaredStyleValue(value: unknown) {
+  return value !== undefined && value !== null && String(value).trim() !== ''
+}
+
+function normalizeRulePriority(editor: Editor, rule: CssRule) {
+  const currentStyle = rule.getStyle()
+  const currentImportant = rule.get('important') || false
+  const normalized = normalizeImportantRuleState(currentStyle, currentImportant)
+  if (!normalized.styleChanged && !normalized.importantChanged) return
+  editor.UndoManager.skip(() => {
+    if (normalized.styleChanged) rule.setStyle(normalized.style, { noEvent: true })
+    if (normalized.importantChanged) rule.set('important', normalized.important)
+  })
+}
+
+function normalizeEditorRulePriorities(editor: Editor) {
+  for (const rule of editor.Css.getRules()) normalizeRulePriority(editor, rule)
+}
+
+function ruleHasPropertyPriority(rule: CssRule, property: string) {
+  const important = rule.get('important')
+  return important === true || (Array.isArray(important) && important.includes(property))
+}
+
+function addRulePropertyPriority(rule: CssRule, property: string) {
+  const important = rule.get('important')
+  if (important === true || (Array.isArray(important) && important.includes(property))) return false
+  rule.set('important', [...(Array.isArray(important) ? important : []), property])
+  return true
+}
+
+function removeRulePropertyPriority(rule: CssRule, property: string) {
+  const important = rule.get('important')
+  if (important === true) {
+    rule.set('important', Object.entries(rule.getStyle())
+      .filter(([name, value]) => name !== property && hasDeclaredStyleValue(value))
+      .map(([name]) => name))
+    return true
+  }
+  if (!Array.isArray(important) || !important.includes(property)) return false
+  rule.set('important', important.filter((name) => name !== property))
+  return true
+}
+
+function addPrioritizedRuleStyle(rule: CssRule, style: StyleProps) {
+  const normalized = normalizeImportantRuleState(style)
+  for (const [property, value] of Object.entries(normalized.style)) {
+    if (!hasDeclaredStyleValue(value)) continue
+    addRulePropertyPriority(rule, property)
+  }
+  rule.addStyle(normalized.style)
+}
 
 export function getRuntimeSelector(component: Component | undefined) {
   const value = component?.getAttributes()['data-phi-selector']
   return typeof value === 'string' && RUNTIME_SELECTOR_RE.test(value) ? value : ''
 }
 
+export function derivedTextRuntimeSelector(tagName: string, parentSelector: string) {
+  const tag = tagName.toLowerCase()
+  return (tag === 'p' || tag === 'span') && RUNTIME_SELECTOR_RE.test(parentSelector)
+    ? `${parentSelector} ${tag}`
+    : ''
+}
+
 function lockComponent(component: Component) {
-  const runtimeSelector = getRuntimeSelector(component)
+  let runtimeSelector = getRuntimeSelector(component)
+  if (!runtimeSelector) {
+    runtimeSelector = derivedTextRuntimeSelector(
+      String(component.get('tagName') || ''),
+      getRuntimeSelector(component.parent()),
+    )
+    if (runtimeSelector) component.addAttributes({ 'data-phi-selector': runtimeSelector })
+  }
   const customKind = component.getAttributes()['data-phi-custom']
   const isCustom = typeof customKind === 'string' && customKind.length > 0
   const configuredName = component.get('name')
@@ -751,19 +923,17 @@ export function findVisibleRuntimeComponent(editor: Editor, selector: string) {
   return editor.getWrapper()?.find(selector).find(isVisible)
 }
 
-function selectRuntimeStyle(editor: Editor, component: Component | undefined) {
+export function selectRuntimeStyle(editor: Editor, component: Component | undefined) {
   const selector = getRuntimeSelector(component)
   if (!component || !selector) return
-  let rule = editor.Css.getRule(selector)
-  if (!rule) editor.UndoManager.skip(() => { rule = editor.Css.setRule(selector) })
-  if (!rule) return
+  const rule = ensureRuntimeOverrideRule(editor, selector)
   if (editor.Styles.getSelected() !== rule) editor.Styles.select(rule, { component })
 }
 
 function declaredStyleCount(style: StyleProps | undefined) {
   if (!style) return 0
   return Object.entries(style).filter(([property, value]) => (
-    !property.startsWith('__') && value !== undefined && value !== null && String(value).trim() !== ''
+    !property.startsWith('__') && hasDeclaredStyleValue(value)
   )).length
 }
 
@@ -858,9 +1028,7 @@ function shapeSelectors(selector: string) {
 }
 
 function addRuleStyle(editor: Editor, selector: string, style: StyleProps) {
-  let rule = editor.Css.getRule(selector)
-  if (!rule) rule = editor.Css.setRule(selector)
-  rule?.addStyle(style)
+  addPrioritizedRuleStyle(ensureRuntimeOverrideRule(editor, selector), style)
 }
 
 export function selectedShapeMode(editor: Editor | null): SelectedShapeMode | undefined {
@@ -921,7 +1089,7 @@ export function describeSelection(editor: Editor | null): SelectionInfo {
   const component = editor?.getSelected()
   if (!editor || !component) return { name: '未选中元素', selector: '', overrides: 0, ancestors: [] }
   const selector = getRuntimeSelector(component)
-  const style = selector ? editor.Css.getRule(selector)?.getStyle() as StyleProps | undefined : undefined
+  const style = selector ? getRuntimeOverrideRule(editor, selector)?.getStyle() as StyleProps | undefined : undefined
   const ancestors: SelectionAncestor[] = []
   for (let parent = component.parent(); parent; parent = parent.parent()) {
     const parentSelector = getRuntimeSelector(parent)
@@ -952,10 +1120,14 @@ export function clearSelectedOverrides(editor: Editor) {
   const component = editor.getSelected()
   const selector = getRuntimeSelector(component)
   if (!component || !selector) return 0
-  const rule = editor.Css.getRule(selector)
+  const rule = getRuntimeOverrideRule(editor, selector)
   const cleared = declaredStyleCount(rule?.getStyle() as StyleProps | undefined)
-  if (!rule || !cleared) return 0
+  if (!rule) return 0
+  const important = rule.get('important')
+  const hasPriority = important === true || (Array.isArray(important) && important.length > 0)
+  if (!cleared && !hasPriority) return 0
   rule.setStyle({})
+  if (hasPriority) rule.set('important', [])
   editor.Styles.select(rule, { component })
   return cleared
 }
@@ -1009,10 +1181,8 @@ export function moveRuntimeComponent(editor: Editor, component: Component, delta
   const [currentX, currentY] = currentTranslate(component)
   const x = cleanNumber(currentX + deltaX)
   const y = cleanNumber(currentY + deltaY)
-  let rule = editor.Css.getRule(selector)
-  if (!rule) editor.UndoManager.skip(() => { rule = editor.Css.setRule(selector) })
-  if (!rule) return
-  rule.addStyle({ translate: `${x}px ${y}px` })
+  const rule = ensureRuntimeOverrideRule(editor, selector)
+  addPrioritizedRuleStyle(rule, { translate: `${x}px ${y}px` })
   editor.select(component)
   selectRuntimeStyle(editor, component)
 }
@@ -1179,14 +1349,132 @@ function installStableStyleBridge(editor: Editor) {
     options.resizable = { ...resizable, skipPositionUpdate: true } as typeof options.resizable
   })
 
-  let syncingStyleTarget = false
-  editor.on('style:target', () => {
-    if (syncingStyleTarget) return
-    const component = editor.getSelected()
-    if (!getRuntimeSelector(component)) return
-    syncingStyleTarget = true
-    selectRuntimeStyle(editor, component)
-    syncingStyleTarget = false
+  // GrapesJS asynchronously re-selects its default class/inline style target
+  // after component selection. Resolve runtime components here so every path
+  // (canvas, navigator, keyboard, and the deferred refresh) lands on the same
+  // stable selector rule.
+  const originalGetModelToStyle = editor.Styles.getModelToStyle
+  const stableGetModelToStyle: typeof editor.Styles.getModelToStyle = (model, options) => {
+    const component = model as Component
+    const selector = typeof component?.getAttributes === 'function'
+      ? getRuntimeSelector(component)
+      : ''
+    if (selector) {
+      const rule = options?.skipAdd
+        ? getRuntimeOverrideRule(editor, selector)
+        : ensureRuntimeOverrideRule(editor, selector)
+      if (rule) return rule
+    }
+    return originalGetModelToStyle.call(editor.Styles, model, options)
+  }
+  editor.Styles.getModelToStyle = stableGetModelToStyle
+
+  interface StyleChangeOptions {
+    __up?: boolean
+    avoidStore?: boolean
+    partial?: boolean
+  }
+  interface StylePropertyUpdateEvent {
+    property?: Property
+    value?: unknown
+    opts?: StyleChangeOptions
+  }
+
+  const temporaryPriorities = new Map<CssRule, Set<string>>()
+  const selectedRuntimeRule = () => {
+    const selector = getRuntimeSelector(editor.getSelected())
+    const rule = selector ? getRuntimeOverrideRule(editor, selector) : undefined
+    return rule && editor.Styles.getSelected() === rule ? rule : undefined
+  }
+  const rememberTemporaryPriority = (rule: CssRule, property: string) => {
+    let properties = temporaryPriorities.get(rule)
+    if (!properties) {
+      properties = new Set()
+      temporaryPriorities.set(rule, properties)
+    }
+    properties.add(property)
+  }
+  const forgetTemporaryPriority = (rule: CssRule, property: string) => {
+    const properties = temporaryPriorities.get(rule)
+    properties?.delete(property)
+    if (!properties?.size) temporaryPriorities.delete(rule)
+  }
+  const restoreTemporaryPriorities = () => {
+    editor.UndoManager.skip(() => {
+      for (const [rule, properties] of temporaryPriorities) {
+        for (const property of properties) removeRulePropertyPriority(rule, property)
+      }
+    })
+    temporaryPriorities.clear()
+  }
+
+  editor.on('style:target', restoreTemporaryPriorities)
+  editor.on('undo redo', restoreTemporaryPriorities)
+
+  // This event fires before StyleManager writes to its target. Registering the
+  // property priority here makes the priority and value one grouped undo step.
+  // Partial input is armed after its first write below, then re-armed as a
+  // tracked change immediately before the final commit.
+  editor.on('style:property:update', (event: StylePropertyUpdateEvent) => {
+    const property = event?.property
+    const options = event?.opts || {}
+    if (!property || options.__up || options.partial || options.avoidStore) return
+    const rule = selectedRuntimeRule()
+    const propertyName = property.getName()
+    if (!rule || !propertyName) return
+
+    if (temporaryPriorities.get(rule)?.has(propertyName)) {
+      editor.UndoManager.skip(() => removeRulePropertyPriority(rule, propertyName))
+      forgetTemporaryPriority(rule, propertyName)
+    }
+    if (!hasDeclaredStyleValue(event.value)) return
+    addRulePropertyPriority(rule, propertyName)
+  })
+
+  let normalizingStyleValue = false
+  editor.on('styleable:change', (target: unknown, property: unknown, options: StyleChangeOptions = {}) => {
+    if (normalizingStyleValue || typeof property !== 'string') return
+    const rule = selectedRuntimeRule()
+    if (!rule || target !== rule) return
+
+    const rawValue = rule.getStyle()[property]
+    if (!hasDeclaredStyleValue(rawValue)) {
+      if (options.partial || options.avoidStore) {
+        if (temporaryPriorities.get(rule)?.has(property)) {
+          editor.UndoManager.skip(() => removeRulePropertyPriority(rule, property))
+          forgetTemporaryPriority(rule, property)
+        }
+      } else {
+        removeRulePropertyPriority(rule, property)
+        forgetTemporaryPriority(rule, property)
+      }
+      return
+    }
+
+    if (rawValue !== undefined && rawValue !== null) {
+      const normalized = normalizeImportantRuleState({ [property]: rawValue })
+      if (normalized.styleChanged) {
+        normalizingStyleValue = true
+        try {
+          rule.addStyle({ [property]: normalized.style[property] }, options)
+        } finally {
+          normalizingStyleValue = false
+        }
+      }
+    }
+
+    if (options.partial || options.avoidStore) {
+      if (!ruleHasPropertyPriority(rule, property)) {
+        editor.UndoManager.skip(() => addRulePropertyPriority(rule, property))
+        rememberTemporaryPriority(rule, property)
+      }
+      return
+    }
+
+    // Custom StyleManager property types may bypass style:property:update.
+    // Their completed write still receives the same per-property priority.
+    addRulePropertyPriority(rule, property)
+    forgetTemporaryPriority(rule, property)
   })
 
   let activeDrag: ActiveDrag | undefined
@@ -1250,10 +1538,8 @@ function installStableStyleBridge(editor: Editor) {
       return
     }
 
-    let rule = editor.Css.getRule(drag.selector)
-    if (!rule) editor.UndoManager.skip(() => { rule = editor.Css.setRule(drag.selector) })
-    if (!rule) return
-    rule.addStyle({
+    const rule = ensureRuntimeOverrideRule(editor, drag.selector)
+    addPrioritizedRuleStyle(rule, {
       translate: `${cleanNumber(drag.startX + deltaX)}px ${cleanNumber(drag.startY + deltaY)}px`,
     })
     selectRuntimeStyle(editor, drag.component)
@@ -1268,7 +1554,7 @@ function installStableStyleBridge(editor: Editor) {
     const undoWasTracking = Boolean((editor.UndoManager as unknown as { isTracking?: () => boolean }).isTracking?.() ?? true)
     if (undoWasTracking) editor.UndoManager.stop()
     const temporaryTarget = editor.Styles.getModelToStyle(component)
-    const stableTarget = editor.Css.getRule(selector)
+    const stableTarget = getRuntimeOverrideRule(editor, selector)
     activeResize = {
       component,
       selector,
@@ -1306,12 +1592,16 @@ function installStableStyleBridge(editor: Editor) {
       }
     })
     if (resize.undoWasTracking) editor.UndoManager.start()
-    const stableRule = editor.Css.getRule(resize.selector) || editor.Css.setRule(resize.selector)
-    stableRule.addStyle(resize.style)
+    const stableRule = ensureRuntimeOverrideRule(editor, resize.selector)
+    addPrioritizedRuleStyle(stableRule, resize.style)
     selectRuntimeStyle(editor, component)
   })
 
   editor.on('destroy', () => {
+    restoreTemporaryPriorities()
+    if (editor.Styles.getModelToStyle === stableGetModelToStyle) {
+      editor.Styles.getModelToStyle = originalGetModelToStyle
+    }
     if (activeDrag?.undoWasTracking) editor.UndoManager.start()
     if (activeResize?.undoWasTracking) editor.UndoManager.start()
     activeDrag = undefined

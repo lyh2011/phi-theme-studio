@@ -4,7 +4,7 @@
 
 <main class="userinfo-page" data-gjs-name="玩家信息页面">
   <section class="left" data-gjs-name="玩家资料面板" data-phi-selector=".left">
-    <header class="Player_Info" data-gjs-name="玩家信息标题" data-phi-selector=".Player_Info"><p>PLAYER_INFO</p></header>
+    <header class="Player_Info" data-gjs-name="玩家信息标题栏" data-phi-selector=".Player_Info"><p data-gjs-name="玩家信息标题文字" data-phi-selector=".Player_Info p">PLAYER_INFO</p></header>
     <div class="Player_Info-after" data-gjs-name="玩家信息标题投影" data-phi-selector=".Player_Info-after"></div>
 
     <div class="basic-box" data-gjs-name="玩家基本资料" data-phi-selector=".basic-box">
@@ -16,37 +16,40 @@
           <img src="/demo/avatar-lyh.png" alt="lyh 玩家头像" data-gjs-name="玩家头像图片" data-phi-selector=".avatar img" data-phi-default-src="/demo/avatar-lyh.png">
         </div>
         <div class="Player_Id-box" data-gjs-name="玩家 ID 信息" data-phi-selector=".Player_Id-box">
-          <div class="Player_Id-left" data-gjs-name="ID 标签" data-phi-selector=".Player_Id-left"><p>ID</p></div>
-          <div class="Player_Id-right" data-gjs-name="玩家名称" data-phi-selector=".Player_Id-right"><p name="pvis">lyh</p></div>
+          <div class="Player_Id-left" data-gjs-name="ID 标签区域" data-phi-selector=".Player_Id-left"><p data-gjs-name="ID 标签文字" data-phi-selector=".Player_Id-left p">ID</p></div>
+          <div class="Player_Id-right" data-gjs-name="玩家名称区域" data-phi-selector=".Player_Id-right"><p name="pvis" data-gjs-name="玩家名称文字" data-phi-selector=".Player_Id-right p">lyh</p></div>
         </div>
       </div>
     </div>
 
     <div class="left_title" data-gjs-name="玩家详情标题栏" data-phi-selector=".left_title">
-      <div class="left_title-left" data-gjs-name="玩家详情标题" data-phi-selector=".left_title-left"><p>PLAYER_DETAIL</p></div>
+      <div class="left_title-left" data-gjs-name="玩家详情标题区域" data-phi-selector=".left_title-left"><p data-gjs-name="玩家详情标题文字" data-phi-selector=".left_title-left p">PLAYER_DETAIL</p></div>
     </div>
 
     <div class="Player_data_line" data-gjs-name="玩家数值概览" data-phi-selector=".Player_data_line">
       <div class="Player_data_line-left" data-gjs-name="RKS 数据" data-phi-selector=".Player_data_line-left">
-        <div class="Player_data_title Player_data_left" data-gjs-name="RKS 标题" data-phi-selector=".Player_data_title"><p>RKS</p></div>
-        <div class="Player_data_value Player_data_left" data-gjs-name="RKS 数值" data-phi-selector=".Player_data_value"><p>16.1340</p></div>
+        <div class="Player_data_title Player_data_left" data-gjs-name="RKS 标题区域" data-phi-selector=".Player_data_line-left .Player_data_title"><p data-gjs-name="RKS 标题文字" data-phi-selector=".Player_data_line-left .Player_data_title p">RKS</p></div>
+        <div class="Player_data_value Player_data_left" data-gjs-name="RKS 数值区域" data-phi-selector=".Player_data_line-left .Player_data_value"><p data-gjs-name="RKS 数值文字" data-phi-selector=".Player_data_line-left .Player_data_value p">16.1340</p></div>
       </div>
       <div class="Player_data_line-right" data-gjs-name="课题模式数据" data-phi-selector=".Player_data_line-right">
-        <div class="Player_data_title Player_data_right" data-gjs-name="课题模式标题" data-phi-selector=".Player_data_line-right .Player_data_title"><p>CLG MOD</p></div>
-        <div class="Challenge" id="Challenge2" data-gjs-name="课题等级" data-phi-selector=".Challenge">
+        <div class="Player_data_title Player_data_right" data-gjs-name="课题模式标题区域" data-phi-selector=".Player_data_line-right .Player_data_title"><p data-gjs-name="课题模式标题文字" data-phi-selector=".Player_data_line-right .Player_data_title p">CLG MOD</p></div>
+        <div class="Challenge" id="Challenge1" data-gjs-name="课题等级区域" data-phi-selector=".Challenge">
           <img src="/demo/challenge-3.png" alt="课题模式等级底图" data-gjs-name="课题等级底图" data-phi-selector=".Challenge img" data-phi-default-src="/demo/challenge-3.png">
-          <span>48</span>
+          <span data-gjs-name="课题等级文字" data-phi-selector=".Challenge span">48</span>
+        </div>
+        <div class="Player_data_value CLG Player_data_right" data-gjs-name="段位信息区域" data-phi-selector=".Player_data_line-right .Player_data_value">
+          <p name="pvis" data-gjs-name="段位信息文字" data-phi-selector=".Player_data_line-right .Player_data_value p">-0th Dan-/v3.2.0</p>
         </div>
       </div>
     </div>
 
     <div class="Player_data_box" id="data_box" data-gjs-name="存档数据大小" data-phi-selector=".Player_data_box">
-      <div class="Player_box_title" data-gjs-name="存档数据标题" data-phi-selector=".Player_box_title"><p>DATA</p></div>
-      <div class="Player_box_value" data-gjs-name="存档数据数值" data-phi-selector=".Player_box_value"><p name="pvis">412MiB 130KiB</p></div>
+      <div class="Player_box_title" data-gjs-name="存档数据标题区域" data-phi-selector=".Player_box_title"><p data-gjs-name="存档数据标题文字" data-phi-selector=".Player_box_title p">DATA</p></div>
+      <div class="Player_box_value" data-gjs-name="存档数据数值区域" data-phi-selector=".Player_box_value"><p name="pvis" data-gjs-name="存档数据数值文字" data-phi-selector=".Player_box_value p">412MiB 130KiB</p></div>
     </div>
 
     <div class="Player_profile_box" data-gjs-name="玩家自我介绍" data-phi-selector=".Player_profile_box">
-      <p id="profile" name="pvis" data-gjs-name="玩家自我介绍文字" data-phi-selector=".Player_profile_box p">There is a self-introduction, write<br>something just like: Twitter:<br>@Phigros_PGS YouTube: Pigeon<br>Games Hope you have fun in Phigros.<br>Best regards, Pigeon Games</p>
+      <p name="pvis" data-gjs-name="玩家自我介绍文字" data-phi-selector=".Player_profile_box p">There is a self-introduction, write<br>something just like: Twitter:<br>@Phigros_PGS YouTube: Pigeon<br>Games Hope you have fun in Phigros.<br>Best regards, Pigeon Games</p>
     </div>
 
     <footer class="createdbox" data-gjs-name="插件页脚" data-phi-selector=".createdbox">
@@ -57,14 +60,14 @@
 
   <section class="right" data-gjs-name="玩家数据面板" data-phi-selector=".right">
     <header class="file-content" data-gjs-name="玩家数据标题栏" data-phi-selector=".file-content">
-      <div class="file-content-left" data-gjs-name="玩家数据标题" data-phi-selector=".file-content-left"><p>PLAYER_DATA</p></div>
+      <div class="file-content-left" data-gjs-name="玩家数据标题区域" data-phi-selector=".file-content-left"><p data-gjs-name="玩家数据标题文字" data-phi-selector=".file-content-left p">PLAYER_DATA</p></div>
     </header>
 
     <div class="data_title" data-gjs-name="RKS 历史标题栏" data-phi-selector=".data_title">
-      <div class="data_title-left rks-title" data-gjs-name="RKS 历史标题" data-phi-selector=".data_title-left"><p>RKS_HISTORY</p></div>
+      <div class="data_title-left rks-title" data-gjs-name="RKS 历史标题" data-phi-selector=".data_title-left"><p data-gjs-name="图表标题文字" data-phi-selector=".data_title-left p">RKS_HISTORY</p></div>
     </div>
     <div class="svg-box rks-chart" data-gjs-name="RKS 历史图表" data-phi-selector=".svg-box">
-      <div class="value_box" data-gjs-name="RKS 图表范围" data-phi-selector=".value_box"><p>16.1340</p><p>15.1275</p></div>
+      <div class="value_box" data-gjs-name="RKS 图表范围" data-phi-selector=".value_box"><p data-gjs-name="图表纵轴文字" data-phi-selector=".value_box p">16.1340</p><p>15.1275</p></div>
       <div class="line-box" data-gjs-name="RKS 折线区域" data-phi-selector=".line-box">
         <div class="line" data-gjs-name="RKS 折线" data-phi-selector=".line">
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="RKS 从 15.1275 变化至 16.1340 的历史折线" data-gjs-name="RKS 折线图形" data-phi-selector=".line svg">
@@ -131,7 +134,7 @@
 <line x1="99.56934710823985%" y1="100%" x2="100%" y2="100%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
           </svg>
         </div>
-        <div class="date_box" data-gjs-name="RKS 历史日期" data-phi-selector=".date_box"><p>2025/12/19 20:44:48</p><p>2026/08/16 12:07:50</p></div>
+        <div class="date_box" data-gjs-name="RKS 历史日期" data-phi-selector=".date_box"><p data-gjs-name="图表横轴文字" data-phi-selector=".date_box p">2025/12/19 20:44:48</p><p>2026/08/16 12:07:50</p></div>
       </div>
     </div>
 
@@ -230,12 +233,12 @@
     </div>
     <div class="stats-box" data-gjs-name="难度统计卡片" data-phi-selector=".stats-box">
       <article class="one-stats-box stats-EZ" data-rank="EZ" data-gjs-name="EZ 难度统计" data-phi-selector=".one-stats-box">
-        <div class="rank" data-gjs-name="EZ 难度标签" data-phi-selector=".rank"><p>EZ</p></div>
+        <div class="rank" data-gjs-name="EZ 难度标签" data-phi-selector=".rank"><p data-gjs-name="难度标签文字" data-phi-selector=".rank p">EZ</p></div>
         <div class="stats-up" data-gjs-name="统计卡片上栏" data-phi-selector=".stats-up">
-          <div class="Rating" data-gjs-name="EZ 总评级" data-phi-selector=".Rating"><img src="/demo/rating/S.png" alt="S 评级" data-gjs-name="评级图片" data-phi-selector=".Rating img" data-phi-default-src="/demo/rating/S.png"></div>
-          <div class="stats-group unlock-group" data-gjs-name="EZ 解锁数量" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>224</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>/312</p></div></div>
+          <div class="Rating" data-gjs-name="EZ 总评级" data-phi-selector=".Rating"><img src="/demo/rating/S.png" alt="S 评级" data-rating="S" data-gjs-name="评级图片" data-phi-selector=".Rating img" data-phi-default-src="/demo/rating/S.png"></div>
+          <div class="stats-group unlock-group" data-gjs-name="EZ 解锁数量" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p data-gjs-name="统计数值文字" data-phi-selector=".stats-group-real p">224</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p data-gjs-name="统计标签文字" data-phi-selector=".stats-group-tot p">/312</p></div></div>
           <div class="stats-rating-group" data-gjs-name="EZ 完成统计" data-phi-selector=".stats-rating-group">
-            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>66</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>Cleared</p></div></div>
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p data-gjs-name="完成数量文字" data-phi-selector=".rating-value p">66</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p data-gjs-name="完成类别文字" data-phi-selector=".rating-tatle p">Cleared</p></div></div>
             <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>10</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>FC</p></div></div>
             <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>3</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>PHI</p></div></div>
           </div>
@@ -247,7 +250,7 @@
       <article class="one-stats-box stats-HD" data-rank="HD" data-gjs-name="HD 难度统计" data-phi-selector=".one-stats-box">
         <div class="rank" data-gjs-name="HD 难度标签" data-phi-selector=".rank"><p>HD</p></div>
         <div class="stats-up" data-gjs-name="统计卡片上栏" data-phi-selector=".stats-up">
-          <div class="Rating" data-gjs-name="HD 总评级" data-phi-selector=".Rating"><img src="/demo/rating/S.png" alt="S 评级" data-gjs-name="评级图片" data-phi-selector=".Rating img" data-phi-default-src="/demo/rating/S.png"></div>
+          <div class="Rating" data-gjs-name="HD 总评级" data-phi-selector=".Rating"><img src="/demo/rating/S.png" alt="S 评级" data-rating="S" data-gjs-name="评级图片" data-phi-selector=".Rating img" data-phi-default-src="/demo/rating/S.png"></div>
           <div class="stats-group unlock-group" data-gjs-name="HD 解锁数量" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>207</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>/312</p></div></div>
           <div class="stats-rating-group" data-gjs-name="HD 完成统计" data-phi-selector=".stats-rating-group">
             <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>67</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>Cleared</p></div></div>
@@ -262,7 +265,7 @@
       <article class="one-stats-box stats-IN" data-rank="IN" data-gjs-name="IN 难度统计" data-phi-selector=".one-stats-box">
         <div class="rank" data-gjs-name="IN 难度标签" data-phi-selector=".rank"><p>IN</p></div>
         <div class="stats-up" data-gjs-name="统计卡片上栏" data-phi-selector=".stats-up">
-          <div class="Rating" data-gjs-name="IN 总评级" data-phi-selector=".Rating"><img src="/demo/rating/S.png" alt="S 评级" data-gjs-name="评级图片" data-phi-selector=".Rating img" data-phi-default-src="/demo/rating/S.png"></div>
+          <div class="Rating" data-gjs-name="IN 总评级" data-phi-selector=".Rating"><img src="/demo/rating/S.png" alt="S 评级" data-rating="S" data-gjs-name="评级图片" data-phi-selector=".Rating img" data-phi-default-src="/demo/rating/S.png"></div>
           <div class="stats-group unlock-group" data-gjs-name="IN 解锁数量" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>205</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>/312</p></div></div>
           <div class="stats-rating-group" data-gjs-name="IN 完成统计" data-phi-selector=".stats-rating-group">
             <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>205</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>Cleared</p></div></div>
@@ -277,7 +280,7 @@
       <article class="one-stats-box stats-AT" data-rank="AT" data-gjs-name="AT 难度统计" data-phi-selector=".one-stats-box">
         <div class="rank" data-gjs-name="AT 难度标签" data-phi-selector=".rank"><p>AT</p></div>
         <div class="stats-up" data-gjs-name="统计卡片上栏" data-phi-selector=".stats-up">
-          <div class="Rating" data-gjs-name="AT 总评级" data-phi-selector=".Rating"><img src="/demo/rating/S.png" alt="S 评级" data-gjs-name="评级图片" data-phi-selector=".Rating img" data-phi-default-src="/demo/rating/S.png"></div>
+          <div class="Rating" data-gjs-name="AT 总评级" data-phi-selector=".Rating"><img src="/demo/rating/S.png" alt="S 评级" data-rating="S" data-gjs-name="评级图片" data-phi-selector=".Rating img" data-phi-default-src="/demo/rating/S.png"></div>
           <div class="stats-group unlock-group" data-gjs-name="AT 解锁数量" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>36</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>/46</p></div></div>
           <div class="stats-rating-group" data-gjs-name="AT 完成统计" data-phi-selector=".stats-rating-group">
             <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>36</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>Cleared</p></div></div>

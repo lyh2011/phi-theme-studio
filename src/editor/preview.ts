@@ -569,7 +569,7 @@ body {
   background: transparent !important;
 }
 .background { min-height: var(--phi-preview-height, 1400px); }
-[data-phi-preview-hidden] { display: none !important; }
+:root [data-phi-preview-hidden] { display: none !important; }
 .createdbox { margin-top: 4%; margin-bottom: 4%; }
 .createdbox p { font-size: 48px; }
 :where(.average-marker) { bottom: ${previewHistogram.averagePosition}%; }

@@ -327,6 +327,14 @@ body p {
   z-index: 1;
 }
 
+#Challenge1 {
+  top: auto;
+  right: 15%;
+  width: 100px;
+  height: 50px;
+  font-size: 40px;
+}
+
 #Challenge2 {
   top: 40px;
   right: 27%;
@@ -385,7 +393,14 @@ body p {
   white-space: nowrap;
 }
 
-#profile {
+.CLG p {
+  margin-left: -16px;
+  font-size: 38px;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.Player_profile_box p {
   width: 100%;
   margin: 0;
   color: #fff;

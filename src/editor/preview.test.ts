@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { DEFAULT_DRAFT, DEFAULT_RESOURCES } from "../types/theme";
+import userinfoMarkup from "../theme/pages/userinfo.html?raw";
 import {
   applyPreviewPage,
   applyRuntimePreview,
@@ -277,6 +278,32 @@ describe("difficulty color preview", () => {
 
     applyRuntimePreview(preview, DEFAULT_DRAFT, DEFAULT_RESOURCES, []);
     expect(icon?.src).toMatch(/demo\/rating\/phi\.png$/);
+  });
+
+  it("uses the configured S rating icon throughout the info page", () => {
+    document.body.innerHTML = userinfoMarkup;
+    const icons = [
+      ...document.querySelectorAll<HTMLImageElement>(
+        '.one-stats-box .Rating img[data-rating="S"]',
+      ),
+    ];
+    expect(icons).toHaveLength(4);
+
+    applySharedRuntimePreview(
+      document,
+      DEFAULT_DRAFT,
+      { ...DEFAULT_RESOURCES, icons: { S: "icons/S.png" } },
+      [{
+        path: "icons/S.png",
+        mime: "image/png",
+        bytes: new Uint8Array([1]),
+        previewUrl: "blob:info-rating-s",
+      }],
+    );
+
+    expect(icons.map((icon) => icon.src)).toEqual(
+      Array(4).fill("blob:info-rating-s"),
+    );
   });
 
   it("restores a standalone page's own background when no upload is active", () => {

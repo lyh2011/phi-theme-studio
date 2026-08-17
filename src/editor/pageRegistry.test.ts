@@ -121,8 +121,16 @@ describe("multi-page registry", () => {
     );
     expect(userinfoSelectors).toContain(".background img");
     expect(userinfoSelectors).toContain(".Challenge img");
+    expect(userinfoSelectors).toContain(".Challenge span");
+    expect(userinfoSelectors).toContain(".Player_data_line-left .Player_data_value p");
+    expect(userinfoSelectors).toContain(".Player_data_line-right .Player_data_title p");
+    expect(userinfoSelectors).toContain(".Player_data_line-right .Player_data_value");
+    expect(userinfoSelectors).toContain(".Player_data_line-right .Player_data_value p");
+    expect(userinfoSelectors).toContain(".Player_profile_box p");
     expect(userinfoSelectors).toContain(".line line");
     expect(userinfoSelectors).toContain(".stats-group-real");
+    expect(userinfo).not.toContain('id="profile"');
+    expect(userinfo.match(/<img[^>]+data-rating="S"/g)).toHaveLength(4);
     expect(userinfoSelectors.filter((selector) =>
       /(?:userinfo-page|rks-chart|data-history|acc-rks|limit-title|stats-title|unlock-group|total-score|acc-range)/.test(selector),
     )).toEqual([]);

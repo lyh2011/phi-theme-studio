@@ -1271,8 +1271,11 @@ describe("page fixture fidelity", () => {
     });
     expect(text(root, ".Player_Id-right")).toBe("lyh");
     expect(text(root, ".Player_data_line-left .Player_data_value")).toBe("16.1340");
+    expect(text(root, ".Player_data_line-right .Player_data_value")).toBe("-0th Dan-/v3.2.0");
+    expect(root.querySelector(".Player_data_line-right .Player_data_value")?.classList)
+      .toContain("CLG");
     expect(text(root, ".Challenge span")).toBe("48");
-    expect(root.querySelector(".Challenge")?.id).toBe("Challenge2");
+    expect(root.querySelector(".Challenge")?.id).toBe("Challenge1");
     expect(text(root, ".Player_box_value")).toBe("412MiB 130KiB");
     expect(root.querySelector<HTMLImageElement>(".background img")?.getAttribute("src"))
       .toMatch(/\/demo\/background\.png$/);
@@ -1282,6 +1285,12 @@ describe("page fixture fidelity", () => {
       .toMatch(/\/demo\/avatar-lyh\.png$/);
     expect(root.querySelector<HTMLImageElement>(".Challenge img")?.getAttribute("src"))
       .toMatch(/\/demo\/challenge-3\.png$/);
+    expect(definition.baseCss).toMatch(
+      /#Challenge1\s*\{[^}]*right:\s*15%;[^}]*width:\s*100px;[^}]*height:\s*50px;[^}]*font-size:\s*40px;/s,
+    );
+    expect(definition.baseCss).toMatch(
+      /\.CLG p\s*\{[^}]*margin-left:\s*-16px;[^}]*font-size:\s*38px;[^}]*white-space:\s*nowrap;/s,
+    );
 
     const charts = ["rks-chart", "data-history-chart", "acc-rks-chart"].map((className) => {
       const chart = root.querySelector(`.${className}`)!;
