@@ -23,7 +23,7 @@ export interface PersistedProject {
   projectData: ProjectData
   /** Optional multi-page editor state; v1 callers can continue to ignore it. */
   cssByPage?: PageCssMap
-  /** Paths for unsupported page styles retained during round trips. */
+  /** Original package paths for all manifest page styles. */
   cssPaths?: Record<string, string>
   pages?: Record<RenderTarget, StudioPageState>
 }

@@ -80,6 +80,15 @@ import {
   normalizeRenderTarget as normalizeEditorTarget,
 } from './editor/pageRegistry'
 import {
+  cssForEditorCanvas,
+  cssFromEditorCanvas,
+  materializePageCssEntry,
+  pageCssPathForTarget,
+  pageCssPathsForExport,
+  pageCssPathsFromMetadata,
+  pageCssWithEditableStates,
+} from './editor/pageCssWorkspace'
+import {
   cssMapReferencesAsset,
   hydratePageAssetReferences,
   pageStatesReferenceAsset,
@@ -126,6 +135,7 @@ type LeftTab = 'components' | 'layers'
 type RightTab = 'style' | 'theme' | 'assets' | 'package'
 type SaveState = 'loading' | 'saved' | 'saving' | 'dirty'
 type Toast = { kind: 'success' | 'error' | 'info'; message: string }
+type CanvasSize = { width: number; height: number }
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 const MAX_CANVAS_ZOOM = 300
@@ -143,9 +153,11 @@ const PAGE_LABELS: Record<string, string> = Object.fromEntries(
 )
 
 function emptyPageStates(): Record<RenderTarget, StudioPageState> {
-  return Object.fromEntries(
-    PAGE_DEFINITION_LIST.map((page) => [page.target, { css: '' }]),
-  ) as Record<RenderTarget, StudioPageState>
+  return { 'b19/b19': { css: '' } }
+}
+
+function emptyManifestCss(): PageCssMap {
+  return { 'b19/b19': '' }
 }
 
 function isB19Target(target: RenderTarget) {
@@ -158,6 +170,21 @@ function isUserSettingTarget(target: RenderTarget) {
 
 function pageForTarget(target: RenderTarget) {
   return getPageDefinition(target) || PAGE_DEFINITION_LIST[0]
+}
+
+function renderedCanvasSize(editor: Editor, fallback: CanvasSize): CanvasSize {
+  const document = editor.Canvas.getDocument()
+  const view = document?.defaultView
+  const body = document?.body
+  if (!view || !body) return fallback
+  const style = view.getComputedStyle(body)
+  const width = Number.parseFloat(style.width)
+  const height = Number.parseFloat(style.height)
+  const valid = (value: number) => Number.isFinite(value) && value >= 100 && value <= 20_000
+  return {
+    width: valid(width) ? Math.round(width) : fallback.width,
+    height: valid(height) ? Math.round(height) : fallback.height,
+  }
 }
 
 function supportedTarget(rawTarget: string) {
@@ -217,13 +244,17 @@ function App() {
   const [revision, setRevision] = useState(0)
   const [saveState, setSaveState] = useState<SaveState>('loading')
   const [zoom, setZoom] = useState(60)
+  const [canvasSize, setCanvasSize] = useState<CanvasSize>({
+    width: pageForTarget('b19/b19').width,
+    height: PREVIEW_PAGE_HEIGHTS[DEFAULT_PREVIEW_PAGE],
+  })
   const [previewMode, setPreviewMode] = useState(false)
   const [previewPage, setPreviewPage] = useState<PreviewPage>(DEFAULT_PREVIEW_PAGE)
   const [userSettingVariant, setUserSettingVariant] = useState<UserSettingVariant>(DEFAULT_USER_SETTING_VARIANT)
   const [activeTarget, setActiveTarget] = useState<RenderTarget>('b19/b19')
   const [pageStates, setPageStates] = useState<Record<RenderTarget, StudioPageState>>(emptyPageStates)
-  const [passthroughCssByPage, setPassthroughCssByPage] = useState<PageCssMap>({})
-  const [passthroughCssPaths, setPassthroughCssPaths] = useState<Record<string, string>>({})
+  const [manifestCssByPage, setManifestCssByPage] = useState<PageCssMap>(emptyManifestCss)
+  const [pageCssPaths, setPageCssPaths] = useState<Record<string, string>>({})
   const [previewOptions, setPreviewOptions] = useState(DEFAULT_PREVIEW_OPTIONS)
   const [sourceOpen, setSourceOpen] = useState(false)
   const guide = useFirstRunGuide()
@@ -233,6 +264,7 @@ function App() {
   const [mobilePanel, setMobilePanel] = useState<'left' | 'right' | null>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
   const customImageInputRef = useRef<HTMLInputElement>(null)
+  const editorInstanceRef = useRef<Editor | null>(null)
   const restoredRef = useRef(false)
   const mountedRef = useRef(true)
   const editorLifecycleRef = useRef(createLatestInstanceGuard<Editor>())
@@ -242,9 +274,10 @@ function App() {
   const saveGenerationRef = useRef(0)
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve())
   const pageStatesRef = useRef<Record<RenderTarget, StudioPageState>>(emptyPageStates())
-  const passthroughCssRef = useRef<PageCssMap>({})
-  const passthroughCssPathsRef = useRef<Record<string, string>>({})
+  const manifestCssRef = useRef<PageCssMap>(emptyManifestCss())
+  const pageCssPathsRef = useRef<Record<string, string>>({})
   const activeTargetRef = useRef<RenderTarget>('b19/b19')
+  const measuredCanvasTargetRef = useRef('')
   const pageTransitionRef = useRef(false)
   const projectResetRef = useRef(false)
   const previewPageRef = useRef<PreviewPage>(previewPage)
@@ -345,12 +378,12 @@ function App() {
   }, [pageStates])
 
   useEffect(() => {
-    passthroughCssRef.current = passthroughCssByPage
-  }, [passthroughCssByPage])
+    manifestCssRef.current = manifestCssByPage
+  }, [manifestCssByPage])
 
   useEffect(() => {
-    passthroughCssPathsRef.current = passthroughCssPaths
-  }, [passthroughCssPaths])
+    pageCssPathsRef.current = pageCssPaths
+  }, [pageCssPaths])
 
   useEffect(() => {
     previewPageRef.current = previewPage
@@ -358,11 +391,25 @@ function App() {
     previewOptionsRef.current = previewOptions
   }, [previewPage, previewOptions, userSettingVariant])
 
+  const ensurePageCssEntry = useCallback((target: RenderTarget, css?: string) => {
+    const current = manifestCssRef.current
+    const next = materializePageCssEntry(
+      current,
+      target,
+      css ?? pageStatesRef.current[target]?.css ?? '',
+    )
+    if (next === current) return
+    manifestCssRef.current = next
+    setManifestCssByPage(next)
+  }, [])
+
   const snapshotPageState = useCallback((target: RenderTarget, instance = editor) => {
     if (!instance) return pageStatesRef.current[target] || { css: '' }
     try {
       const urlToPath = assetUrlMap(assetsRef.current)
-      const raw = instance.getCss({ avoidProtected: true, keepUnusedStyles: true }) || ''
+      const raw = cssFromEditorCanvas(
+        instance.getCss({ avoidProtected: true, keepUnusedStyles: true }) || '',
+      )
       const css = rewriteCssUrls(validateThemeCss(raw, urlToPath), (url) => urlToPath.get(url) || url)
       const projectData = compactProjectData(
         mapProjectAssetUrls(instance.getProjectData(), urlToPath),
@@ -395,7 +442,7 @@ function App() {
     const hydratedState = hydratePageAssetReferences(state, activeAssets)
     pageTransitionRef.current = true
     try {
-      resetEditorDocument(instance, hydratedState.css, page.markup)
+      resetEditorDocument(instance, cssForEditorCanvas(hydratedState.css), page.markup)
       setCanvasBaseCss(instance, page.pageCssForPreview)
       if (hydratedState.projectData && page.capabilities.customElements) {
         restoreCustomComponents(instance, hydratedState.projectData)
@@ -422,12 +469,16 @@ function App() {
 
   const handleEditorUpdate = useCallback(() => {
     if (!restoredRef.current || pageTransitionRef.current || projectResetRef.current) return
+    if (editorInstanceRef.current?.UndoManager.hasUndo()) {
+      ensurePageCssEntry(activeTargetRef.current)
+    }
     setRevision((value) => value + 1)
     setSaveState('dirty')
-  }, [])
+  }, [ensurePageCssEntry])
 
   const handleEditorReady = useCallback((instance: Editor) => {
     const editorGeneration = editorLifecycleRef.current.activate(instance)
+    editorInstanceRef.current = instance
     const isCurrentEditor = () => mountedRef.current && editorGeneration.isCurrent()
     restoredRef.current = false
     instance.on('component:selected', (component) => {
@@ -442,8 +493,8 @@ function App() {
     void (async () => {
       let restoredAssets: PackageAsset[] | undefined
       let legacyStyles: Parameters<Editor['setStyle']>[0] | undefined
-      const restoredPassthrough: PageCssMap = {}
-      const restoredPassthroughPaths: Record<string, string> = {}
+      let restoredManifestCss = emptyManifestCss()
+      const restoredPageCssPaths: Record<string, string> = {}
       try {
         const persisted = await loadPersistedProject()
         if (!isCurrentEditor()) return
@@ -475,14 +526,12 @@ function App() {
             }
           }
           if (persisted.cssByPage) {
+            restoredManifestCss = {}
             for (const [rawTarget, css] of Object.entries(persisted.cssByPage)) {
               if (typeof css !== 'string') continue
-              const target = supportedTarget(rawTarget)
-              if (!target) {
-                restoredPassthrough[rawTarget] = css
-                const path = persisted.cssPaths?.[rawTarget]
-                if (path) restoredPassthroughPaths[rawTarget] = path
-              }
+              restoredManifestCss[rawTarget] = css
+              const path = persisted.cssPaths?.[rawTarget]
+              if (path) restoredPageCssPaths[rawTarget] = path
             }
             // A short app key is a fallback for every known template under that
             // app. Exact keys win, matching phi-plugin's page resolver.
@@ -506,20 +555,24 @@ function App() {
             // v1 drafts stored GrapesJS styles in projectData rather than a
             // separate CSS string. Keep that data for the initial load below.
             if (Array.isArray(restoredCss)) legacyStyles = restoredCss
+          } else if (!persisted.cssByPage && persisted.pages) {
+            restoredManifestCss = Object.fromEntries(
+              Object.entries(persisted.pages).map(([target, state]) => [target, state.css]),
+            )
           }
         }
         const activeAssets = restoredAssets || []
         pageStatesRef.current = restoredStates
         setPageStates(restoredStates)
-        passthroughCssRef.current = restoredPassthrough
-        setPassthroughCssByPage(restoredPassthrough)
-        passthroughCssPathsRef.current = restoredPassthroughPaths
-        setPassthroughCssPaths(restoredPassthroughPaths)
+        manifestCssRef.current = restoredManifestCss
+        setManifestCssByPage(restoredManifestCss)
+        pageCssPathsRef.current = restoredPageCssPaths
+        setPageCssPaths(restoredPageCssPaths)
         const initialState = restoredStates['b19/b19'] || { css: '' }
         const initialPage = pageForTarget('b19/b19')
         pageTransitionRef.current = true
         try {
-          resetEditorDocument(instance, cssForPreview(initialState.css || '', activeAssets), initialPage.markup)
+          resetEditorDocument(instance, cssForEditorCanvas(cssForPreview(initialState.css || '', activeAssets)), initialPage.markup)
           setCanvasBaseCss(instance, initialPage.pageCssForPreview)
           if (legacyStyles) setEditorStyle(instance, legacyStyles)
           if (initialState.projectData) restoreCustomComponents(instance, initialState.projectData)
@@ -547,10 +600,11 @@ function App() {
         const fallbackStates = emptyPageStates()
         pageStatesRef.current = fallbackStates
         setPageStates(fallbackStates)
-        passthroughCssRef.current = {}
-        setPassthroughCssByPage({})
-        passthroughCssPathsRef.current = {}
-        setPassthroughCssPaths({})
+        const fallbackManifestCss = emptyManifestCss()
+        manifestCssRef.current = fallbackManifestCss
+        setManifestCssByPage(fallbackManifestCss)
+        pageCssPathsRef.current = {}
+        setPageCssPaths({})
         activeTargetRef.current = 'b19/b19'
         setActiveTarget('b19/b19')
         setDraft(DEFAULT_DRAFT)
@@ -588,6 +642,7 @@ function App() {
 
   const handleEditorDispose = useCallback((instance: Editor) => {
     if (!editorLifecycleRef.current.dispose(instance)) return
+    if (editorInstanceRef.current === instance) editorInstanceRef.current = null
     restoredRef.current = false
     if (mountedRef.current) {
       setEditor((current) => current === instance ? null : current)
@@ -654,17 +709,38 @@ function App() {
     if (!editor) return
     const definition = pageForTarget(activeTarget)
     const device = editor.Devices.get('phi-1200') || editor.Devices.getSelected()
-    const height = `${isB19Target(activeTarget)
+    const fallback: CanvasSize = {
+      width: definition.width,
+      height: isB19Target(activeTarget)
       ? PREVIEW_PAGE_HEIGHTS[previewPage]
       : isUserSettingTarget(activeTarget)
         ? USER_SETTING_VARIANT_HEIGHTS[userSettingVariant]
-        : definition.height}px`
-    const width = `${definition.width}px`
-    if (device && (device.get('height') !== height || device.get('width') !== width)) {
-      editor.UndoManager.skip(() => device.set({ height, width }))
+        : definition.height,
     }
+    const measurementKey = `${activeTarget}:${isB19Target(activeTarget) ? previewPage : isUserSettingTarget(activeTarget) ? userSettingVariant : ''}`
+    const fixedSize = isB19Target(activeTarget) || isUserSettingTarget(activeTarget)
+    if (fixedSize || measuredCanvasTargetRef.current !== measurementKey) {
+      const height = `${fallback.height}px`
+      const width = `${fallback.width}px`
+      if (device && (device.get('height') !== height || device.get('width') !== width)) {
+        editor.UndoManager.skip(() => device.set({ height, width }))
+      }
+      setCanvasSize((current) => (
+        current.width === fallback.width && current.height === fallback.height ? current : fallback
+      ))
+    }
+    measuredCanvasTargetRef.current = measurementKey
 
     let frame = window.requestAnimationFrame(() => {
+      const measured = fixedSize ? fallback : renderedCanvasSize(editor, fallback)
+      const height = `${measured.height}px`
+      const width = `${measured.width}px`
+      if (device && (device.get('height') !== height || device.get('width') !== width)) {
+        editor.UndoManager.skip(() => device.set({ height, width }))
+      }
+      setCanvasSize((current) => (
+        current.width === measured.width && current.height === measured.height ? current : measured
+      ))
       editor.refresh({ tools: true })
       // `applyPageState` runs before this effect updates the device dimensions.
       // Re-fit after the current page size reaches the frame; otherwise a long
@@ -675,7 +751,7 @@ function App() {
       })
     })
     return () => window.cancelAnimationFrame(frame)
-  }, [activeTarget, editor, previewPage, userSettingVariant])
+  }, [activeTarget, editor, previewPage, revision, userSettingVariant])
 
   useEffect(() => {
     if (!editor || !restoredRef.current || projectResetRef.current) return
@@ -689,7 +765,9 @@ function App() {
           mapProjectAssetUrls(editor.getProjectData(), urlToPath),
         )
         const currentCss = rewriteCssUrls(
-          validateThemeCss(editor.getCss({ avoidProtected: true, keepUnusedStyles: true }) || '', urlToPath),
+          validateThemeCss(cssFromEditorCanvas(
+            editor.getCss({ avoidProtected: true, keepUnusedStyles: true }) || '',
+          ), urlToPath),
           (url) => urlToPath.get(url) || url,
         )
         const currentPage = {
@@ -715,6 +793,7 @@ function App() {
               : state,
           ]),
         ) as Record<RenderTarget, StudioPageState>
+        const persistedManifestCss = pageCssWithEditableStates(manifestCssRef.current, pages)
         const snapshot = {
           schemaVersion: 2 as const,
           draft,
@@ -723,14 +802,13 @@ function App() {
           customTemplate,
           exportMode,
           projectData: persistedPages['b19/b19']?.projectData || currentProjectData,
-          cssByPage: {
-            ...passthroughCssRef.current,
-            ...Object.fromEntries(Object.entries(pages).map(([target, state]) => [target, state.css])),
-          } as PageCssMap,
-          cssPaths: passthroughCssPathsRef.current,
+          cssByPage: persistedManifestCss,
+          cssPaths: pageCssPathsRef.current,
           pages: persistedPages,
         }
         pageStatesRef.current = pages
+        manifestCssRef.current = persistedManifestCss
+        setManifestCssByPage(persistedManifestCss)
         saveQueueRef.current = saveQueueRef.current
           .catch(() => undefined)
           .then(() => savePersistedProject(snapshot))
@@ -772,6 +850,7 @@ function App() {
 
   const applyShapeMode = (mode: ComponentShapeMode) => {
     if (!editor || !setSelectedShapeMode(editor, mode)) return
+    ensurePageCssEntry(activeTargetRef.current)
     setRevision((value) => value + 1)
     setSelectionTick((value) => value + 1)
     setSaveState('dirty')
@@ -779,6 +858,7 @@ function App() {
 
   const applyStatsTableLayout = (mode: StatsTableLayout) => {
     if (!editor || !setStatsTableLayout(editor, mode)) return
+    ensurePageCssEntry(activeTargetRef.current)
     setRevision((value) => value + 1)
     setSelectionTick((value) => value + 1)
     setSaveState('dirty')
@@ -788,6 +868,7 @@ function App() {
     if (!editor) return
     const cleared = clearSelectedOverrides(editor)
     if (!cleared) return
+    ensurePageCssEntry(activeTargetRef.current)
     setRevision((value) => value + 1)
     setSaveState('dirty')
     notify(`已清除 ${selection.name} 的 ${cleared} 项样式覆盖`, 'success')
@@ -796,7 +877,9 @@ function App() {
   const canonical = (() => {
     if (!editor) return { css: '', error: '' }
     try {
-      const raw = editor.getCss({ avoidProtected: true, keepUnusedStyles: true }) || ''
+      const raw = cssFromEditorCanvas(
+        editor.getCss({ avoidProtected: true, keepUnusedStyles: true }) || '',
+      )
       const urlToPath = assetUrlMap(assets)
       const checked = validateThemeCss(raw, urlToPath)
       return { css: rewriteCssUrls(checked, (url) => urlToPath.get(url) || url), error: '' }
@@ -818,17 +901,16 @@ function App() {
   const pageExportStates = useMemo(() => {
     const urlToPath = assetUrlMap(assets)
     const result: Record<RenderTarget, StudioPageState> = {}
-    for (const page of PAGE_DEFINITION_LIST) {
-      const state = pageStates[page.target] || { css: '' }
+    for (const [target, state] of Object.entries(pageStates)) {
       try {
         const checked = validateThemeCss(state.css || '', urlToPath)
-        result[page.target] = {
+        result[target] = {
           ...state,
           css: rewriteCssUrls(checked, (url) => urlToPath.get(url) || url),
           ...(state.projectData ? { projectData: mapProjectAssetUrls(state.projectData, urlToPath) } : {}),
         }
       } catch {
-        result[page.target] = state
+        result[target] = state
       }
     }
     if (activeTarget && projectData) {
@@ -840,6 +922,16 @@ function App() {
     }
     return result
   }, [activeTarget, assets, canonicalCss, pageStates, projectData])
+  const exportCssByPage = useMemo(
+    () => pageCssWithEditableStates(manifestCssByPage, pageExportStates),
+    [manifestCssByPage, pageExportStates],
+  )
+  const exportPages = useMemo(() => Object.fromEntries(
+    Object.entries(pageExportStates).filter(([target]) => (
+      Boolean(pageForTarget(target).capabilities.customElements) &&
+      resolvePageCss(exportCssByPage, target).css !== undefined
+    )),
+  ) as Record<RenderTarget, StudioPageState>, [exportCssByPage, pageExportStates])
   const b19ProjectData = pageExportStates['b19/b19']?.projectData
   const effectiveTemplateResult = useMemo(() => {
     if (!b19ProjectData) return { template: customTemplate, error: '' }
@@ -860,22 +952,13 @@ function App() {
     draft,
     resources,
     assets,
-    css: pageExportStates['b19/b19']?.css || canonicalCss,
-    cssByPage: {
-      ...passthroughCssByPage,
-      ...Object.fromEntries(Object.entries(pageExportStates).map(([target, state]) => [target, state.css])),
-    } as PageCssMap,
-    pages: pageExportStates,
-    cssPaths: {
-      ...passthroughCssPaths,
-      ...Object.fromEntries(PAGE_DEFINITION_LIST.map((page) => [
-        page.target,
-        page.target === 'b19/b19' ? 'b19.css' : `pages/${page.app}-${page.template}.css`,
-      ])),
-    },
+    css: resolvePageCss(exportCssByPage, 'b19/b19').css || canonicalCss,
+    cssByPage: exportCssByPage,
+    pages: exportPages,
+    cssPaths: pageCssPathsForExport(exportCssByPage, pageCssPaths),
     exportMode,
     customTemplate: effectiveTemplate,
-  }), [draft, resources, assets, canonicalCss, exportMode, effectiveTemplate, pageExportStates, passthroughCssByPage, passthroughCssPaths])
+  }), [draft, resources, assets, canonicalCss, exportCssByPage, exportMode, exportPages, effectiveTemplate, pageCssPaths])
   const issues = useMemo(() => {
     const result = validateTheme(exportInput)
     const derivedErrors = [canonical.error, effectiveTemplateResult.error]
@@ -927,15 +1010,15 @@ function App() {
     const urlToPath = assetUrlMap(assetsRef.current)
     return {
       states: rewritePageAssetReferences(statesWithCurrent, urlToPath),
-      passthrough: rewriteCssMapAssetReferences(passthroughCssRef.current, urlToPath),
+      manifestCss: rewriteCssMapAssetReferences(manifestCssRef.current, urlToPath),
     }
   }
 
   const applyAssetStateChange = (options: {
     previousStates: Record<RenderTarget, StudioPageState>
     nextStates: Record<RenderTarget, StudioPageState>
-    previousPassthrough: PageCssMap
-    nextPassthrough: PageCssMap
+    previousManifestCss: PageCssMap
+    nextManifestCss: PageCssMap
     previousAssets: PackageAsset[]
     nextAssets: PackageAsset[]
     previousResources: ThemeResources
@@ -952,9 +1035,9 @@ function App() {
       assetsRef.current = options.previousAssets
       resourcesRef.current = options.previousResources
       pageStatesRef.current = options.previousStates
-      passthroughCssRef.current = options.previousPassthrough
+      manifestCssRef.current = options.previousManifestCss
       setPageStates(options.previousStates)
-      setPassthroughCssByPage(options.previousPassthrough)
+      setManifestCssByPage(options.previousManifestCss)
       try {
         applyPageState(currentTarget, options.previousStates[currentTarget] || { css: '' }, editor)
       } catch {
@@ -966,9 +1049,9 @@ function App() {
     }
 
     pageStatesRef.current = options.nextStates
-    passthroughCssRef.current = options.nextPassthrough
+    manifestCssRef.current = options.nextManifestCss
     setPageStates(options.nextStates)
-    setPassthroughCssByPage(options.nextPassthrough)
+    setManifestCssByPage(options.nextManifestCss)
     setAssets(options.nextAssets)
     setResources(options.nextResources)
     window.setTimeout(() => revokeAssets(options.removedAssets), 0)
@@ -1006,9 +1089,9 @@ function App() {
       const nextStates = migration.size
         ? rewritePageAssetReferences(prepared.states, migration)
         : prepared.states
-      const nextPassthrough = migration.size
-        ? rewriteCssMapAssetReferences(prepared.passthrough, migration)
-        : prepared.passthrough
+      const nextManifestCss = migration.size
+        ? rewriteCssMapAssetReferences(prepared.manifestCss, migration)
+        : prepared.manifestCss
       const removedAssets = previousAssets.filter((asset) => asset.path === previousPath || asset.path === path)
       const nextAssets = [
         ...previousAssets.filter((asset) => asset.path !== previousPath && asset.path !== path),
@@ -1017,8 +1100,8 @@ function App() {
       const applied = applyAssetStateChange({
         previousStates: prepared.states,
         nextStates,
-        previousPassthrough: prepared.passthrough,
-        nextPassthrough,
+        previousManifestCss: prepared.manifestCss,
+        nextManifestCss,
         previousAssets,
         nextAssets,
         previousResources,
@@ -1043,7 +1126,7 @@ function App() {
       const prepared = preparePageAssetState()
       if (
         pageStatesReferenceAsset(prepared.states, path) ||
-        cssMapReferencesAsset(prepared.passthrough, path)
+        cssMapReferencesAsset(prepared.manifestCss, path)
       ) {
         notify('该资源仍被页面样式或自定义元素引用，请先移除对应引用', 'error')
         return
@@ -1051,8 +1134,8 @@ function App() {
       const applied = applyAssetStateChange({
         previousStates: prepared.states,
         nextStates: prepared.states,
-        previousPassthrough: prepared.passthrough,
-        nextPassthrough: prepared.passthrough,
+        previousManifestCss: prepared.manifestCss,
+        nextManifestCss: prepared.manifestCss,
         previousAssets,
         nextAssets: previousAssets.filter((asset) => asset.path !== path),
         previousResources,
@@ -1076,8 +1159,8 @@ function App() {
       previousState: StudioPageState
       wasPreviewing: boolean
       nextStates: Record<RenderTarget, StudioPageState>
-      nextPassthrough: PageCssMap
-      nextPassthroughPaths: Record<string, string>
+      nextManifestCss: PageCssMap
+      nextPageCssPaths: Record<string, string>
       b19State: StudioPageState
       template: string
       warnings: string[]
@@ -1091,20 +1174,15 @@ function App() {
           const previousTarget = activeTargetRef.current
           const previousState = snapshotPageState(previousTarget, editor)
           const previousAssets = assetsRef.current
-          const nextStates = emptyPageStates()
-          const nextPassthrough: PageCssMap = {}
-          const nextPassthroughPaths: Record<string, string> = {}
+          const nextStates: Record<RenderTarget, StudioPageState> = {}
+          const nextManifestCss = { ...next.cssByPage }
+          const nextPageCssPaths = pageCssPathsFromMetadata(next.pageCssMetadata)
           const importedTargets = new Set<string>()
           for (const [rawTarget, state] of Object.entries(next.pages || {})) {
             const target = supportedTarget(rawTarget)
             if (target) {
               nextStates[target] = { ...state }
               importedTargets.add(target)
-            } else if (
-              typeof state?.css === 'string' &&
-              resolvePageCss(next.cssByPage, rawTarget).css === undefined
-            ) {
-              nextPassthrough[rawTarget] = state.css
             }
           }
           // Resolve each known page independently so short app keys fan out to
@@ -1114,14 +1192,7 @@ function App() {
             const resolved = resolvePageCss(next.cssByPage, page.target)
             if (resolved.css !== undefined) nextStates[page.target] = { css: resolved.css }
           }
-          for (const [rawTarget, css] of Object.entries(next.cssByPage || {})) {
-            if (!supportedTarget(rawTarget) && typeof css === 'string') {
-              nextPassthrough[rawTarget] = css
-              const path = next.pageCssMetadata.find((entry) => entry.key === rawTarget)?.path
-              if (path) nextPassthroughPaths[rawTarget] = path
-            }
-          }
-          if (next.projectData && !nextStates['b19/b19'].projectData) {
+          if (next.projectData && !nextStates['b19/b19']?.projectData) {
             nextStates['b19/b19'] = { ...nextStates['b19/b19'], projectData: next.projectData }
           }
           const b19State = nextStates['b19/b19'] || { css: next.css }
@@ -1132,8 +1203,8 @@ function App() {
             previousState,
             wasPreviewing,
             nextStates,
-            nextPassthrough,
-            nextPassthroughPaths,
+            nextManifestCss,
+            nextPageCssPaths,
             b19State,
             template: sourceTemplateForEditing(next.customTemplate, Boolean(next.projectData)),
             warnings: next.warnings,
@@ -1143,7 +1214,7 @@ function App() {
           // Always use the latest fixed preview DOM. Runtime CSS is the package source of truth.
           pageTransitionRef.current = true
           try {
-            resetEditorDocument(editor, cssForPreview(b19State.css || next.css, next.assets), pageForTarget('b19/b19').markup)
+            resetEditorDocument(editor, cssForEditorCanvas(cssForPreview(b19State.css || next.css, next.assets)), pageForTarget('b19/b19').markup)
             setCanvasBaseCss(editor, pageForTarget('b19/b19').pageCssForPreview)
             if (b19State.projectData) restoreCustomComponents(editor, b19State.projectData)
             const importedDocument = editor.Canvas.getDocument()
@@ -1164,10 +1235,10 @@ function App() {
           if (!staged) throw new Error('导入事务未完成暂存')
           pageStatesRef.current = staged.nextStates
           setPageStates(staged.nextStates)
-          passthroughCssRef.current = staged.nextPassthrough
-          setPassthroughCssByPage(staged.nextPassthrough)
-          passthroughCssPathsRef.current = staged.nextPassthroughPaths
-          setPassthroughCssPaths(staged.nextPassthroughPaths)
+          manifestCssRef.current = staged.nextManifestCss
+          setManifestCssByPage(staged.nextManifestCss)
+          pageCssPathsRef.current = staged.nextPageCssPaths
+          setPageCssPaths(staged.nextPageCssPaths)
           activeTargetRef.current = 'b19/b19'
           setActiveTarget('b19/b19')
           if (staged.wasPreviewing) setPreviewMode(false)
@@ -1193,7 +1264,8 @@ function App() {
         } catch {
           // The editor may be replaced immediately after a successful commit.
         }
-        const unsupportedCount = Object.keys(staged.nextPassthrough).length
+        const unsupportedCount = Object.keys(staged.nextManifestCss)
+          .filter((target) => !supportedTarget(target)).length
         const passthroughNote = unsupportedCount ? `；已保留 ${unsupportedCount} 个未支持页面样式` : ''
         const warningSuffix = staged.warnings.length ? `；${staged.warnings.join('；')}` : ''
         notify(`已导入 ${file.name}${warningSuffix}${passthroughNote}`, staged.warnings.length ? 'info' : 'success')
@@ -1261,10 +1333,11 @@ function App() {
           const blankStates = emptyPageStates()
           pageStatesRef.current = blankStates
           setPageStates(blankStates)
-          passthroughCssRef.current = {}
-          setPassthroughCssByPage({})
-          passthroughCssPathsRef.current = {}
-          setPassthroughCssPaths({})
+          const blankManifestCss = emptyManifestCss()
+          manifestCssRef.current = blankManifestCss
+          setManifestCssByPage(blankManifestCss)
+          pageCssPathsRef.current = {}
+          setPageCssPaths({})
           activeTargetRef.current = 'b19/b19'
           setActiveTarget('b19/b19')
           assetsRef.current = []
@@ -1328,9 +1401,10 @@ function App() {
   const applySource = (css: string, template: string) => {
     if (!editor) return
     const checked = validateThemeCss(css, assetUrlMap(assets))
-    setEditorStyle(editor, cssForPreview(css, assets))
+    setEditorStyle(editor, cssForEditorCanvas(cssForPreview(css, assets)))
     const canonicalSourceCss = rewriteCssUrls(checked, (url) => assetUrlMap(assets).get(url) || url)
     const target = activeTargetRef.current
+    ensurePageCssEntry(target, canonicalSourceCss)
     const current = pageStatesRef.current[target] || { css: '' }
     const nextStates = {
       ...pageStatesRef.current,
@@ -1353,6 +1427,7 @@ function App() {
       src,
       name: `自定义${CUSTOM_ELEMENT_LABELS[kind]}`,
     })
+    ensurePageCssEntry(activeTargetRef.current)
     setSelectedName(`自定义${CUSTOM_ELEMENT_LABELS[kind]}`)
     setRevision((value) => value + 1)
     setSaveState('dirty')
@@ -1531,13 +1606,7 @@ function App() {
                 </div>
               </div>
             )}
-            <span className="preview-dimensions">{pageForTarget(activeTarget).width} x {
-              isB19Target(activeTarget)
-                ? PREVIEW_PAGE_HEIGHTS[previewPage]
-                : isUserSettingTarget(activeTarget)
-                  ? USER_SETTING_VARIANT_HEIGHTS[userSettingVariant]
-                  : pageForTarget(activeTarget).height
-            }</span>
+            <span className="preview-dimensions">{canvasSize.width} x {canvasSize.height}</span>
           </div>
           <div className="canvas-stage">
             <GrapesCanvas
@@ -1678,7 +1747,7 @@ function App() {
         open={sourceOpen}
         css={pageExportStates[activeTarget]?.css || canonicalCss}
         template={isB19Target(activeTarget) ? customTemplate : ''}
-        cssLabel={pageForTarget(activeTarget).target === 'b19/b19' ? 'b19.css' : `pages/${pageForTarget(activeTarget).app}-${pageForTarget(activeTarget).template}.css`}
+        cssLabel={pageCssPathForTarget(exportCssByPage, pageCssPaths, activeTarget)}
         templateEditable={pageForTarget(activeTarget).capabilities.templateEditable}
         yaml={yaml}
         onClose={() => setSourceOpen(false)}

@@ -132,7 +132,7 @@ test('ordinary B30 cards expose artwork shape, fit long titles, and use two-deci
     .every((text) => /^\d+\.\d{2}%$/.test(text.trim()))).toBe(true)
 })
 
-test('a visited multi-page project exports a compact studio file and imports its custom element', async ({ page }) => {
+test('visiting pages does not materialize CSS entries and B19 custom elements stay compact', async ({ page }) => {
   test.setTimeout(60_000)
   await page.goto('/')
 
@@ -157,7 +157,7 @@ test('a visited multi-page project exports a compact studio file and imports its
   }
   expect(Buffer.byteLength(studioText)).toBeLessThan(100_000)
   expect(studio.projectData).toBeUndefined()
-  expect(Object.keys(studio.pages)).toHaveLength(14)
+  expect(Object.keys(studio.pages)).toEqual(['b19/b19'])
   expect(studioText).toContain('data-phi-custom')
   expect(studioText).not.toContain('data-phi-role')
 
@@ -166,13 +166,74 @@ test('a visited multi-page project exports a compact studio file and imports its
   const manifest = parse(await manifestEntry!.async('string')) as {
     css: Record<string, string>
   }
-  expect(manifest.css['userinfo/userinfo']).toBe('pages/userinfo-userinfo.css')
-  expect(zip.file('my-theme/pages/userinfo-userinfo.css')).not.toBeNull()
+  expect(manifest.css).toEqual({ 'b19/b19': 'b19.css' })
+  expect(zip.file('my-theme/pages/userinfo-userinfo.css')).toBeNull()
 
   await page.locator('input[type=file][accept*="zip"]').setInputFiles(path!)
   await expect(page.locator('.brand-block span')).toHaveText('my-theme')
   const frame = await editorFrame(page)
   await expect(frame.locator('[data-phi-custom]')).toHaveCount(1)
+})
+
+test('import keeps explicit root page CSS paths without adding visited pages', async ({ page }) => {
+  test.setTimeout(60_000)
+  await page.goto('/')
+  await editorFrame(page)
+
+  const source = new JSZip()
+  source.file('root-css/info.yaml', [
+    'name: Root CSS',
+    'id: root-css',
+    'css:',
+    '  b19/b19: ocean.css',
+    '  userinfo/userinfo: userinfo.css',
+    '',
+  ].join('\n'))
+  source.file('root-css/ocean.css', '.song { color: #123456; }')
+  source.file('root-css/userinfo.css', [
+    'body { width: 1448px; height: 1086px; }',
+    'body > .theme-background { background: #dcefff; }',
+  ].join('\n'))
+  const buffer = Buffer.from(await source.generateAsync({ type: 'uint8array' }))
+
+  await page.locator('input[type=file][accept*="zip"]').setInputFiles({
+    name: 'root-css.zip',
+    mimeType: 'application/zip',
+    buffer,
+  })
+  await expect(page.locator('.brand-block span')).toHaveText('root-css')
+  await page.getByRole('tab', { name: '个人信息', exact: true }).click()
+  await expect(page.locator('.preview-dimensions')).toHaveText('1448 x 1086')
+  await page.getByTitle('主题源码').click()
+  await expect(page.getByRole('button', { name: 'userinfo.css', exact: true })).toBeVisible()
+  const sourceEditor = page.getByRole('textbox', { name: 'CSS 源码' })
+  await sourceEditor.fill(`${await sourceEditor.inputValue()}\n.userinfo-page { opacity: 0.99; }`)
+  await page.getByRole('button', { name: '应用', exact: true }).click()
+
+  for (const tab of PAGE_TABS) {
+    await page.getByRole('tab', { name: tab, exact: true }).click()
+  }
+
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: '导出', exact: true }).click()
+  const download = await downloadPromise
+  const path = await download.path()
+  expect(path).not.toBeNull()
+  const zip = await JSZip.loadAsync(await readFile(path!))
+  const manifest = parse(await zip.file('root-css/info.yaml')!.async('string')) as {
+    css: Record<string, string>
+  }
+
+  expect(manifest.css).toEqual({
+    'b19/b19': 'ocean.css',
+    'userinfo/userinfo': 'userinfo.css',
+  })
+  expect(zip.file('root-css/ocean.css')).not.toBeNull()
+  const userinfoCss = await zip.file('root-css/userinfo.css')!.async('string')
+  expect(userinfoCss).toContain('body > .theme-background')
+  expect(userinfoCss).toContain('.userinfo-page')
+  expect(userinfoCss).not.toContain('[data-gjs-type="wrapper"]')
+  expect(Object.keys(zip.files).filter((name) => name.startsWith('root-css/pages/'))).toEqual([])
 })
 
 async function editorFrame(page: Page): Promise<Frame> {

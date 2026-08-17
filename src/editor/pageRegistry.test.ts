@@ -114,6 +114,7 @@ describe("multi-page registry", () => {
     expect(clg).not.toContain('data-phi-selector=".charter-box"');
 
     const userinfo = PAGE_DEFINITIONS["userinfo/userinfo"].markup;
+    expect(userinfo).toContain('class="background theme-background"');
     const userinfoSelectors = Array.from(
       userinfo.matchAll(/data-phi-selector="([^"]+)"/g),
       (match) => match[1],

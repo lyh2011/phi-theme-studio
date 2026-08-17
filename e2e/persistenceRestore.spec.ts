@@ -24,10 +24,7 @@ test('a real autosaved multi-page draft reloads into B19 without persisting fixt
   try {
     await page.goto('/')
     let frame = await findEditorFrame(page)
-    const expectedPageCount = await page
-      .getByRole('tablist', { name: '编辑页面' })
-      .getByRole('tab')
-      .count()
+    const expectedPageCount = LARGE_PAGE_CASES.length + 1
     await page.locator('.custom-nav-group button').filter({ hasText: '文字' }).first().click()
     await expect(frame.locator('[data-phi-custom="text"]')).toHaveCount(1)
 
