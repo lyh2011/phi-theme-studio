@@ -110,45 +110,118 @@ type PreviewScoreRecord = {
   suggestion: { text: string; kind?: 0 | 1 | 2 | 3 | 4 | 5 };
 };
 
+const PREVIEW_TEXT_FIT_STYLE_ID = "phi-preview-text-fit";
+
+/** Match phi-plugin's default.art text fitting for the editor-only preview. */
+export function fitPreviewText(document: Document) {
+  const view = document.defaultView;
+  if (!view) return;
+
+  document.getElementById(PREVIEW_TEXT_FIT_STYLE_ID)?.remove();
+  const rules: string[] = [];
+  const elements = document.querySelectorAll<HTMLElement>('[name="pvis"], .songname p');
+
+  const escapeIdentifier = (value: string) => value.replace(/([^a-zA-Z0-9_-])/g, "\\$1");
+  const selectorFor = (element: HTMLElement) => {
+    if (element.id) return `#${escapeIdentifier(element.id)}`;
+    const card = element.closest<HTMLElement>('[data-phi-role="song-card"]');
+    if (card?.dataset.phiSlot && card.dataset.phiIndex) {
+      return `.song[data-phi-slot="${card.dataset.phiSlot}"][data-phi-index="${card.dataset.phiIndex}"] .songname p`;
+    }
+    return undefined;
+  };
+
+  for (const element of elements) {
+    if (element.closest("[data-phi-preview-hidden]")) continue;
+    const parent = element.parentElement;
+    if (!parent) continue;
+    const baseSize = Number.parseFloat(view.getComputedStyle(element).fontSize);
+    if (!Number.isFinite(baseSize) || baseSize <= 1) continue;
+    const originalInlineSize = element.style.fontSize;
+    const overflows = () => (
+      element.scrollWidth > parent.offsetWidth + 0.5
+      || element.scrollHeight > parent.offsetHeight + 0.5
+    );
+    if (!overflows()) continue;
+
+    let low = 1;
+    let high = Math.floor(baseSize);
+    while (low < high) {
+      const middle = Math.ceil((low + high) / 2);
+      element.style.fontSize = `${middle}px`;
+      if (overflows()) high = middle - 1;
+      else low = middle;
+    }
+    element.style.fontSize = originalInlineSize;
+
+    const selector = selectorFor(element);
+    if (selector && low < baseSize) rules.push(`${selector} { font-size: ${low}px; }`);
+  }
+
+  const style = document.createElement("style");
+  style.id = PREVIEW_TEXT_FIT_STYLE_ID;
+  style.dataset.phiPreviewOnly = "true";
+  style.textContent = rules.join("\n");
+  document.head.append(style);
+}
+
+/** Keep the editor preview in sync with fonts and images settling in the iframe. */
+function schedulePreviewTextFit(document: Document) {
+  fitPreviewText(document);
+  const view = document.defaultView;
+  if (!view) return;
+  const rerun = () => fitPreviewText(document);
+  view.requestAnimationFrame(() => {
+    rerun();
+    view.requestAnimationFrame(rerun);
+  });
+  document.fonts?.ready.then(rerun).catch(() => undefined);
+}
+
+export function formatPreviewSuggestion(value: string) {
+  const match = value.trim().match(/^(-?\d+(?:\.\d+)?)%$/);
+  return match ? `${Number(match[1]).toFixed(2)}%` : value;
+}
+
 // Canonical 3 Phi + 33 Best fixture exported by phi-plugin. Every score field
 // and its artwork live in one record so titles and covers cannot drift apart.
 const previewScoreRecords = [
   { title: "BANGING STRIKE", rank: "IN", difficulty: "15.9", rks: "15.90", rating: "phi", score: "1000000", acc: "100.00", cover: "song-covers/ill-BANGINGSTRIKE_DewPleiades-da5d4e74a8.webp", suggestion: { text: "无法推分" } },
   { title: "蝎虎天体 -Lacertid-", rank: "IN", difficulty: "15.5", rks: "15.50", rating: "phi", score: "1000000", acc: "100.00", cover: "song-covers/ill-Lacertid_CreamvsDaily-cdb4419018.webp", suggestion: { text: "无法推分" } },
   { title: "星拂云锦 feat. koi", rank: "IN", difficulty: "15.5", rks: "15.50", rating: "phi", score: "1000000", acc: "100.00", cover: "song-covers/ill-featkoi_S9ryne-e437c60b2c.webp", suggestion: { text: "无法推分" } },
-  { title: "DESTRUCTION 3,2,1", rank: "AT", difficulty: "17.3", rks: "16.79", rating: "S", score: "957285", acc: "99.33", cover: "song-covers/ill-DESTRUCTION321_Normal1zervsBrokenNerdz-0dcfe2bb06.webp", suggestion: { text: "99.3745%", kind: 2 } },
-  { title: "Stasis", rank: "AT", difficulty: "16.7", rks: "16.55", rating: "V", score: "981768", acc: "99.80", cover: "song-covers/ill-Stasis_Maozon-7cc480c09f.webp", suggestion: { text: "99.8379%", kind: 4 } },
-  { title: "祈 -我ら神祖と共に歩む者なり-", rank: "AT", difficulty: "17.3", rks: "16.48", rating: "S", score: "930644", acc: "98.92", cover: "song-covers/ill--_-_VS_VSKaiVS_VS-2f6a40e8a2.webp", suggestion: { text: "98.9556%", kind: 1 } },
-  { title: "Re：End of a Dream", rank: "AT", difficulty: "16.9", rks: "16.40", rating: "V", score: "974630", acc: "99.33", cover: "song-covers/ill-ReEndofaDream_umavs-8e8c553dc4.webp", suggestion: { text: "99.3690%", kind: 2 } },
-  { title: "Distorted Fate", rank: "AT", difficulty: "17.4", rks: "16.39", rating: "S", score: "946871", acc: "98.67", cover: "song-covers/ill-DistortedFate_Sakuzyo-843f17a871.webp", suggestion: { text: "98.7112%", kind: 1 } },
-  { title: "Lyrith -迷宮リリス-", rank: "AT", difficulty: "16.5", rks: "16.38", rating: "FC", score: "998471", acc: "99.83", cover: "song-covers/ill-Lyrith-812c00b2ee.webp", suggestion: { text: "99.8713%", kind: 5 } },
-  { title: "AbsoluTe disoRdeR", rank: "AT", difficulty: "17.2", rks: "16.34", rating: "S", score: "933837", acc: "98.86", cover: "song-covers/ill-AbsoluTedisoRdeR_AcuteDisarray-ee4743086a.webp", suggestion: { text: "98.8972%", kind: 1 } },
-  { title: "BANGING STRIKE", rank: "AT", difficulty: "16.8", rks: "16.31", rating: "V", score: "970373", acc: "99.33", cover: "song-covers/low-BANGINGSTRIKE_DewPleiades-7f61c09517.webp", suggestion: { text: "99.3731%", kind: 2 } },
-  { title: "ATHAZA", rank: "AT", difficulty: "16.6", rks: "16.28", rating: "V", score: "972675", acc: "99.57", cover: "song-covers/ill-ATHAZA_LeaF-4cc579be5e.webp", suggestion: { text: "99.6097%", kind: 3 } },
-  { title: "祈 -我ら神祖と共に歩む者なり-", rank: "IN", difficulty: "16.4", rks: "16.20", rating: "V", score: "975806", acc: "99.73", cover: "song-covers/low--_-_VS_VSKaiVS_VS-2b65809fea.webp", suggestion: { text: "99.7671%", kind: 4 } },
-  { title: "Ad astra per aspera", rank: "IN", difficulty: "16.3", rks: "16.15", rating: "V", score: "964742", acc: "99.79", cover: "song-covers/ill-Adastraperaspera_RabbitHouse-c041d57d3d.webp", suggestion: { text: "99.8320%", kind: 4 } },
-  { title: "幻影鬼魅 (PLEASE)", rank: "AT", difficulty: "17.0", rks: "16.13", rating: "S", score: "943956", acc: "98.84", cover: "song-covers/ill-PLEASE_R300K-58056e2115.webp", suggestion: { text: "98.8794%", kind: 1 } },
-  { title: "Spasmodic", rank: "AT", difficulty: "16.7", rks: "16.13", rating: "S", score: "939237", acc: "99.23", cover: "song-covers/ill-Spasmodic-672d9c0126.webp", suggestion: { text: "99.2693%", kind: 2 } },
-  { title: "彩", rank: "IN", difficulty: "16.4", rks: "16.12", rating: "V", score: "979760", acc: "99.62", cover: "song-covers/ill-MisoilePunch-41952f5ca5.webp", suggestion: { text: "99.6595%", kind: 3 } },
-  { title: "PRAGMATISM -RESURRECTION-", rank: "AT", difficulty: "16.6", rks: "16.12", rating: "V", score: "990826", acc: "99.34", cover: "song-covers/ill-PRAGMATISMRESURRECTION_Laur-78e98aa291.webp", suggestion: { text: "99.3840%", kind: 2 } },
-  { title: "夢の降る日に", rank: "IN", difficulty: "16.6", rks: "16.11", rating: "S", score: "953536", acc: "99.34", cover: "song-covers/ill-seatrus-a9b13bd035.webp", suggestion: { text: "99.3777%", kind: 2 } },
-  { title: "Fractured Angel", rank: "IN", difficulty: "16.3", rks: "16.11", rating: "FC", score: "997675", acc: "99.74", cover: "song-covers/ill-FracturedAngel_DJRaisei-be1b016a4f.webp", suggestion: { text: "99.7835%", kind: 4 } },
-  { title: "Distorted Fate", rank: "IN", difficulty: "16.3", rks: "16.11", rating: "FC", score: "997609", acc: "99.73", cover: "song-covers/low-DistortedFate_Sakuzyo-10027a8230.webp", suggestion: { text: "99.7761%", kind: 4 } },
-  { title: "Avataar ~Reincarnation of Kalpa~", rank: "AT", difficulty: "16.6", rks: "16.08", rating: "V", score: "977803", acc: "99.29", cover: "song-covers/ill-AvataarReincarnationofKalpa_ScarletteakaCrYmson-1c144e7044.webp", suggestion: { text: "99.3339%", kind: 2 } },
-  { title: "70 Minutes Fighters", rank: "IN", difficulty: "16.5", rks: "16.08", rating: "S", score: "943552", acc: "99.43", cover: "song-covers/ill-70MinutesFighters-cf17174890.webp", suggestion: { text: "99.4668%", kind: 2 } },
-  { title: "Cthugha", rank: "AT", difficulty: "16.1", rks: "16.05", rating: "FC", score: "999346", acc: "99.93", cover: "song-covers/ill-Cthugha_USAO-b4825bb0eb.webp", suggestion: { text: "99.9695%", kind: 5 } },
-  { title: "Bounded Quietude", rank: "IN", difficulty: "16.2", rks: "16.03", rating: "FC", score: "996571", acc: "99.76", cover: "song-covers/ill-BoundedQuietude_FiniteLimitvsSiLiS-3eb9deba09.webp", suggestion: { text: "99.8049%", kind: 4 } },
-  { title: "NO x", rank: "IN", difficulty: "16.1", rks: "15.99", rating: "FC", score: "998630", acc: "99.85", cover: "song-covers/ill-NOx_Juggernaut-c72229ef82.webp", suggestion: { text: "99.8901%", kind: 5 } },
-  { title: "Incyde", rank: "IN", difficulty: "16.2", rks: "15.99", rating: "V", score: "972357", acc: "99.71", cover: "song-covers/ill-Incyde_YbeLL-da5432d6b4.webp", suggestion: { text: "99.7509%", kind: 4 } },
-  { title: "Rrhar'il", rank: "IN", difficulty: "16.1", rks: "15.98", rating: "FC", score: "998546", acc: "99.84", cover: "song-covers/ill-Rrharil_TeamGrimoire-fbdeaeaf28.webp", suggestion: { text: "99.8807%", kind: 5 } },
-  { title: "AbsoluTe disoRdeR", rank: "IN", difficulty: "16.3", rks: "15.91", rating: "V", score: "978284", acc: "99.46", cover: "song-covers/low-AbsoluTedisoRdeR_AcuteDisarray-354a18d309.webp", suggestion: { text: "99.5046%", kind: 3 } },
-  { title: "零號車輛", rank: "IN", difficulty: "16.2", rks: "15.90", rating: "V", score: "977649", acc: "99.58", cover: "song-covers/ill-seatrus-0786316b26.webp", suggestion: { text: "99.6269%", kind: 3 } },
+  { title: "DESTRUCTION 3,2,1", rank: "AT", difficulty: "17.3", rks: "16.79", rating: "S", score: "957285", acc: "99.33", cover: "song-covers/ill-DESTRUCTION321_Normal1zervsBrokenNerdz-0dcfe2bb06.webp", suggestion: { text: "99.37%", kind: 2 } },
+  { title: "Stasis", rank: "AT", difficulty: "16.7", rks: "16.55", rating: "V", score: "981768", acc: "99.80", cover: "song-covers/ill-Stasis_Maozon-7cc480c09f.webp", suggestion: { text: "99.84%", kind: 4 } },
+  { title: "祈 -我ら神祖と共に歩む者なり-", rank: "AT", difficulty: "17.3", rks: "16.48", rating: "S", score: "930644", acc: "98.92", cover: "song-covers/ill--_-_VS_VSKaiVS_VS-2f6a40e8a2.webp", suggestion: { text: "98.96%", kind: 1 } },
+  { title: "Re：End of a Dream", rank: "AT", difficulty: "16.9", rks: "16.40", rating: "V", score: "974630", acc: "99.33", cover: "song-covers/ill-ReEndofaDream_umavs-8e8c553dc4.webp", suggestion: { text: "99.37%", kind: 2 } },
+  { title: "Distorted Fate", rank: "AT", difficulty: "17.4", rks: "16.39", rating: "S", score: "946871", acc: "98.67", cover: "song-covers/ill-DistortedFate_Sakuzyo-843f17a871.webp", suggestion: { text: "98.71%", kind: 1 } },
+  { title: "Lyrith -迷宮リリス-", rank: "AT", difficulty: "16.5", rks: "16.38", rating: "FC", score: "998471", acc: "99.83", cover: "song-covers/ill-Lyrith-812c00b2ee.webp", suggestion: { text: "99.87%", kind: 5 } },
+  { title: "AbsoluTe disoRdeR", rank: "AT", difficulty: "17.2", rks: "16.34", rating: "S", score: "933837", acc: "98.86", cover: "song-covers/ill-AbsoluTedisoRdeR_AcuteDisarray-ee4743086a.webp", suggestion: { text: "98.90%", kind: 1 } },
+  { title: "BANGING STRIKE", rank: "AT", difficulty: "16.8", rks: "16.31", rating: "V", score: "970373", acc: "99.33", cover: "song-covers/low-BANGINGSTRIKE_DewPleiades-7f61c09517.webp", suggestion: { text: "99.37%", kind: 2 } },
+  { title: "ATHAZA", rank: "AT", difficulty: "16.6", rks: "16.28", rating: "V", score: "972675", acc: "99.57", cover: "song-covers/ill-ATHAZA_LeaF-4cc579be5e.webp", suggestion: { text: "99.61%", kind: 3 } },
+  { title: "祈 -我ら神祖と共に歩む者なり-", rank: "IN", difficulty: "16.4", rks: "16.20", rating: "V", score: "975806", acc: "99.73", cover: "song-covers/low--_-_VS_VSKaiVS_VS-2b65809fea.webp", suggestion: { text: "99.77%", kind: 4 } },
+  { title: "Ad astra per aspera", rank: "IN", difficulty: "16.3", rks: "16.15", rating: "V", score: "964742", acc: "99.79", cover: "song-covers/ill-Adastraperaspera_RabbitHouse-c041d57d3d.webp", suggestion: { text: "99.83%", kind: 4 } },
+  { title: "幻影鬼魅 (PLEASE)", rank: "AT", difficulty: "17.0", rks: "16.13", rating: "S", score: "943956", acc: "98.84", cover: "song-covers/ill-PLEASE_R300K-58056e2115.webp", suggestion: { text: "98.88%", kind: 1 } },
+  { title: "Spasmodic", rank: "AT", difficulty: "16.7", rks: "16.13", rating: "S", score: "939237", acc: "99.23", cover: "song-covers/ill-Spasmodic-672d9c0126.webp", suggestion: { text: "99.27%", kind: 2 } },
+  { title: "彩", rank: "IN", difficulty: "16.4", rks: "16.12", rating: "V", score: "979760", acc: "99.62", cover: "song-covers/ill-MisoilePunch-41952f5ca5.webp", suggestion: { text: "99.66%", kind: 3 } },
+  { title: "PRAGMATISM -RESURRECTION-", rank: "AT", difficulty: "16.6", rks: "16.12", rating: "V", score: "990826", acc: "99.34", cover: "song-covers/ill-PRAGMATISMRESURRECTION_Laur-78e98aa291.webp", suggestion: { text: "99.38%", kind: 2 } },
+  { title: "夢の降る日に", rank: "IN", difficulty: "16.6", rks: "16.11", rating: "S", score: "953536", acc: "99.34", cover: "song-covers/ill-seatrus-a9b13bd035.webp", suggestion: { text: "99.38%", kind: 2 } },
+  { title: "Fractured Angel", rank: "IN", difficulty: "16.3", rks: "16.11", rating: "FC", score: "997675", acc: "99.74", cover: "song-covers/ill-FracturedAngel_DJRaisei-be1b016a4f.webp", suggestion: { text: "99.78%", kind: 4 } },
+  { title: "Distorted Fate", rank: "IN", difficulty: "16.3", rks: "16.11", rating: "FC", score: "997609", acc: "99.73", cover: "song-covers/low-DistortedFate_Sakuzyo-10027a8230.webp", suggestion: { text: "99.78%", kind: 4 } },
+  { title: "Avataar ~Reincarnation of Kalpa~", rank: "AT", difficulty: "16.6", rks: "16.08", rating: "V", score: "977803", acc: "99.29", cover: "song-covers/ill-AvataarReincarnationofKalpa_ScarletteakaCrYmson-1c144e7044.webp", suggestion: { text: "99.33%", kind: 2 } },
+  { title: "70 Minutes Fighters", rank: "IN", difficulty: "16.5", rks: "16.08", rating: "S", score: "943552", acc: "99.43", cover: "song-covers/ill-70MinutesFighters-cf17174890.webp", suggestion: { text: "99.47%", kind: 2 } },
+  { title: "Cthugha", rank: "AT", difficulty: "16.1", rks: "16.05", rating: "FC", score: "999346", acc: "99.93", cover: "song-covers/ill-Cthugha_USAO-b4825bb0eb.webp", suggestion: { text: "99.97%", kind: 5 } },
+  { title: "Bounded Quietude", rank: "IN", difficulty: "16.2", rks: "16.03", rating: "FC", score: "996571", acc: "99.76", cover: "song-covers/ill-BoundedQuietude_FiniteLimitvsSiLiS-3eb9deba09.webp", suggestion: { text: "99.80%", kind: 4 } },
+  { title: "NO x", rank: "IN", difficulty: "16.1", rks: "15.99", rating: "FC", score: "998630", acc: "99.85", cover: "song-covers/ill-NOx_Juggernaut-c72229ef82.webp", suggestion: { text: "99.89%", kind: 5 } },
+  { title: "Incyde", rank: "IN", difficulty: "16.2", rks: "15.99", rating: "V", score: "972357", acc: "99.71", cover: "song-covers/ill-Incyde_YbeLL-da5432d6b4.webp", suggestion: { text: "99.75%", kind: 4 } },
+  { title: "Rrhar'il", rank: "IN", difficulty: "16.1", rks: "15.98", rating: "FC", score: "998546", acc: "99.84", cover: "song-covers/ill-Rrharil_TeamGrimoire-fbdeaeaf28.webp", suggestion: { text: "99.88%", kind: 5 } },
+  { title: "AbsoluTe disoRdeR", rank: "IN", difficulty: "16.3", rks: "15.91", rating: "V", score: "978284", acc: "99.46", cover: "song-covers/low-AbsoluTedisoRdeR_AcuteDisarray-354a18d309.webp", suggestion: { text: "99.50%", kind: 3 } },
+  { title: "零號車輛", rank: "IN", difficulty: "16.2", rks: "15.90", rating: "V", score: "977649", acc: "99.58", cover: "song-covers/ill-seatrus-0786316b26.webp", suggestion: { text: "99.63%", kind: 3 } },
   { title: "BANGING STRIKE", rank: "IN", difficulty: "15.9", rks: "15.90", rating: "phi", score: "1000000", acc: "100.00", cover: "song-covers/low-BANGINGSTRIKE_DewPleiades-7f61c09517.webp", suggestion: { text: "无法推分" } },
   { title: "明鏡烈火", rank: "IN", difficulty: "15.9", rks: "15.87", rating: "FC", score: "999645", acc: "99.96", cover: "song-covers/ill-MUEvsRekuMochizuki-114a11ca73.webp", suggestion: { text: "无法推分", kind: 5 } },
-  { title: "+ERABY+E CONNEC+10N", rank: "IN", difficulty: "16.3", rks: "15.87", rating: "S", score: "958941", acc: "99.40", cover: "song-covers/ill-ERABYECONNEC10N-9fb8589597.webp", suggestion: { text: "99.4898%", kind: 2 } },
-  { title: "PRAGMATISM -RESURRECTION-", rank: "IN", difficulty: "16.0", rks: "15.85", rating: "FC", score: "997793", acc: "99.79", cover: "song-covers/low-PRAGMATISMRESURRECTION_Laur-017bc77509.webp", suggestion: { text: "99.9050%", kind: 5 } },
-  { title: "DESTRUCTION 3,2,1", rank: "IN", difficulty: "16.3", rks: "15.85", rating: "V", score: "965633", acc: "99.37", cover: "song-covers/low-DESTRUCTION321_Normal1zervsBrokenNerdz-d9791b5d51.webp", suggestion: { text: "99.4898%", kind: 2 } },
-  { title: "QZKago Requiem", rank: "AT", difficulty: "17.4", rks: "15.84", rating: "A", score: "916947", acc: "97.94", cover: "song-covers/low-QZKagoRequiem_tpazolite-6eec5def52.webp", suggestion: { text: "98.0606%", kind: 0 } },
+  { title: "+ERABY+E CONNEC+10N", rank: "IN", difficulty: "16.3", rks: "15.87", rating: "S", score: "958941", acc: "99.40", cover: "song-covers/ill-ERABYECONNEC10N-9fb8589597.webp", suggestion: { text: "99.49%", kind: 2 } },
+  { title: "PRAGMATISM -RESURRECTION-", rank: "IN", difficulty: "16.0", rks: "15.85", rating: "FC", score: "997793", acc: "99.79", cover: "song-covers/low-PRAGMATISMRESURRECTION_Laur-017bc77509.webp", suggestion: { text: "99.91%", kind: 5 } },
+  { title: "DESTRUCTION 3,2,1", rank: "IN", difficulty: "16.3", rks: "15.85", rating: "V", score: "965633", acc: "99.37", cover: "song-covers/low-DESTRUCTION321_Normal1zervsBrokenNerdz-d9791b5d51.webp", suggestion: { text: "99.49%", kind: 2 } },
+  { title: "QZKago Requiem", rank: "AT", difficulty: "17.4", rks: "15.84", rating: "A", score: "916947", acc: "97.94", cover: "song-covers/low-QZKagoRequiem_tpazolite-6eec5def52.webp", suggestion: { text: "98.06%", kind: 0 } },
 ] satisfies readonly PreviewScoreRecord[];
 
 const semantic = (name: string, selector: string) =>
@@ -232,7 +305,7 @@ function songCard(index: number) {
   const bestIndex = index - 2;
   const number = phi ? `P${index + 1}` : `#${bestIndex}`;
   const kind = phi ? "phi_song" : bestIndex <= 27 ? "b_song" : "";
-  const suggestionText = suggestion.text;
+  const suggestionText = formatPreviewSuggestion(suggestion.text);
   const suggestionKind = suggestionText.endsWith("%") && suggestion.kind !== undefined
     ? ` suggest-kind-${suggestion.kind}`
     : "";
@@ -250,7 +323,7 @@ function songCard(index: number) {
         </div>
       </div>
       <div class="info-${rank}" ${semantic(`成绩信息 ${rank}`, `.info-${rank}`)}>
-        <div class="songname" ${semantic("曲名", ".songname")}><p ${semantic("曲名文字", ".songname p")}>${title}</p></div>
+        <div class="songname" ${semantic("曲名", ".songname")}><p name="pvis" ${semantic("曲名文字", ".songname p")}>${title}</p></div>
         <div class="songinfo" ${semantic("分数信息", ".songinfo")}>
           <div class="Rating" ${semantic("评级图标", ".Rating")}>
             <img ${semantic("评级图标本体", ".Rating img")} data-rating="${rating}" src="${demoAssetUrl(`rating/${rating}.png`)}" alt="${rating}">
@@ -643,4 +716,5 @@ export function applyRuntimePreview(
 ) {
   applySharedRuntimePreview(document, draft, resources, assets, PREVIEW_PAGE_HEIGHTS[page]);
   applyPreviewPage(document, page, options);
+  schedulePreviewTextFit(document);
 }

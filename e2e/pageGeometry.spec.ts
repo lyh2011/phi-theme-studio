@@ -21,6 +21,7 @@ const PAGE_CASES: PageCase[] = [
   { tab: "定数表", readySelector: ".tableBox > .content", contentSelector: ".tableBox", width: 960, height: 2294, minBottomRatio: 0.86, minSpanRatio: 0.8 },
   { tab: "成绩列表", readySelector: ".list_box > .line", contentSelector: ".head_title, .list_box, .createdbox", width: 800, height: 440, minBottomRatio: 0.74, minSpanRatio: 0.62 },
   { tab: "B30 历史", readySelector: ".main-box > .row", contentSelector: ".title, .descTip, .main-box, .createdbox", width: 800, height: 6547, minBottomRatio: 0.97, minSpanRatio: 0.96 },
+  { tab: "个人信息", readySelector: ".stats-box", contentSelector: ".left, .right", width: 1920, height: 1500, minBottomRatio: 0.9, minSpanRatio: 0.84 },
   { tab: "插件设置", readySelector: ".box > .lineBox", contentSelector: ".box", width: 800, height: 2200, minBottomRatio: 0.82, minSpanRatio: 0.75 },
   { tab: "用户设置", readySelector: ".setting-b30AvgKind", contentSelector: ".panel, .createdbox", width: 1080, height: 1465, minBottomRatio: 0.99, minSpanRatio: 0.95 },
   { tab: "定数历史", readySelector: ".a-box[data-rank]", contentSelector: ".header, .difficulty", width: 2048, height: 1031, minBottomRatio: 0.72, minSpanRatio: 0.62 },
@@ -152,6 +153,120 @@ test("all page fixtures render complete content inside their canvases", async ({
   }
 
   expect(browserErrors, "browser errors").toEqual([]);
+});
+
+test("player info keeps the reference panel, chart, tick, and stat-card geometry", async ({ page }) => {
+  await page.goto("/");
+  const frame = await findEditorFrame(page);
+  await page.getByRole("tab", { exact: true, name: "个人信息" }).click();
+  await frame.locator(".stats-box").waitFor({ state: "visible" });
+  await waitForImages(frame);
+
+  const metrics = await frame.evaluate(() => {
+    const rect = (element: Element | Range) => {
+      const value = element.getBoundingClientRect();
+      return {
+        bottom: value.bottom,
+        height: value.height,
+        left: value.left,
+        right: value.right,
+        top: value.top,
+        width: value.width,
+      };
+    };
+    const textRect = (element: Element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return rect(range);
+    };
+    return {
+      body: rect(document.body),
+      cards: Array.from(document.querySelectorAll<HTMLElement>(".one-stats-box"), (card) => ({
+        rank: card.dataset.rank,
+        rect: rect(card),
+      })),
+      charts: Array.from(document.querySelectorAll(".svg-box"), (chart) => rect(chart)),
+      challenge: (() => {
+        const element = document.querySelector<HTMLElement>("#Challenge2")!;
+        const style = getComputedStyle(element);
+        return {
+          rect: rect(element),
+          style: {
+            fontSize: style.fontSize,
+            height: style.height,
+            right: style.right,
+            spanLineHeight: getComputedStyle(element.querySelector("span")!).lineHeight,
+            top: style.top,
+            width: style.width,
+          },
+          text: textRect(element.querySelector("span")!),
+        };
+      })(),
+      images: Array.from(document.images, (image) => ({
+        height: image.naturalHeight,
+        src: image.getAttribute("src"),
+        width: image.naturalWidth,
+      })),
+      left: rect(document.querySelector(".left")!),
+      ranges: Array.from(document.querySelectorAll(".value_box"), (range) =>
+        Array.from(range.querySelectorAll("p"), (node) => node.textContent?.trim())),
+      right: rect(document.querySelector(".right")!),
+      segments: Array.from(document.querySelectorAll(".svg-box"), (chart) =>
+        chart.querySelectorAll(".line > svg > line").length),
+      ticks: Array.from(document.querySelectorAll(".acc-range p"), (tick) => ({
+        rect: textRect(tick),
+        text: tick.textContent?.trim(),
+      })),
+    };
+  });
+
+  expect(metrics.body).toMatchObject({ height: 1500, width: 1920 });
+  expect(metrics.left.top).toBeLessThan(100);
+  expect(metrics.right.top).toBeLessThan(100);
+  expect(metrics.left.bottom).toBeGreaterThan(1400);
+  expect(metrics.right.bottom).toBeGreaterThan(1400);
+  expect(metrics.left.right).toBeLessThan(metrics.right.left);
+  expect(metrics.right.left - metrics.left.right).toBeGreaterThan(40);
+  expect(metrics.challenge.style).toMatchObject({
+    fontSize: "60px",
+    height: "75px",
+    spanLineHeight: "normal",
+    top: "40px",
+    width: "150px",
+  });
+  expect(metrics.challenge.text.height).toBeGreaterThan(55);
+  expect(metrics.challenge.text.left).toBeGreaterThan(metrics.challenge.rect.left + 30);
+  expect(metrics.challenge.text.right).toBeLessThan(metrics.challenge.rect.right - 30);
+
+  expect(metrics.charts).toHaveLength(3);
+  expect(metrics.segments).toEqual([60, 18, 40]);
+  expect(metrics.ranges).toEqual([
+    ["16.1340", "15.1275"],
+    ["422018", "123074"],
+    ["16.1340", "14.0163", "11.8987", "9.7810", "7.6633"],
+  ]);
+  for (let index = 0; index < metrics.charts.length - 1; index += 1) {
+    expect(metrics.charts[index].bottom).toBeLessThan(metrics.charts[index + 1].top);
+    expect(metrics.charts[index].left).toBeCloseTo(metrics.charts[index + 1].left, 0);
+  }
+
+  expect(metrics.ticks.map(({ text }) => text)).toEqual([
+    "98.67%", "98.84%", "99.23%", "99.37%", "99.57%", "99.71%", "99.85%", "100%",
+  ]);
+  for (let index = 0; index < metrics.ticks.length - 1; index += 1) {
+    expect(metrics.ticks[index].rect.right).toBeLessThan(metrics.ticks[index + 1].rect.left);
+  }
+
+  expect(metrics.cards.map(({ rank }) => rank)).toEqual(["EZ", "HD", "IN", "AT"]);
+  expect(metrics.cards[0].rect.left).toBeCloseTo(metrics.cards[2].rect.left, 0);
+  expect(metrics.cards[1].rect.left).toBeCloseTo(metrics.cards[3].rect.left, 0);
+  expect(metrics.cards[0].rect.top).toBeLessThan(metrics.cards[2].rect.top);
+  expect(metrics.cards[1].rect.top).toBeLessThan(metrics.cards[3].rect.top);
+  expect(metrics.images.every(({ height, width }) => height > 0 && width > 0)).toBe(true);
+  expect(metrics.images.find(({ src }) => src?.endsWith("challenge-3.png"))).toMatchObject({
+    height: 190,
+    width: 386,
+  });
 });
 
 test("switching to long pages refits after applying the current canvas dimensions", async ({ page }) => {
@@ -576,7 +691,7 @@ test("Arcaea B30 keeps the reference 33 score cards visible and non-overlapping"
   });
   expect(cardGrid.artworkMismatch).toEqual([]);
   expect(cardGrid.background).toBe("/demo/arcgros-background.png");
-  expect(cardGrid.playerBackground).toBe("/demo/arcgros-background.png");
+  expect(cardGrid.playerBackground).toBe("/demo/background.png");
   expect(cardGrid.columns).toEqual([42.5, 265.5, 488.5, 711.5, 934.5]);
   expect(cardGrid.dimensions).toEqual(["216x169"]);
   expect(cardGrid.distortedArtwork).toEqual([]);

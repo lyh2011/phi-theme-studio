@@ -9,6 +9,8 @@ import {
   applyUserSettingVariant,
   DEFAULT_PREVIEW_OPTIONS,
   DEFAULT_USER_SETTING_VARIANT,
+  fitPreviewText,
+  formatPreviewSuggestion,
   PREVIEW_MARKUP,
   PROTECTED_CSS,
   USER_SETTING_VARIANTS,
@@ -28,40 +30,75 @@ const EXPECTED_SCORE_RECORDS = [
   "P1|BANGING STRIKE|IN|15.9|15.90|phi|1000000|100.00%|无法推分|",
   "P2|蝎虎天体 -Lacertid-|IN|15.5|15.50|phi|1000000|100.00%|无法推分|",
   "P3|星拂云锦 feat. koi|IN|15.5|15.50|phi|1000000|100.00%|无法推分|",
-  "#1|DESTRUCTION 3,2,1|AT|17.3|16.79|S|957285|99.33%|99.3745%|2",
-  "#2|Stasis|AT|16.7|16.55|V|981768|99.80%|99.8379%|4",
-  "#3|祈 -我ら神祖と共に歩む者なり-|AT|17.3|16.48|S|930644|98.92%|98.9556%|1",
-  "#4|Re：End of a Dream|AT|16.9|16.40|V|974630|99.33%|99.3690%|2",
-  "#5|Distorted Fate|AT|17.4|16.39|S|946871|98.67%|98.7112%|1",
-  "#6|Lyrith -迷宮リリス-|AT|16.5|16.38|FC|998471|99.83%|99.8713%|5",
-  "#7|AbsoluTe disoRdeR|AT|17.2|16.34|S|933837|98.86%|98.8972%|1",
-  "#8|BANGING STRIKE|AT|16.8|16.31|V|970373|99.33%|99.3731%|2",
-  "#9|ATHAZA|AT|16.6|16.28|V|972675|99.57%|99.6097%|3",
-  "#10|祈 -我ら神祖と共に歩む者なり-|IN|16.4|16.20|V|975806|99.73%|99.7671%|4",
-  "#11|Ad astra per aspera|IN|16.3|16.15|V|964742|99.79%|99.8320%|4",
-  "#12|幻影鬼魅 (PLEASE)|AT|17.0|16.13|S|943956|98.84%|98.8794%|1",
-  "#13|Spasmodic|AT|16.7|16.13|S|939237|99.23%|99.2693%|2",
-  "#14|彩|IN|16.4|16.12|V|979760|99.62%|99.6595%|3",
-  "#15|PRAGMATISM -RESURRECTION-|AT|16.6|16.12|V|990826|99.34%|99.3840%|2",
-  "#16|夢の降る日に|IN|16.6|16.11|S|953536|99.34%|99.3777%|2",
-  "#17|Fractured Angel|IN|16.3|16.11|FC|997675|99.74%|99.7835%|4",
-  "#18|Distorted Fate|IN|16.3|16.11|FC|997609|99.73%|99.7761%|4",
-  "#19|Avataar ~Reincarnation of Kalpa~|AT|16.6|16.08|V|977803|99.29%|99.3339%|2",
-  "#20|70 Minutes Fighters|IN|16.5|16.08|S|943552|99.43%|99.4668%|2",
-  "#21|Cthugha|AT|16.1|16.05|FC|999346|99.93%|99.9695%|5",
-  "#22|Bounded Quietude|IN|16.2|16.03|FC|996571|99.76%|99.8049%|4",
-  "#23|NO x|IN|16.1|15.99|FC|998630|99.85%|99.8901%|5",
-  "#24|Incyde|IN|16.2|15.99|V|972357|99.71%|99.7509%|4",
-  "#25|Rrhar'il|IN|16.1|15.98|FC|998546|99.84%|99.8807%|5",
-  "#26|AbsoluTe disoRdeR|IN|16.3|15.91|V|978284|99.46%|99.5046%|3",
-  "#27|零號車輛|IN|16.2|15.90|V|977649|99.58%|99.6269%|3",
+  "#1|DESTRUCTION 3,2,1|AT|17.3|16.79|S|957285|99.33%|99.37%|2",
+  "#2|Stasis|AT|16.7|16.55|V|981768|99.80%|99.84%|4",
+  "#3|祈 -我ら神祖と共に歩む者なり-|AT|17.3|16.48|S|930644|98.92%|98.96%|1",
+  "#4|Re：End of a Dream|AT|16.9|16.40|V|974630|99.33%|99.37%|2",
+  "#5|Distorted Fate|AT|17.4|16.39|S|946871|98.67%|98.71%|1",
+  "#6|Lyrith -迷宮リリス-|AT|16.5|16.38|FC|998471|99.83%|99.87%|5",
+  "#7|AbsoluTe disoRdeR|AT|17.2|16.34|S|933837|98.86%|98.90%|1",
+  "#8|BANGING STRIKE|AT|16.8|16.31|V|970373|99.33%|99.37%|2",
+  "#9|ATHAZA|AT|16.6|16.28|V|972675|99.57%|99.61%|3",
+  "#10|祈 -我ら神祖と共に歩む者なり-|IN|16.4|16.20|V|975806|99.73%|99.77%|4",
+  "#11|Ad astra per aspera|IN|16.3|16.15|V|964742|99.79%|99.83%|4",
+  "#12|幻影鬼魅 (PLEASE)|AT|17.0|16.13|S|943956|98.84%|98.88%|1",
+  "#13|Spasmodic|AT|16.7|16.13|S|939237|99.23%|99.27%|2",
+  "#14|彩|IN|16.4|16.12|V|979760|99.62%|99.66%|3",
+  "#15|PRAGMATISM -RESURRECTION-|AT|16.6|16.12|V|990826|99.34%|99.38%|2",
+  "#16|夢の降る日に|IN|16.6|16.11|S|953536|99.34%|99.38%|2",
+  "#17|Fractured Angel|IN|16.3|16.11|FC|997675|99.74%|99.78%|4",
+  "#18|Distorted Fate|IN|16.3|16.11|FC|997609|99.73%|99.78%|4",
+  "#19|Avataar ~Reincarnation of Kalpa~|AT|16.6|16.08|V|977803|99.29%|99.33%|2",
+  "#20|70 Minutes Fighters|IN|16.5|16.08|S|943552|99.43%|99.47%|2",
+  "#21|Cthugha|AT|16.1|16.05|FC|999346|99.93%|99.97%|5",
+  "#22|Bounded Quietude|IN|16.2|16.03|FC|996571|99.76%|99.80%|4",
+  "#23|NO x|IN|16.1|15.99|FC|998630|99.85%|99.89%|5",
+  "#24|Incyde|IN|16.2|15.99|V|972357|99.71%|99.75%|4",
+  "#25|Rrhar'il|IN|16.1|15.98|FC|998546|99.84%|99.88%|5",
+  "#26|AbsoluTe disoRdeR|IN|16.3|15.91|V|978284|99.46%|99.50%|3",
+  "#27|零號車輛|IN|16.2|15.90|V|977649|99.58%|99.63%|3",
   "#28|BANGING STRIKE|IN|15.9|15.90|phi|1000000|100.00%|无法推分|",
   "#29|明鏡烈火|IN|15.9|15.87|FC|999645|99.96%|无法推分|",
-  "#30|+ERABY+E CONNEC+10N|IN|16.3|15.87|S|958941|99.40%|99.4898%|2",
-  "#31|PRAGMATISM -RESURRECTION-|IN|16.0|15.85|FC|997793|99.79%|99.9050%|5",
-  "#32|DESTRUCTION 3,2,1|IN|16.3|15.85|V|965633|99.37%|99.4898%|2",
-  "#33|QZKago Requiem|AT|17.4|15.84|A|916947|97.94%|98.0606%|0",
+  "#30|+ERABY+E CONNEC+10N|IN|16.3|15.87|S|958941|99.40%|99.49%|2",
+  "#31|PRAGMATISM -RESURRECTION-|IN|16.0|15.85|FC|997793|99.79%|99.91%|5",
+  "#32|DESTRUCTION 3,2,1|IN|16.3|15.85|V|965633|99.37%|99.49%|2",
+  "#33|QZKago Requiem|AT|17.4|15.84|A|916947|97.94%|98.06%|0",
 ] as const;
+
+describe("preview formatting", () => {
+  it("matches phi-plugin's two-decimal suggestion output", () => {
+    expect(formatPreviewSuggestion("99.3745%")).toBe("99.37%");
+    expect(formatPreviewSuggestion("99.8379%")).toBe("99.84%");
+    expect(formatPreviewSuggestion("无法推分")).toBe("无法推分");
+  });
+
+  it("keeps the editor-only text fitting stylesheet out of the markup", () => {
+    expect(PREVIEW_MARKUP).not.toContain("phi-preview-text-fit");
+  });
+
+  it("emits a reduced size for an overflowing score-card title", () => {
+    document.body.innerHTML = `
+      <div class="song" data-phi-role="song-card" data-phi-slot="best" data-phi-index="1">
+        <div class="songname"><p name="pvis">A deliberately long title</p></div>
+      </div>`;
+    const title = document.querySelector<HTMLElement>(".songname p")!;
+    const parent = title.parentElement!;
+    title.style.fontSize = "15px";
+    Object.defineProperty(parent, "offsetWidth", { configurable: true, value: 100 });
+    Object.defineProperty(parent, "offsetHeight", { configurable: true, value: 20 });
+    Object.defineProperty(title, "scrollWidth", {
+      configurable: true,
+      get: () => Number.parseFloat(title.style.fontSize || "15") * 10,
+    });
+    Object.defineProperty(title, "scrollHeight", { configurable: true, value: 15 });
+
+    fitPreviewText(document);
+
+    expect(document.querySelector<HTMLStyleElement>("#phi-preview-text-fit")?.textContent)
+      .toContain("font-size: 10px");
+    expect(title.style.fontSize).toBe("15px");
+  });
+});
 
 describe("canonical score fixture", () => {
   it("keeps all 36 exported score fields bound to the same record", () => {

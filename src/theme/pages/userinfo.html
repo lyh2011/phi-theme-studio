@@ -1,0 +1,293 @@
+<div class="background" data-gjs-name="页面背景" data-phi-selector=".background">
+  <img src="/demo/background.png" alt="Phigros 模糊背景" data-gjs-name="页面背景图片" data-phi-selector=".background img" data-phi-default-src="/demo/background.png">
+</div>
+
+<main class="userinfo-page" data-gjs-name="玩家信息页面">
+  <section class="left" data-gjs-name="玩家资料面板" data-phi-selector=".left">
+    <header class="Player_Info" data-gjs-name="玩家信息标题" data-phi-selector=".Player_Info"><p>PLAYER_INFO</p></header>
+    <div class="Player_Info-after" data-gjs-name="玩家信息标题投影" data-phi-selector=".Player_Info-after"></div>
+
+    <div class="basic-box" data-gjs-name="玩家基本资料" data-phi-selector=".basic-box">
+      <div class="basic-img" data-gjs-name="玩家背景曲绘" data-phi-selector=".basic-img">
+        <img src="/demo/background.png" alt="Phigros 玩家背景曲绘" data-gjs-name="玩家背景曲绘图片" data-phi-selector=".basic-img img" data-phi-default-src="/demo/background.png">
+      </div>
+      <div class="Player_Id" data-gjs-name="玩家 ID 区域" data-phi-selector=".Player_Id">
+        <div class="avatar" data-gjs-name="玩家头像" data-phi-selector=".avatar">
+          <img src="/demo/avatar-lyh.png" alt="lyh 玩家头像" data-gjs-name="玩家头像图片" data-phi-selector=".avatar img" data-phi-default-src="/demo/avatar-lyh.png">
+        </div>
+        <div class="Player_Id-box" data-gjs-name="玩家 ID 信息" data-phi-selector=".Player_Id-box">
+          <div class="Player_Id-left" data-gjs-name="ID 标签" data-phi-selector=".Player_Id-left"><p>ID</p></div>
+          <div class="Player_Id-right" data-gjs-name="玩家名称" data-phi-selector=".Player_Id-right"><p name="pvis">lyh</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="left_title" data-gjs-name="玩家详情标题栏" data-phi-selector=".left_title">
+      <div class="left_title-left" data-gjs-name="玩家详情标题" data-phi-selector=".left_title-left"><p>PLAYER_DETAIL</p></div>
+    </div>
+
+    <div class="Player_data_line" data-gjs-name="玩家数值概览" data-phi-selector=".Player_data_line">
+      <div class="Player_data_line-left" data-gjs-name="RKS 数据" data-phi-selector=".Player_data_line-left">
+        <div class="Player_data_title Player_data_left" data-gjs-name="RKS 标题" data-phi-selector=".Player_data_title"><p>RKS</p></div>
+        <div class="Player_data_value Player_data_left" data-gjs-name="RKS 数值" data-phi-selector=".Player_data_value"><p>16.1340</p></div>
+      </div>
+      <div class="Player_data_line-right" data-gjs-name="课题模式数据" data-phi-selector=".Player_data_line-right">
+        <div class="Player_data_title Player_data_right" data-gjs-name="课题模式标题" data-phi-selector=".Player_data_line-right .Player_data_title"><p>CLG MOD</p></div>
+        <div class="Challenge" id="Challenge2" data-gjs-name="课题等级" data-phi-selector=".Challenge">
+          <img src="/demo/challenge-3.png" alt="课题模式等级底图" data-gjs-name="课题等级底图" data-phi-selector=".Challenge img" data-phi-default-src="/demo/challenge-3.png">
+          <span>48</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="Player_data_box" id="data_box" data-gjs-name="存档数据大小" data-phi-selector=".Player_data_box">
+      <div class="Player_box_title" data-gjs-name="存档数据标题" data-phi-selector=".Player_box_title"><p>DATA</p></div>
+      <div class="Player_box_value" data-gjs-name="存档数据数值" data-phi-selector=".Player_box_value"><p name="pvis">412MiB 130KiB</p></div>
+    </div>
+
+    <div class="Player_profile_box" data-gjs-name="玩家自我介绍" data-phi-selector=".Player_profile_box">
+      <p id="profile" name="pvis" data-gjs-name="玩家自我介绍文字" data-phi-selector=".Player_profile_box p">There is a self-introduction, write<br>something just like: Twitter:<br>@Phigros_PGS YouTube: Pigeon<br>Games Hope you have fun in Phigros.<br>Best regards, Pigeon Games</p>
+    </div>
+
+    <footer class="createdbox" data-gjs-name="插件页脚" data-phi-selector=".createdbox">
+      <div class="phi-plugin" data-gjs-name="插件名称" data-phi-selector=".phi-plugin"><p data-gjs-name="插件名称文字" data-phi-selector=".phi-plugin p">Phi-Plugin</p></div>
+      <div class="ver" data-gjs-name="插件版本" data-phi-selector=".ver"><p data-gjs-name="插件版本文字" data-phi-selector=".ver p">v1.0.2</p></div>
+    </footer>
+  </section>
+
+  <section class="right" data-gjs-name="玩家数据面板" data-phi-selector=".right">
+    <header class="file-content" data-gjs-name="玩家数据标题栏" data-phi-selector=".file-content">
+      <div class="file-content-left" data-gjs-name="玩家数据标题" data-phi-selector=".file-content-left"><p>PLAYER_DATA</p></div>
+    </header>
+
+    <div class="data_title" data-gjs-name="RKS 历史标题栏" data-phi-selector=".data_title">
+      <div class="data_title-left rks-title" data-gjs-name="RKS 历史标题" data-phi-selector=".data_title-left"><p>RKS_HISTORY</p></div>
+    </div>
+    <div class="svg-box rks-chart" data-gjs-name="RKS 历史图表" data-phi-selector=".svg-box">
+      <div class="value_box" data-gjs-name="RKS 图表范围" data-phi-selector=".value_box"><p>16.1340</p><p>15.1275</p></div>
+      <div class="line-box" data-gjs-name="RKS 折线区域" data-phi-selector=".line-box">
+        <div class="line" data-gjs-name="RKS 折线" data-phi-selector=".line">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="RKS 从 15.1275 变化至 16.1340 的历史折线" data-gjs-name="RKS 折线图形" data-phi-selector=".line svg">
+            <defs><marker id="rks-dot" viewBox="0 0 10 10" markerWidth="8" markerHeight="8" refX="2" refY="2"><circle cx="2" cy="2" r="1"></circle></marker></defs>
+<line x1="0%" y1="0%" x2="0.006083022344984508%" y2="0%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="0.006083022344984508%" y1="0%" x2="0.43261470723060724%" y2="3.1619620822275007%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="0.43261470723060724%" y1="3.1619620822275007%" x2="0.6687746748687367%" y2="5.490297890161826%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="0.6687746748687367%" y1="5.490297890161826%" x2="3.6004380089644252%" y2="13.997019108594083%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="3.6004380089644252%" y1="13.997019108594083%" x2="5.444552607429908%" y2="16.196397726335977%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="5.444552607429908%" y1="16.196397726335977%" x2="29.975331097433944%" y2="69.08656429051278%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="29.975331097433944%" y1="69.08656429051278%" x2="33.839072835051596%" y2="69.16473451968895%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="33.839072835051596%" y1="69.16473451968895%" x2="35.50058521224073%" y2="69.16473451968895%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="35.50058521224073%" y1="69.16473451968895%" x2="38.70847022103195%" y2="66.1840326173572%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="38.70847022103195%" y1="66.1840326173572%" x2="41.62893164158196%" y2="66.1840326173572%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="41.62893164158196%" y1="66.1840326173572%" x2="55.74229805905231%" y2="70.63253454413491%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="55.74229805905231%" y1="70.63253454413491%" x2="58.44070920211306%" y2="70.94758425566307%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="58.44070920211306%" y1="70.94758425566307%" x2="64.28500490835742%" y2="71.47800479254569%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="64.28500490835742%" y1="71.47800479254569%" x2="82.2364241639529%" y2="73.84272528896928%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="82.2364241639529%" y1="73.84272528896928%" x2="82.2364241639529%" y2="73.84272528896928%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="82.2364241639529%" y1="73.84272528896928%" x2="83.07588299597761%" y2="74.01839511308152%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="83.07588299597761%" y1="74.01839511308152%" x2="83.07588299597761%" y2="74.01839511308152%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="83.07588299597761%" y1="74.01839511308152%" x2="83.84076442593646%" y2="75.11780016657366%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="83.84076442593646%" y1="75.11780016657366%" x2="84.26844052209688%" y2="75.71720000871717%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="84.26844052209688%" y1="75.71720000871717%" x2="84.27439137475395%" y2="75.71720000871717%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="84.27439137475395%" y1="75.71720000871717%" x2="86.4188305159823%" y2="76.46640243550009%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="86.4188305159823%" y1="76.46640243550009%" x2="88.48457102412085%" y2="76.46640243550009%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="88.48457102412085%" y1="76.46640243550009%" x2="89.70514032777172%" y2="76.71796844575792%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="89.70514032777172%" y1="76.71796844575792%" x2="90.80462016337056%" y2="76.71796844575792%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="90.80462016337056%" y1="76.71796844575792%" x2="91.25183438311073%" y2="76.97882013172395%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="91.25183438311073%" y1="76.97882013172395%" x2="91.63689044714575%" y2="77.55017344315698%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="91.63689044714575%" y1="77.55017344315698%" x2="92.04511420323918%" y2="77.55017344315698%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="92.04511420323918%" y1="77.55017344315698%" x2="92.17978821816114%" y2="77.76563902030436%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="92.17978821816114%" y1="77.76563902030436%" x2="92.17978821816114%" y2="77.76563902030436%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="92.17978821816114%" y1="77.76563902030436%" x2="92.5479516678626%" y2="78.08637383940898%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="92.5479516678626%" y1="78.08637383940898%" x2="93.0859212362009%" y2="78.08637383940898%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="93.0859212362009%" y1="78.08637383940898%" x2="93.78865861853639%" y2="78.82477456179664%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="93.78865861853639%" y1="78.82477456179664%" x2="94.14459719076994%" y2="79.07624582026153%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="94.14459719076994%" y1="79.07624582026153%" x2="94.14459719076994%" y2="79.07624582026153%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="94.14459719076994%" y1="79.07624582026153%" x2="94.65836671383933%" y2="79.329991121757%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="94.65836671383933%" y1="79.329991121757%" x2="95.87349739301082%" y2="83.96667010931515%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="95.87349739301082%" y1="83.96667010931515%" x2="95.88377926739398%" y2="85.04162920022854%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="95.88377926739398%" y1="85.04162920022854%" x2="95.8898592372543%" y2="85.04162920022854%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="95.8898592372543%" y1="85.04162920022854%" x2="96.18800388576912%" y2="85.18470440756916%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="96.18800388576912%" y1="85.18470440756916%" x2="96.26045982548477%" y2="87.69951174401098%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="96.26045982548477%" y1="87.69951174401098%" x2="96.26413877949454%" y2="87.79198949392119%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="96.26413877949454%" y1="87.79198949392119%" x2="96.6114653555007%" y2="88.38740976076119%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="96.6114653555007%" y1="88.38740976076119%" x2="96.8304296482751%" y2="88.98301953118708%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="96.8304296482751%" y1="88.98301953118708%" x2="96.83774912010328%" y2="88.98301953118708%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="96.83774912010328%" y1="88.98301953118708%" x2="97.03773214557418%" y2="92.80132728311553%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="97.03773214557418%" y1="92.80132728311553%" x2="97.07558891545162%" y2="93.31166043989467%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="97.07558891545162%" y1="93.31166043989467%" x2="97.07641814802534%" y2="93.31166043989467%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="97.07641814802534%" y1="93.31166043989467%" x2="97.0774615230238%" y2="94.78353479143709%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="97.0774615230238%" y1="94.78353479143709%" x2="97.08178712079376%" y2="94.78353479143709%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="97.08178712079376%" y1="94.78353479143709%" x2="97.20806800553648%" y2="95.58684049198921%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="97.20806800553648%" y1="95.58684049198921%" x2="97.26607841417214%" y2="96.09110953402016%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="97.26607841417214%" y1="96.09110953402016%" x2="97.94022269935357%" y2="96.09110953402016%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="97.94022269935357%" y1="96.09110953402016%" x2="98.0346793015211%" y2="96.25730417883833%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="98.0346793015211%" y1="96.25730417883833%" x2="98.32959724191427%" y2="96.60220070514283%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="98.32959724191427%" y1="96.60220070514283%" x2="99.11420606882142%" y2="96.60220070514283%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="99.11420606882142%" y1="96.60220070514283%" x2="99.18889340380403%" y2="97.40133732680557%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="99.18889340380403%" y1="97.40133732680557%" x2="99.22600628993125%" y2="98.84933422652689%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="99.22600628993125%" y1="98.84933422652689%" x2="99.32041208658269%" y2="99.65642999879665%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="99.32041208658269%" y1="99.65642999879665%" x2="99.56934710823985%" y2="100%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+<line x1="99.56934710823985%" y1="100%" x2="100%" y2="100%" data-gjs-name="RKS 历史线段" data-phi-selector=".line line"></line>
+          </svg>
+        </div>
+        <div class="date_box" data-gjs-name="RKS 历史日期" data-phi-selector=".date_box"><p>2025/12/19 20:44:48</p><p>2026/08/16 12:07:50</p></div>
+      </div>
+    </div>
+
+    <div class="data_title" data-gjs-name="存档数据历史标题栏" data-phi-selector=".data_title">
+      <div class="data_title-left data-history-title" data-gjs-name="存档数据历史标题" data-phi-selector=".data_title-left"><p>DATA_HISTORY</p></div>
+    </div>
+    <div class="svg-box data-history-chart" data-gjs-name="存档数据历史图表" data-phi-selector=".svg-box">
+      <div class="value_box" data-gjs-name="存档数据图表范围" data-phi-selector=".value_box"><p>422018</p><p>123074</p></div>
+      <div class="line-box" data-gjs-name="存档数据折线区域" data-phi-selector=".line-box">
+        <div class="line" data-gjs-name="存档数据折线" data-phi-selector=".line">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="存档数据从 123074 增长至 422018 的历史折线" data-gjs-name="存档数据折线图形" data-phi-selector=".line svg">
+            <defs><marker id="data-dot" viewBox="0 0 10 10" markerWidth="8" markerHeight="8" refX="2" refY="2"><circle cx="2" cy="2" r="1"></circle></marker></defs>
+            <line x1="0%" y1="0%" x2="4%" y2="14%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="4%" y1="14%" x2="14%" y2="23%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="14%" y1="23%" x2="25%" y2="31%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="25%" y1="31%" x2="36%" y2="41%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="36%" y1="41%" x2="45%" y2="44%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="45%" y1="44%" x2="58%" y2="46%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="58%" y1="46%" x2="67%" y2="57%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="67%" y1="57%" x2="75%" y2="51%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="75%" y1="51%" x2="80%" y2="46%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="80%" y1="46%" x2="83%" y2="58%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="83%" y1="58%" x2="86%" y2="69%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="86%" y1="69%" x2="89%" y2="58%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="89%" y1="58%" x2="91%" y2="67%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="91%" y1="67%" x2="93%" y2="78%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="93%" y1="78%" x2="95%" y2="65%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="95%" y1="65%" x2="97%" y2="88%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="97%" y1="88%" x2="98.5%" y2="76%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+            <line x1="98.5%" y1="76%" x2="100%" y2="100%" data-gjs-name="存档数据历史线段" data-phi-selector=".line line"></line>
+          </svg>
+        </div>
+        <div class="date_box" data-gjs-name="存档数据历史日期" data-phi-selector=".date_box"><p>2025/12/19 20:44:48</p><p>2026/08/16 12:07:50</p></div>
+      </div>
+    </div>
+
+    <div class="data_title limit-title-row" data-gjs-name="限制准确率 RKS 标题栏" data-phi-selector=".data_title">
+      <div class="data_title-left limit-title" data-gjs-name="限制准确率 RKS 标题" data-phi-selector=".data_title-left"><p>Limit-ACC_RKS</p></div>
+      <p class="limit-description" data-gjs-name="限制准确率 RKS 说明" data-phi-selector=".data_title p">将您的成绩中所有 ACC【小于某一值(横坐标)】的成绩筛去后计算得到的 RKS 值</p>
+    </div>
+    <div class="svg-box acc-rks-chart" data-gjs-name="限制准确率 RKS 图表" data-phi-selector=".svg-box">
+      <div class="value_box" data-gjs-name="限制准确率图表范围" data-phi-selector=".value_box"><p>16.1340</p><p>14.0163</p><p>11.8987</p><p>9.7810</p><p>7.6633</p></div>
+      <div class="line-box" data-gjs-name="限制准确率折线区域" data-phi-selector=".line-box">
+        <div class="line" data-gjs-name="限制准确率折线" data-phi-selector=".line">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="筛除低准确率成绩后的 RKS 变化折线" data-gjs-name="限制准确率折线图形" data-phi-selector=".line svg">
+            <line x1="0%" y1="100.000000%" x2="2.5%" y2="100.000000%" data-min-acc="98.7032" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="2.5%" y1="100.000000%" x2="5%" y2="100.000000%" data-min-acc="98.7365" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="5%" y1="100.000000%" x2="7.5%" y2="100.000000%" data-min-acc="98.7698" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="7.5%" y1="100.000000%" x2="10%" y2="100.000000%" data-min-acc="98.8030" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="10%" y1="100.000000%" x2="12.5%" y2="100.000000%" data-min-acc="98.8363" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="12.5%" y1="100.000000%" x2="15%" y2="100.000000%" data-min-acc="98.8695" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="15%" y1="100.000000%" x2="17.5%" y2="100.000000%" data-min-acc="98.9027" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="17.5%" y1="100.000000%" x2="20%" y2="100.000000%" data-min-acc="98.9360" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="20%" y1="100.000000%" x2="22.5%" y2="100.000000%" data-min-acc="98.9693" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="22.5%" y1="100.000000%" x2="25%" y2="100.000000%" data-min-acc="99.0025" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="25%" y1="100.000000%" x2="27.5%" y2="100.000000%" data-min-acc="99.0358" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="27.5%" y1="100.000000%" x2="30%" y2="100.000000%" data-min-acc="99.0690" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="30%" y1="100.000000%" x2="32.5%" y2="100.000000%" data-min-acc="99.1022" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="32.5%" y1="100.000000%" x2="35%" y2="100.000000%" data-min-acc="99.1355" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="35%" y1="100.000000%" x2="37.5%" y2="100.000000%" data-min-acc="99.1688" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="37.5%" y1="100.000000%" x2="40%" y2="100.000000%" data-min-acc="99.2020" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="40%" y1="100.000000%" x2="42.5%" y2="100.000000%" data-min-acc="99.2353" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="42.5%" y1="100.000000%" x2="45%" y2="100.000000%" data-min-acc="99.2685" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="45%" y1="100.000000%" x2="47.5%" y2="100.000000%" data-min-acc="99.3017" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="47.5%" y1="100.000000%" x2="50%" y2="100.000000%" data-min-acc="99.3350" data-rks="16.1340" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="50%" y1="100.000000%" x2="52.5%" y2="98.360656%" data-min-acc="99.3683" data-rks="15.9951" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="52.5%" y1="98.360656%" x2="55%" y2="98.360656%" data-min-acc="99.4015" data-rks="15.9951" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="55%" y1="98.360656%" x2="57.5%" y2="98.360656%" data-min-acc="99.4348" data-rks="15.9951" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="57.5%" y1="98.360656%" x2="60%" y2="98.360656%" data-min-acc="99.4680" data-rks="15.9951" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="60%" y1="98.360656%" x2="62.5%" y2="97.540984%" data-min-acc="99.5012" data-rks="15.9257" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="62.5%" y1="97.540984%" x2="65%" y2="97.540984%" data-min-acc="99.5345" data-rks="15.9257" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="65%" y1="97.540984%" x2="67.5%" y2="97.540984%" data-min-acc="99.5678" data-rks="15.9257" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="67.5%" y1="97.540984%" x2="70%" y2="97.540984%" data-min-acc="99.6010" data-rks="15.9257" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="70%" y1="97.540984%" x2="72.5%" y2="96.721311%" data-min-acc="99.6343" data-rks="15.8563" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="72.5%" y1="96.721311%" x2="75%" y2="95.901639%" data-min-acc="99.6675" data-rks="15.7868" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="75%" y1="95.901639%" x2="77.5%" y2="95.901639%" data-min-acc="99.7007" data-rks="15.7868" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="77.5%" y1="95.901639%" x2="80%" y2="95.081967%" data-min-acc="99.7340" data-rks="15.7174" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="80%" y1="95.081967%" x2="82.5%" y2="93.442623%" data-min-acc="99.7673" data-rks="15.5785" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="82.5%" y1="93.442623%" x2="85%" y2="89.344262%" data-min-acc="99.8005" data-rks="15.2314" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="85%" y1="89.344262%" x2="87.5%" y2="85.245902%" data-min-acc="99.8337" data-rks="14.8842" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="87.5%" y1="85.245902%" x2="90%" y2="75.409836%" data-min-acc="99.8670" data-rks="14.0510" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="90%" y1="75.409836%" x2="92.5%" y2="52.459016%" data-min-acc="99.9002" data-rks="12.1069" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="92.5%" y1="52.459016%" x2="95%" y2="34.426230%" data-min-acc="99.9335" data-rks="10.5794" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="95%" y1="34.426230%" x2="97.5%" y2="14.754098%" data-min-acc="99.9668" data-rks="8.9131" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+            <line x1="97.5%" y1="14.754098%" x2="100%" y2="0.000000%" data-min-acc="100.0000" data-rks="7.6633" data-gjs-name="限制准确率线段" data-phi-selector=".line line"></line>
+          </svg>
+        </div>
+        <div class="date_box acc-range" data-gjs-name="准确率横坐标" data-phi-selector=".date_box">
+          <p class="acc-tick-0">98.67%</p><p class="acc-tick-1">98.84%</p><p class="acc-tick-2">99.23%</p><p class="acc-tick-3">99.37%</p><p class="acc-tick-4">99.57%</p><p class="acc-tick-5">99.71%</p><p class="acc-tick-6">99.85%</p><p class="acc-tick-7">100%</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="data_title" data-gjs-name="统计数据标题栏" data-phi-selector=".data_title">
+      <div class="data_title-left stats-title" data-gjs-name="统计数据标题" data-phi-selector=".data_title-left"><p>STATS</p></div>
+    </div>
+    <div class="stats-box" data-gjs-name="难度统计卡片" data-phi-selector=".stats-box">
+      <article class="one-stats-box stats-EZ" data-rank="EZ" data-gjs-name="EZ 难度统计" data-phi-selector=".one-stats-box">
+        <div class="rank" data-gjs-name="EZ 难度标签" data-phi-selector=".rank"><p>EZ</p></div>
+        <div class="stats-up" data-gjs-name="统计卡片上栏" data-phi-selector=".stats-up">
+          <div class="Rating" data-gjs-name="EZ 总评级" data-phi-selector=".Rating"><img src="/demo/rating/S.png" alt="S 评级" data-gjs-name="评级图片" data-phi-selector=".Rating img" data-phi-default-src="/demo/rating/S.png"></div>
+          <div class="stats-group unlock-group" data-gjs-name="EZ 解锁数量" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>224</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>/312</p></div></div>
+          <div class="stats-rating-group" data-gjs-name="EZ 完成统计" data-phi-selector=".stats-rating-group">
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>66</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>Cleared</p></div></div>
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>10</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>FC</p></div></div>
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>3</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>PHI</p></div></div>
+          </div>
+        </div>
+        <div class="stats-group total-score" data-gjs-name="EZ 总分" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>61725989</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>/67000000</p></div></div>
+        <div class="stats-score" data-gjs-name="EZ 定数范围" data-phi-selector=".stats-score"><div class="stats-group" data-gjs-name="统计数据组" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>7.43</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>Highest</p></div></div><div class="stats-group" data-gjs-name="统计数据组" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>0.58</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>Lowest</p></div></div></div>
+      </article>
+
+      <article class="one-stats-box stats-HD" data-rank="HD" data-gjs-name="HD 难度统计" data-phi-selector=".one-stats-box">
+        <div class="rank" data-gjs-name="HD 难度标签" data-phi-selector=".rank"><p>HD</p></div>
+        <div class="stats-up" data-gjs-name="统计卡片上栏" data-phi-selector=".stats-up">
+          <div class="Rating" data-gjs-name="HD 总评级" data-phi-selector=".Rating"><img src="/demo/rating/S.png" alt="S 评级" data-gjs-name="评级图片" data-phi-selector=".Rating img" data-phi-default-src="/demo/rating/S.png"></div>
+          <div class="stats-group unlock-group" data-gjs-name="HD 解锁数量" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>207</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>/312</p></div></div>
+          <div class="stats-rating-group" data-gjs-name="HD 完成统计" data-phi-selector=".stats-rating-group">
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>67</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>Cleared</p></div></div>
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>13</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>FC</p></div></div>
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>1</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>PHI</p></div></div>
+          </div>
+        </div>
+        <div class="stats-group total-score" data-gjs-name="HD 总分" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>62941904</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>/67000000</p></div></div>
+        <div class="stats-score" data-gjs-name="HD 定数范围" data-phi-selector=".stats-score"><div class="stats-group" data-gjs-name="统计数据组" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>12.66</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>Highest</p></div></div><div class="stats-group" data-gjs-name="统计数据组" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>5.35</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>Lowest</p></div></div></div>
+      </article>
+
+      <article class="one-stats-box stats-IN" data-rank="IN" data-gjs-name="IN 难度统计" data-phi-selector=".one-stats-box">
+        <div class="rank" data-gjs-name="IN 难度标签" data-phi-selector=".rank"><p>IN</p></div>
+        <div class="stats-up" data-gjs-name="统计卡片上栏" data-phi-selector=".stats-up">
+          <div class="Rating" data-gjs-name="IN 总评级" data-phi-selector=".Rating"><img src="/demo/rating/S.png" alt="S 评级" data-gjs-name="评级图片" data-phi-selector=".Rating img" data-phi-default-src="/demo/rating/S.png"></div>
+          <div class="stats-group unlock-group" data-gjs-name="IN 解锁数量" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>205</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>/312</p></div></div>
+          <div class="stats-rating-group" data-gjs-name="IN 完成统计" data-phi-selector=".stats-rating-group">
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>205</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>Cleared</p></div></div>
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>40</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>FC</p></div></div>
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>11</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>PHI</p></div></div>
+          </div>
+        </div>
+        <div class="stats-group total-score" data-gjs-name="IN 总分" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>193446090</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>/205000000</p></div></div>
+        <div class="stats-score" data-gjs-name="IN 定数范围" data-phi-selector=".stats-score"><div class="stats-group" data-gjs-name="统计数据组" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>16.20</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>Highest</p></div></div><div class="stats-group" data-gjs-name="统计数据组" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>5.80</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>Lowest</p></div></div></div>
+      </article>
+
+      <article class="one-stats-box stats-AT" data-rank="AT" data-gjs-name="AT 难度统计" data-phi-selector=".one-stats-box">
+        <div class="rank" data-gjs-name="AT 难度标签" data-phi-selector=".rank"><p>AT</p></div>
+        <div class="stats-up" data-gjs-name="统计卡片上栏" data-phi-selector=".stats-up">
+          <div class="Rating" data-gjs-name="AT 总评级" data-phi-selector=".Rating"><img src="/demo/rating/S.png" alt="S 评级" data-gjs-name="评级图片" data-phi-selector=".Rating img" data-phi-default-src="/demo/rating/S.png"></div>
+          <div class="stats-group unlock-group" data-gjs-name="AT 解锁数量" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>36</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>/46</p></div></div>
+          <div class="stats-rating-group" data-gjs-name="AT 完成统计" data-phi-selector=".stats-rating-group">
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>36</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>Cleared</p></div></div>
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>3</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>FC</p></div></div>
+            <div class="rating-group" data-gjs-name="完成类别" data-phi-selector=".rating-group"><div class="rating-value" data-gjs-name="完成数量" data-phi-selector=".rating-value"><p>1</p></div><div class="rating-tatle" data-gjs-name="完成类别标签" data-phi-selector=".rating-tatle"><p>PHI</p></div></div>
+          </div>
+        </div>
+        <div class="stats-group total-score" data-gjs-name="AT 总分" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>33644745</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>/36000000</p></div></div>
+        <div class="stats-score" data-gjs-name="AT 定数范围" data-phi-selector=".stats-score"><div class="stats-group" data-gjs-name="统计数据组" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>16.79</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>Highest</p></div></div><div class="stats-group" data-gjs-name="统计数据组" data-phi-selector=".stats-group"><div class="stats-group-real" data-gjs-name="统计数值" data-phi-selector=".stats-group-real"><p>11.53</p></div><div class="stats-group-tot" data-gjs-name="统计总量或标签" data-phi-selector=".stats-group-tot"><p>Lowest</p></div></div></div>
+      </article>
+    </div>
+  </section>
+</main>

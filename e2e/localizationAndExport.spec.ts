@@ -1,6 +1,7 @@
 import { expect, test, type Frame, type Page } from '@playwright/test'
 import JSZip from 'jszip'
 import { readFile } from 'node:fs/promises'
+import { parse } from 'yaml'
 
 const PAGE_TABS = [
   '每日签到',
@@ -11,6 +12,7 @@ const PAGE_TABS = [
   '定数表',
   '成绩列表',
   'B30 历史',
+  '个人信息',
   '插件设置',
   '用户设置',
   '定数历史',
@@ -46,6 +48,90 @@ test('component navigation and generated layers use Chinese UI names', async ({ 
   expect(names).not.toContain('Box')
 })
 
+test('finite style properties use localized selects and export their CSS values', async ({ page }) => {
+  await page.goto('/')
+  const frame = await editorFrame(page)
+  await page.getByRole('button', { name: '成绩卡', exact: true }).click()
+  await expect(page.locator('.selection-path code')).toHaveText('.song')
+  const overflow = page.locator('#gjs-style-manager .gjs-sm-property__overflow select')
+
+  await expect(overflow).toHaveAttribute('aria-label', '溢出选项')
+  await expect(overflow.locator('option')).toHaveText([
+    '未设置（沿用页面样式）',
+    '显示溢出内容（visible）',
+    '隐藏溢出内容（hidden）',
+    '直接裁切（clip）',
+    '需要时滚动（auto）',
+    '始终可滚动（scroll）',
+  ])
+  await overflow.selectOption('hidden')
+  await expect(overflow).toHaveValue('hidden')
+  await expect.poll(() => frame
+    .locator('.song[data-phi-role="song-card"]:not([data-phi-preview-hidden])')
+    .first()
+    .evaluate((element) => getComputedStyle(element).overflow)).toBe('hidden')
+
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: '导出', exact: true }).click()
+  const download = await downloadPromise
+  const path = await download.path()
+  expect(path).not.toBeNull()
+  const zip = await JSZip.loadAsync(await readFile(path!))
+  const css = await zip.file('my-theme/b19.css')!.async('string')
+  expect(css).toMatch(/\.song\s*\{[^}]*overflow:\s*hidden/i)
+})
+
+test('player backdrop exposes its clip-path as a shape control', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('tab', { name: 'Arcaea 风格 B19', exact: true }).click()
+  await page.getByRole('button', { name: '玩家背景曲绘', exact: true }).click()
+
+  const shapeGroup = page.getByRole('group', { name: '玩家背景曲绘形状' })
+  await expect(shapeGroup).toBeVisible()
+  await expect(shapeGroup.getByRole('button', { name: '斜角', exact: true }))
+    .toHaveAttribute('aria-pressed', 'true')
+  await shapeGroup.getByRole('button', { name: '长方形', exact: true }).click()
+  await expect(shapeGroup.getByRole('button', { name: '长方形', exact: true }))
+    .toHaveAttribute('aria-pressed', 'true')
+
+  const frame = await editorFrame(page)
+  await expect.poll(() => frame.locator('.player_broad').evaluate((element) => getComputedStyle(element).clipPath))
+    .toBe('none')
+})
+
+test('ordinary B30 cards expose artwork shape, fit long titles, and use two-decimal suggestions', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('tab', { name: 'B19 成绩图', exact: true }).click()
+  await page.getByRole('tab', { name: 'B30', exact: true }).click()
+
+  const frame = await editorFrame(page)
+  await page.getByRole('button', { name: '曲绘图片', exact: true }).click()
+  const shapeGroup = page.getByRole('group', { name: '曲绘形状' })
+  await expect(shapeGroup).toBeVisible()
+  await shapeGroup.getByRole('button', { name: '长方形', exact: true }).click()
+  await expect.poll(() => frame
+    .locator('.song[data-phi-role="song-card"]:not([data-phi-preview-hidden]) .ill')
+    .first()
+    .evaluate((element) => getComputedStyle(element).clipPath)).toBe('none')
+
+  const longTitle = frame.locator('.songname p').filter({ hasText: 'Avataar' }).first()
+  await expect.poll(() => longTitle.evaluate((element) => {
+    const parent = element.parentElement!
+    const style = getComputedStyle(element)
+    return Number.parseFloat(style.fontSize) < 15
+      && style.whiteSpace === 'nowrap'
+      && element.scrollWidth <= parent.clientWidth + 0.5
+  })).toBe(true)
+
+  const suggestions = await frame.locator(
+    '.song[data-phi-role="song-card"]:not([data-phi-preview-hidden]) .suggest p',
+  ).allTextContents()
+  expect(suggestions.filter((text) => text.trim().endsWith('%')))
+    .toEqual(expect.arrayContaining([expect.stringMatching(/^\d+\.\d{2}%$/)]))
+  expect(suggestions.filter((text) => text.trim().endsWith('%'))
+    .every((text) => /^\d+\.\d{2}%$/.test(text.trim()))).toBe(true)
+})
+
 test('a visited multi-page project exports a compact studio file and imports its custom element', async ({ page }) => {
   test.setTimeout(60_000)
   await page.goto('/')
@@ -71,9 +157,17 @@ test('a visited multi-page project exports a compact studio file and imports its
   }
   expect(Buffer.byteLength(studioText)).toBeLessThan(100_000)
   expect(studio.projectData).toBeUndefined()
-  expect(Object.keys(studio.pages)).toHaveLength(13)
+  expect(Object.keys(studio.pages)).toHaveLength(14)
   expect(studioText).toContain('data-phi-custom')
   expect(studioText).not.toContain('data-phi-role')
+
+  const manifestEntry = zip.file('my-theme/info.yaml')
+  expect(manifestEntry).not.toBeNull()
+  const manifest = parse(await manifestEntry!.async('string')) as {
+    css: Record<string, string>
+  }
+  expect(manifest.css['userinfo/userinfo']).toBe('pages/userinfo-userinfo.css')
+  expect(zip.file('my-theme/pages/userinfo-userinfo.css')).not.toBeNull()
 
   await page.locator('input[type=file][accept*="zip"]').setInputFiles(path!)
   await expect(page.locator('.brand-block span')).toHaveText('my-theme')

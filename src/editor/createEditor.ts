@@ -205,9 +205,112 @@ const RADIUS_PROPERTIES = [
   ['border-bottom-left-radius', '左下'],
 ].map(([property, name]) => ({ property, name, type: 'number', units: LENGTH_UNITS, min: 0 }))
 
-const STYLE_PROPERTY_DEFINITIONS = [
-  { property: 'display', name: '显示' },
-  { property: 'position', name: '定位' },
+type StyleSelectOptionDefinition = readonly [value: string, label: string]
+
+export const STYLE_SELECT_PROPERTY_OPTIONS = {
+  display: [
+    ['block', '块级'],
+    ['inline', '行内'],
+    ['inline-block', '行内块'],
+    ['flex', '弹性布局'],
+    ['inline-flex', '行内弹性布局'],
+    ['grid', '网格布局'],
+    ['inline-grid', '行内网格布局'],
+    ['flow-root', '独立流式布局'],
+    ['table', '表格'],
+    ['table-row', '表格行'],
+    ['table-cell', '表格单元格'],
+    ['list-item', '列表项'],
+    ['contents', '仅保留子元素'],
+    ['none', '隐藏'],
+  ],
+  position: [
+    ['static', '标准文档流'],
+    ['relative', '相对定位'],
+    ['absolute', '绝对定位'],
+    ['fixed', '固定于视口'],
+    ['sticky', '粘性定位'],
+  ],
+  'flex-direction': [
+    ['row', '横向'],
+    ['row-reverse', '横向反转'],
+    ['column', '纵向'],
+    ['column-reverse', '纵向反转'],
+  ],
+  'justify-content': [
+    ['normal', '默认'],
+    ['start', '起始端'],
+    ['end', '末端'],
+    ['center', '居中'],
+    ['flex-start', '弹性起始端'],
+    ['flex-end', '弹性末端'],
+    ['left', '左侧'],
+    ['right', '右侧'],
+    ['space-between', '两端对齐'],
+    ['space-around', '均匀环绕'],
+    ['space-evenly', '完全均匀'],
+    ['stretch', '拉伸'],
+  ],
+  'align-items': [
+    ['normal', '默认'],
+    ['stretch', '拉伸'],
+    ['start', '起始端'],
+    ['end', '末端'],
+    ['center', '居中'],
+    ['flex-start', '弹性起始端'],
+    ['flex-end', '弹性末端'],
+    ['baseline', '基线'],
+  ],
+  'text-align': [
+    ['start', '起始端'],
+    ['end', '末端'],
+    ['left', '左对齐'],
+    ['right', '右对齐'],
+    ['center', '居中'],
+    ['justify', '两端对齐'],
+    ['match-parent', '跟随父元素'],
+  ],
+  'white-space': [
+    ['normal', '正常换行'],
+    ['nowrap', '禁止换行'],
+    ['pre', '保留空白且不换行'],
+    ['pre-wrap', '保留空白并换行'],
+    ['pre-line', '合并空白并换行'],
+    ['break-spaces', '保留所有空白并换行'],
+  ],
+  overflow: [
+    ['visible', '显示溢出内容'],
+    ['hidden', '隐藏溢出内容'],
+    ['clip', '直接裁切'],
+    ['auto', '需要时滚动'],
+    ['scroll', '始终可滚动'],
+  ],
+  'object-fit': [
+    ['fill', '拉伸填满'],
+    ['contain', '完整显示'],
+    ['cover', '覆盖区域'],
+    ['none', '保持原始尺寸'],
+    ['scale-down', '自动缩小'],
+  ],
+} as const satisfies Record<string, readonly StyleSelectOptionDefinition[]>
+
+type StyleSelectProperty = keyof typeof STYLE_SELECT_PROPERTY_OPTIONS
+
+export function styleSelectOptions(property: StyleSelectProperty) {
+  const options: readonly StyleSelectOptionDefinition[] = STYLE_SELECT_PROPERTY_OPTIONS[property]
+  return [
+    { id: '', label: '未设置（沿用页面样式）' },
+    ...options.map(([id, label]) => ({ id, label: `${label}（${id}）` })),
+  ]
+}
+
+function selectStyleProperty(property: StyleSelectProperty, name: string) {
+  return { property, name, type: 'select' as const, full: true, options: styleSelectOptions(property) }
+}
+
+const LAYOUT_STYLE_PROPERTY_DEFINITIONS = [
+  selectStyleProperty('display', '显示'),
+  selectStyleProperty('position', '定位'),
   { property: 'width', name: '宽度', type: 'number', units: LENGTH_UNITS },
   { property: 'height', name: '高度', type: 'number', units: LENGTH_UNITS },
   { property: 'top', name: '上', type: 'number', units: LENGTH_UNITS },
@@ -217,16 +320,23 @@ const STYLE_PROPERTY_DEFINITIONS = [
   { property: 'margin', name: '外边距' },
   { property: 'padding', name: '内边距' },
   { property: 'gap', name: '间距', type: 'number', units: LENGTH_UNITS },
-  { property: 'flex-direction', name: '排列方向' },
-  { property: 'justify-content', name: '主轴对齐' },
-  { property: 'align-items', name: '交叉轴对齐' },
+  selectStyleProperty('flex-direction', '排列方向'),
+  selectStyleProperty('justify-content', '主轴对齐'),
+  selectStyleProperty('align-items', '交叉轴对齐'),
   { property: 'grid-template-columns', name: '网格列' },
+] as const
+
+const TYPOGRAPHY_STYLE_PROPERTY_DEFINITIONS = [
   { property: 'color', name: '颜色', type: 'color' },
   { property: 'font-size', name: '字号', type: 'number', units: LENGTH_UNITS_NO_PERCENT },
   { property: 'font-weight', name: '字重' },
   { property: 'line-height', name: '行高' },
-  { property: 'text-align', name: '对齐' },
+  selectStyleProperty('text-align', '对齐'),
+  selectStyleProperty('white-space', '空白与换行'),
   { property: 'text-shadow', name: '文字阴影' },
+] as const
+
+const APPEARANCE_STYLE_PROPERTY_DEFINITIONS = [
   // `extend` picks up GrapesJS' built-in composite controls. The background
   // plugin replaces that built-in with image/color/gradient layers.
   { property: 'background', name: '背景', extend: 'background' },
@@ -238,7 +348,11 @@ const STYLE_PROPERTY_DEFINITIONS = [
   { property: 'border-radius', name: '圆角', type: 'composite', properties: RADIUS_PROPERTIES, full: true },
   { property: 'box-shadow', name: '阴影' },
   { property: 'opacity', name: '透明度', extend: 'opacity' },
-  { property: 'overflow', name: '溢出' },
+  selectStyleProperty('overflow', '溢出'),
+  selectStyleProperty('object-fit', '图片适配'),
+] as const
+
+const EFFECT_STYLE_PROPERTY_DEFINITIONS = [
   { property: 'translate', name: '平移' },
   { property: 'rotate', name: '旋转' },
   { property: 'scale', name: '缩放' },
@@ -247,6 +361,13 @@ const STYLE_PROPERTY_DEFINITIONS = [
   { property: 'filter', name: '滤镜' },
   { property: 'backdrop-filter', name: '背景滤镜' },
   { property: 'clip-path', name: '裁切路径' },
+] as const
+
+export const STYLE_PROPERTY_DEFINITIONS = [
+  ...LAYOUT_STYLE_PROPERTY_DEFINITIONS,
+  ...TYPOGRAPHY_STYLE_PROPERTY_DEFINITIONS,
+  ...APPEARANCE_STYLE_PROPERTY_DEFINITIONS,
+  ...EFFECT_STYLE_PROPERTY_DEFINITIONS,
 ] as const
 
 export const STYLE_PROPERTY_NAMES = STYLE_PROPERTY_DEFINITIONS.map(({ property }) => property)
@@ -259,6 +380,27 @@ export function computedStylePlaceholder(value: string, type: string, units: rea
 
 interface StylePropertyView {
   el?: HTMLElement
+}
+
+const CUSTOM_STYLE_OPTION_ATTRIBUTE = 'data-phi-custom-option'
+
+export function syncStyleSelectValue(select: HTMLSelectElement, value: string, hasOverride: boolean) {
+  select.querySelector(`option[${CUSTOM_STYLE_OPTION_ATTRIBUTE}]`)?.remove()
+  if (!hasOverride) {
+    select.value = ''
+    return
+  }
+  if ([...select.options].some((option) => option.value === value)) {
+    select.value = value
+    return
+  }
+
+  const option = select.ownerDocument.createElement('option')
+  option.setAttribute(CUSTOM_STYLE_OPTION_ATTRIBUTE, '')
+  option.value = value
+  option.textContent = `已有自定义值（${value}）`
+  option.selected = true
+  select.append(option)
 }
 
 function propertyView(property: Property) {
@@ -281,6 +423,10 @@ function renderComputedStyleDefault(property: Property, value: string, hasOverri
   const unitSelect = root.querySelector<HTMLSelectElement>('select.gjs-input-unit')
   if (!hasOverride && unitSelect && [...unitSelect.options].some((option) => option.value === unit)) {
     unitSelect.value = unit || ''
+  }
+  if (property.getType() === 'select') {
+    const select = root.querySelector<HTMLSelectElement>('.gjs-field select:not(.gjs-input-unit)')
+    if (select) syncStyleSelectValue(select, value, hasOverride)
   }
   const colorPicker = root.querySelector<HTMLElement>('.gjs-field-color-picker')
   if (colorPicker && COLOR_PROPERTIES.has(property.getName()) && !hasOverride) {
@@ -328,6 +474,10 @@ export function syncComputedStyleDefaults(editor: Editor) {
         if (input) {
           input.removeAttribute('placeholder')
           delete input.dataset.phiComputedValue
+        }
+        if (property.getType() === 'select') {
+          const select = root.querySelector<HTMLSelectElement>('.gjs-field select:not(.gjs-input-unit)')
+          if (select) syncStyleSelectValue(select, '', false)
         }
         if (COLOR_PROPERTIES.has(property.getName())) {
           root.querySelector<HTMLElement>('.gjs-field-color-picker')?.style.removeProperty('background-color')
@@ -425,6 +575,13 @@ function installStyleControlTooltips(container: HTMLElement, editor: Editor) {
           if (!element.hasAttribute('tabindex')) element.tabIndex = 0
         }
       }
+    }
+    for (const property of STYLE_PROPERTY_DEFINITIONS) {
+      if (!('type' in property) || property.type !== 'select') continue
+      const select = container.querySelector<HTMLSelectElement>(`.gjs-sm-property__${property.property} select`)
+      if (!select) continue
+      select.title = `${property.name}选项`
+      select.setAttribute('aria-label', `${property.name}选项`)
     }
   }
   apply()
@@ -635,14 +792,19 @@ const CLIPPED_COMPONENT_CLASSES = new Set([
   'clip-box',
   'clip-box-left',
   'clip-box-right',
+  // The Arcaea-style player backdrop uses a fixed pixel polygon instead of
+  // the shared `clip-box` custom-property shape.
+  'player_broad',
 ])
 const DIFFICULTY_SHAPE_SELECTORS = ['.rank-AT', '.rank-IN', '.rank-HD', '.rank-EZ'] as const
 const PARALLELOGRAM_CLIP_PATH = 'polygon(100% 0, calc(100% - calc(var(--height) * var(--clipSlope))) 100%, 0 100%, calc(var(--height) * var(--clipSlope)) 0)'
+const PLAYER_BROAD_CLIP_PATH = 'polygon(100% 0%, 100% 100%, 17.75px 100%, 0% 70%, 35.5px 0%)'
 const LEFT_ANGLE_CLIP_PATH = 'polygon(100% 0, 100% 100%, 0 100%, calc(var(--height) * var(--clipSlope)) 0)'
 const RIGHT_ANGLE_CLIP_PATH = 'polygon(100% 0, calc(100% - calc(var(--height) * var(--clipSlope))) 100%, 0 100%, 0 0)'
 
 export function clipPathForShape(mode: ComponentShapeMode, classes: readonly string[] = []) {
   if (mode === 'rectangle') return 'none'
+  if (classes.includes('player_broad')) return PLAYER_BROAD_CLIP_PATH
   if (classes.includes('clip-box-left')) return LEFT_ANGLE_CLIP_PATH
   if (classes.includes('clip-box-right')) return RIGHT_ANGLE_CLIP_PATH
   return PARALLELOGRAM_CLIP_PATH
@@ -1222,25 +1384,25 @@ export function createPhiEditor(options: CreateEditorOptions) {
           id: 'phi-layout',
           name: '布局',
           open: true,
-          properties: STYLE_PROPERTY_DEFINITIONS.slice(0, 15),
+          properties: [...LAYOUT_STYLE_PROPERTY_DEFINITIONS],
         },
         {
           id: 'phi-typography',
           name: '文字',
           open: false,
-          properties: STYLE_PROPERTY_DEFINITIONS.slice(15, 21),
+          properties: [...TYPOGRAPHY_STYLE_PROPERTY_DEFINITIONS],
         },
         {
           id: 'appearance',
           name: '外观',
           open: true,
-          properties: STYLE_PROPERTY_DEFINITIONS.slice(21, 31),
+          properties: [...APPEARANCE_STYLE_PROPERTY_DEFINITIONS],
         },
         {
           id: 'effects',
           name: '变换',
           open: false,
-          properties: STYLE_PROPERTY_DEFINITIONS.slice(31),
+          properties: [...EFFECT_STYLE_PROPERTY_DEFINITIONS],
         },
       ],
     },

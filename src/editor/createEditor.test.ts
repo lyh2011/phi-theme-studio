@@ -13,7 +13,10 @@ import {
   shapeControlTargetSelector,
   statsTableControlTargetSelector,
   statsRowOffsets,
+  STYLE_PROPERTY_DEFINITIONS,
   STYLE_PROPERTY_NAMES,
+  STYLE_SELECT_PROPERTY_OPTIONS,
+  styleSelectOptions,
 } from './createEditor'
 
 function mockComponent(selector: string, classes: string[] = [], parent?: Component) {
@@ -55,6 +58,9 @@ describe('component shape modes', () => {
     expect(clipPathForShape('rectangle', ['clip-box'])).toBe('none')
     expect(clipPathForShape('parallelogram', ['clip-box'])).toContain('var(--clipSlope)')
     expect(clipPathForShape('parallelogram', ['clip-box-left'])).toMatch(/^polygon\(100% 0, 100% 100%/)
+    expect(clipPathForShape('parallelogram', ['player_broad'])).toBe(
+      'polygon(100% 0%, 100% 100%, 17.75px 100%, 0% 70%, 35.5px 0%)',
+    )
   })
 
   it('provides aligned and staggered offsets for the statistics table', () => {
@@ -72,12 +78,15 @@ describe('component shape modes', () => {
     const sheet = mockComponent('.sheet', ['sheet'], recordInfo)
     const artwork = mockComponent('.ill', ['ill', 'clip-box'])
     const artworkImage = mockComponent('.ill img', [], artwork)
+    const playerBackdrop = mockComponent('.player_broad', ['player_broad'])
+    const playerBackdropImage = mockComponent('.player_broad img', [], playerBackdrop)
     const difficulty = mockComponent('.rank-IN', ['rank-IN', 'clip-box'])
     const difficultyText = mockComponent('.rank-IN .org p', [], difficulty)
 
     expect(shapeControlTargetSelector(sheet)).toBe('.recordInfo')
     expect(statsTableControlTargetSelector(sheet)).toBe('.recordInfo')
     expect(shapeControlTargetSelector(artworkImage)).toBe('.ill')
+    expect(shapeControlTargetSelector(playerBackdropImage)).toBe('.player_broad')
     expect(shapeControlTargetSelector(difficultyText)).toBe('.rank-IN')
     expect(shapeControlTargetSelector(mockComponent('.songname p'))).toBe('')
   })
@@ -142,11 +151,27 @@ describe('arrow key nudging', () => {
 
 describe('computed style defaults', () => {
   it('covers every style control exactly once', () => {
-    expect(STYLE_PROPERTY_NAMES).toHaveLength(39)
-    expect(new Set(STYLE_PROPERTY_NAMES)).toHaveLength(39)
+    expect(STYLE_PROPERTY_NAMES).toHaveLength(41)
+    expect(new Set(STYLE_PROPERTY_NAMES)).toHaveLength(41)
     expect(STYLE_PROPERTY_NAMES).toEqual(expect.arrayContaining([
-      'width', 'height', 'color', 'font-size', 'fill', 'stroke', 'translate', 'scale',
+      'width', 'height', 'color', 'font-size', 'white-space', 'fill', 'stroke', 'object-fit', 'translate', 'scale',
     ]))
+  })
+
+  it('uses localized select controls for finite CSS keyword properties', () => {
+    const selectProperties = STYLE_PROPERTY_DEFINITIONS
+      .filter((definition) => 'type' in definition && definition.type === 'select')
+      .map(({ property }) => property)
+
+    expect(selectProperties).toEqual(Object.keys(STYLE_SELECT_PROPERTY_OPTIONS))
+    expect(styleSelectOptions('overflow')).toEqual([
+      { id: '', label: '未设置（沿用页面样式）' },
+      { id: 'visible', label: '显示溢出内容（visible）' },
+      { id: 'hidden', label: '隐藏溢出内容（hidden）' },
+      { id: 'clip', label: '直接裁切（clip）' },
+      { id: 'auto', label: '需要时滚动（auto）' },
+      { id: 'scroll', label: '始终可滚动（scroll）' },
+    ])
   })
 
   it('uses unitless placeholders for number controls', () => {

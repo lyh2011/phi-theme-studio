@@ -14,7 +14,7 @@ describe("multi-page registry", () => {
   const runtimeSelector = /^(?:\.[A-Za-z_][\w-]*|[A-Za-z][\w-]*)(?:(?:\s+)(?:\.[A-Za-z_][\w-]*|[A-Za-z][\w-]*))*$/;
 
   it("registers every first-tranche render target", () => {
-    expect(RENDER_TARGETS).toHaveLength(13);
+    expect(RENDER_TARGETS).toHaveLength(14);
     expect(PAGE_DEFINITION_LIST).toHaveLength(RENDER_TARGETS.length);
     for (const target of RENDER_TARGETS) {
       const page = PAGE_DEFINITIONS[target];
@@ -47,6 +47,8 @@ describe("multi-page registry", () => {
     expect(normalizeRenderTarget("sign")).toBe("sign/sign");
     expect(normalizeRenderTarget("setting/userSetting")).toBe("setting/userSetting");
     expect(normalizeRenderTarget("userSetting")).toBe("setting/userSetting");
+    expect(normalizeRenderTarget("info")).toBe("userinfo/userinfo");
+    expect(normalizeRenderTarget("userinfo")).toBe("userinfo/userinfo");
     expect(normalizeRenderTarget("missing-page")).toBeUndefined();
     expect(isRenderTarget("help")).toBe(true);
     expect(isRenderTarget("missing-page")).toBe(false);
@@ -110,6 +112,19 @@ describe("multi-page registry", () => {
     const clg = PAGE_DEFINITIONS["clg/clg"].markup;
     expect(clg).toContain('data-phi-selector=".ill-shadow"');
     expect(clg).not.toContain('data-phi-selector=".charter-box"');
+
+    const userinfo = PAGE_DEFINITIONS["userinfo/userinfo"].markup;
+    const userinfoSelectors = Array.from(
+      userinfo.matchAll(/data-phi-selector="([^"]+)"/g),
+      (match) => match[1],
+    );
+    expect(userinfoSelectors).toContain(".background img");
+    expect(userinfoSelectors).toContain(".Challenge img");
+    expect(userinfoSelectors).toContain(".line line");
+    expect(userinfoSelectors).toContain(".stats-group-real");
+    expect(userinfoSelectors.filter((selector) =>
+      /(?:userinfo-page|rks-chart|data-history|acc-rks|limit-title|stats-title|unlock-group|total-score|acc-range)/.test(selector),
+    )).toEqual([]);
 
     const sign = PAGE_DEFINITIONS["sign/sign"].markup;
     for (const selector of [

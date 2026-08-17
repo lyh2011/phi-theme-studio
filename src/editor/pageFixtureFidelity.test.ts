@@ -216,7 +216,7 @@ describe("page fixture fidelity", () => {
     expect(root.querySelector(".background > img")?.getAttribute("src"))
       .toMatch(/\/demo\/arcgros-background\.png$/);
     expect(root.querySelector(".player_broad > img")?.getAttribute("src"))
-      .toMatch(/\/demo\/arcgros-background\.png$/);
+      .toMatch(/\/demo\/background\.png$/);
     expect(root.querySelector(".player_avatar > img")?.getAttribute("src"))
       .toMatch(/\/demo\/avatar-lyh\.png$/);
   });
@@ -1257,5 +1257,87 @@ describe("page fixture fidelity", () => {
     expect(definition.baseCss).toMatch(
       /\.history-title\s+\.box_title-left p\s*\{[^}]*white-space:\s*nowrap;[^}]*font-size:\s*10px/,
     );
+  });
+
+  it("matches the player-info reference data, curves, artwork, and stat cards", () => {
+    const root = fixture("userinfo/userinfo");
+    const definition = PAGE_DEFINITIONS["userinfo/userinfo"];
+    expect(definition).toMatchObject({
+      app: "userinfo",
+      cssOnly: true,
+      height: 1500,
+      template: "userinfo",
+      width: 1920,
+    });
+    expect(text(root, ".Player_Id-right")).toBe("lyh");
+    expect(text(root, ".Player_data_line-left .Player_data_value")).toBe("16.1340");
+    expect(text(root, ".Challenge span")).toBe("48");
+    expect(root.querySelector(".Challenge")?.id).toBe("Challenge2");
+    expect(text(root, ".Player_box_value")).toBe("412MiB 130KiB");
+    expect(root.querySelector<HTMLImageElement>(".background img")?.getAttribute("src"))
+      .toMatch(/\/demo\/background\.png$/);
+    expect(root.querySelector<HTMLImageElement>(".basic-img img")?.getAttribute("src"))
+      .toMatch(/\/demo\/background\.png$/);
+    expect(root.querySelector<HTMLImageElement>(".avatar img")?.getAttribute("src"))
+      .toMatch(/\/demo\/avatar-lyh\.png$/);
+    expect(root.querySelector<HTMLImageElement>(".Challenge img")?.getAttribute("src"))
+      .toMatch(/\/demo\/challenge-3\.png$/);
+
+    const charts = ["rks-chart", "data-history-chart", "acc-rks-chart"].map((className) => {
+      const chart = root.querySelector(`.${className}`)!;
+      const segments = Array.from(chart.querySelectorAll<SVGLineElement>(".line > svg > line"));
+      const coordinates = segments.map((segment) =>
+        ["x1", "y1", "x2", "y2"].map((attribute) => segment.getAttribute(attribute)).join(","),
+      ).join("|");
+      for (let index = 0; index < segments.length - 1; index += 1) {
+        expect(segments[index].getAttribute("x2")).toBe(segments[index + 1].getAttribute("x1"));
+        expect(segments[index].getAttribute("y2")).toBe(segments[index + 1].getAttribute("y1"));
+      }
+      return {
+        dates: Array.from(chart.querySelectorAll(".date_box p"), (node) => node.textContent?.trim()),
+        hash: createHash("sha256").update(coordinates).digest("hex"),
+        range: Array.from(chart.querySelectorAll(".value_box p"), (node) => node.textContent?.trim()),
+        segments: segments.length,
+      };
+    });
+    expect(charts).toEqual([
+      {
+        dates: ["2025/12/19 20:44:48", "2026/08/16 12:07:50"],
+        hash: "b72eeaee0fb2a00f62a968877c6ca5a211da038d9560806e1789912a55063bca",
+        range: ["16.1340", "15.1275"],
+        segments: 60,
+      },
+      {
+        dates: ["2025/12/19 20:44:48", "2026/08/16 12:07:50"],
+        hash: "17df06b4ca7a46174da99fe1c73c1baf57c0d89b55db65553276cd178790436b",
+        range: ["422018", "123074"],
+        segments: 18,
+      },
+      {
+        dates: ["98.67%", "98.84%", "99.23%", "99.37%", "99.57%", "99.71%", "99.85%", "100%"],
+        hash: "315e65c251f7ea3ec2fa5ead6c505b31f8d3ecb8b52bac6a2175d465d1018c1b",
+        range: ["16.1340", "14.0163", "11.8987", "9.7810", "7.6633"],
+        segments: 40,
+      },
+    ]);
+
+    const cards = Array.from(root.querySelectorAll<HTMLElement>(".one-stats-box"));
+    expect(cards.map((card) => ({
+      cleared: Array.from(card.querySelectorAll(".rating-value"), (node) => node.textContent?.trim()),
+      rank: card.dataset.rank,
+      rating: card.querySelector<HTMLImageElement>(".Rating img")?.getAttribute("src"),
+      score: Array.from(card.querySelectorAll(":scope > .stats-group p"), (node) => node.textContent?.trim()),
+      unlock: Array.from(card.querySelectorAll(".stats-up > .stats-group p"), (node) => node.textContent?.trim()),
+      values: Array.from(card.querySelectorAll(".stats-score .stats-group-real"), (node) => node.textContent?.trim()),
+    }))).toEqual([
+      { rank: "EZ", rating: "/demo/rating/S.png", unlock: ["224", "/312"], cleared: ["66", "10", "3"], score: ["61725989", "/67000000"], values: ["7.43", "0.58"] },
+      { rank: "HD", rating: "/demo/rating/S.png", unlock: ["207", "/312"], cleared: ["67", "13", "1"], score: ["62941904", "/67000000"], values: ["12.66", "5.35"] },
+      { rank: "IN", rating: "/demo/rating/S.png", unlock: ["205", "/312"], cleared: ["205", "40", "11"], score: ["193446090", "/205000000"], values: ["16.20", "5.80"] },
+      { rank: "AT", rating: "/demo/rating/S.png", unlock: ["36", "/46"], cleared: ["36", "3", "1"], score: ["33644745", "/36000000"], values: ["16.79", "11.53"] },
+    ]);
+    expect(root.querySelectorAll(".one-stats-box .Rating")).toHaveLength(4);
+    expect(text(root, ".createdbox").replace(/\s+/g, "")).toBe("Phi-Pluginv1.0.2");
+    expect(definition.baseCss).toMatch(/\.left\s*\{[^}]*rotateY\(3deg\)/);
+    expect(definition.baseCss).toMatch(/\.right\s*\{[^}]*rotateY\(-2\.3deg\)/);
   });
 });

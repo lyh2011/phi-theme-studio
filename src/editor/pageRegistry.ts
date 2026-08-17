@@ -11,6 +11,7 @@ import settingCss from "../theme/pages/setting.css?raw";
 import userSettingCss from "../theme/pages/userSetting.css?raw";
 import difficultyHistoryCss from "../theme/pages/difficultyHistory.css?raw";
 import helpCss from "../theme/pages/help.css?raw";
+import userinfoCss from "../theme/pages/userinfo.css?raw";
 import signMarkup from "../theme/pages/sign.html?raw";
 import updateMarkup from "../theme/pages/update.html?raw";
 import clgMarkup from "../theme/pages/clg.html?raw";
@@ -23,6 +24,7 @@ import settingMarkup from "../theme/pages/setting.html?raw";
 import userSettingMarkup from "../theme/pages/userSetting.html?raw";
 import difficultyHistoryMarkup from "../theme/pages/difficultyHistory.html?raw";
 import helpMarkup from "../theme/pages/help.html?raw";
+import userinfoMarkup from "../theme/pages/userinfo.html?raw";
 import { PREVIEW_MARKUP, PROTECTED_CSS } from "./preview";
 import { localizeMarkupComponentNames } from "./componentLabels";
 
@@ -37,6 +39,7 @@ export const RENDER_TARGETS = [
   "table/table",
   "list/list",
   "historyB30/historyB30",
+  "userinfo/userinfo",
   "setting/setting",
   "setting/userSetting",
   "difficultyHistory/difficultyHistory",
@@ -533,6 +536,97 @@ const PAGE_DEFINITION_VALUES: readonly PageDefinition[] = [
     "src/theme/pages/historyB30.css",
   ),
   definition(
+    "userinfo/userinfo",
+    "个人信息",
+    userinfoMarkup,
+    userinfoCss,
+    1920,
+    1500,
+    selectorGroupsWithFooter(
+      {
+        id: "footer",
+        label: "页脚",
+        selectors: [".createdbox", ".phi-plugin", ".phi-plugin p", ".ver", ".ver p"],
+        description: "插件署名和版本信息。",
+      },
+      {
+        id: "player",
+        label: "背景与玩家资料",
+        selectors: [
+          ".background img",
+          ".left",
+          ".Player_Info",
+          ".Player_Info-after",
+          ".basic-box",
+          ".basic-img",
+          ".basic-img img",
+          ".Player_Id",
+          ".avatar",
+          ".avatar img",
+          ".Player_Id-box",
+          ".Player_Id-left",
+          ".Player_Id-right",
+          ".left_title",
+          ".left_title-left",
+          ".Player_data_line",
+          ".Player_data_line-left",
+          ".Player_data_line-right",
+          ".Player_data_title",
+          ".Player_data_line-right .Player_data_title",
+          ".Player_data_value",
+          ".Challenge",
+          ".Challenge img",
+          ".Player_data_box",
+          ".Player_box_title",
+          ".Player_box_value",
+          ".Player_profile_box",
+          ".Player_profile_box p",
+        ],
+      },
+      {
+        id: "charts",
+        label: "玩家数据图表",
+        selectors: [
+          ".right",
+          ".file-content",
+          ".file-content-left",
+          ".data_title",
+          ".data_title-left",
+          ".data_title p",
+          ".svg-box",
+          ".value_box",
+          ".line-box",
+          ".line",
+          ".line svg",
+          ".line line",
+          ".date_box",
+        ],
+      },
+      {
+        id: "stats",
+        label: "难度统计卡片",
+        selectors: [
+          ".stats-box",
+          ".one-stats-box",
+          ".rank",
+          ".stats-up",
+          ".Rating",
+          ".Rating img",
+          ".stats-group",
+          ".stats-group-real",
+          ".stats-group-tot",
+          ".stats-rating-group",
+          ".rating-group",
+          ".rating-value",
+          ".rating-tatle",
+          ".stats-score",
+        ],
+      },
+    ),
+    "src/theme/pages/userinfo.html",
+    "src/theme/pages/userinfo.css",
+  ),
+  definition(
     "setting/setting",
     "插件设置",
     settingMarkup,
@@ -625,6 +719,7 @@ const aliases: Readonly<Record<string, RenderTarget>> = {
   "b19/b30": "b19/b19",
   "b19/b33": "b19/b19",
   "b19/analysis": "b19/b19",
+  info: "userinfo/userinfo",
   userSetting: "setting/userSetting",
 };
 

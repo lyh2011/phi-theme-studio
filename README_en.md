@@ -13,7 +13,7 @@ New here? Open the in-app guide from the question mark button in the toolbar. A 
 ## Features
 
 - B19, B27, B30, B33 (Overflow), and B30 analysis states
-- Independent visual CSS editing for daily sign-in, save update, challenge mode, Arcaea-style B19, suggestions, constant table, score list, B30 history, plugin settings, user settings, constant history, and help pages
+- Independent visual CSS editing for daily sign-in, save update, challenge mode, Arcaea-style B19, suggestions, constant table, score list, B30 history, player info, plugin settings, user settings, constant history, and help pages
 - Optional-element toggles reveal the conditional blocks phi-plugin only renders for certain saves or plugin settings: version notices, average ACC badges, constant comparisons, the no-signal placeholder, insufficient tag data, and the wide histogram layout
 - GrapesJS selection and dragging of semantic result elements, emitted as stable runtime CSS selectors for phi-plugin
 - The component index covers player info, score cards, conditional blocks, and analysis panels, and is searchable by name or selector

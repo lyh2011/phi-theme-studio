@@ -53,6 +53,7 @@ import { createLatestInstanceGuard } from './editor/latestInstanceGuard'
 import { runPageTransition, runProjectResetTransaction } from './editor/projectTransaction'
 import {
   appendCustomComponent,
+  compactProjectData,
   restoreCustomComponents,
   sourceTemplateForEditing,
   templateForProject,
@@ -363,7 +364,9 @@ function App() {
       const urlToPath = assetUrlMap(assetsRef.current)
       const raw = instance.getCss({ avoidProtected: true, keepUnusedStyles: true }) || ''
       const css = rewriteCssUrls(validateThemeCss(raw, urlToPath), (url) => urlToPath.get(url) || url)
-      const projectData = mapProjectAssetUrls(instance.getProjectData(), urlToPath)
+      const projectData = compactProjectData(
+        mapProjectAssetUrls(instance.getProjectData(), urlToPath),
+      )
       const current = pageStatesRef.current[target] || { css: '' }
       return {
         ...current,
@@ -682,7 +685,9 @@ function App() {
       if (!mountedRef.current || generation !== saveGenerationRef.current || projectResetRef.current) return
       try {
         const urlToPath = assetUrlMap(assets)
-        const currentProjectData = mapProjectAssetUrls(editor.getProjectData(), urlToPath)
+        const currentProjectData = compactProjectData(
+          mapProjectAssetUrls(editor.getProjectData(), urlToPath),
+        )
         const currentCss = rewriteCssUrls(
           validateThemeCss(editor.getCss({ avoidProtected: true, keepUnusedStyles: true }) || '', urlToPath),
           (url) => urlToPath.get(url) || url,
@@ -701,7 +706,12 @@ function App() {
           Object.entries(pages).map(([target, state]) => [
             target,
             state.projectData
-              ? { ...state, projectData: mapProjectAssetUrls(state.projectData, urlToPath) }
+              ? {
+                  ...state,
+                  projectData: compactProjectData(
+                    mapProjectAssetUrls(state.projectData, urlToPath),
+                  ),
+                }
               : state,
           ]),
         ) as Record<RenderTarget, StudioPageState>
@@ -712,7 +722,7 @@ function App() {
           assets: assets.map(({ previewUrl: _previewUrl, ...asset }) => asset),
           customTemplate,
           exportMode,
-          projectData: mapProjectAssetUrls(currentProjectData, urlToPath),
+          projectData: persistedPages['b19/b19']?.projectData || currentProjectData,
           cssByPage: {
             ...passthroughCssRef.current,
             ...Object.fromEntries(Object.entries(pages).map(([target, state]) => [target, state.css])),
