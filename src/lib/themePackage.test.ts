@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import JSZip from "jszip";
 import YAML from "yaml";
 import {
+  collectCssAssetUrls,
   exportThemePackage,
   importThemePackage,
   mapProjectAssetUrls,
@@ -61,6 +62,27 @@ describe("theme package validation", () => {
       ),
     ).toThrow(/不安全/);
     expect(() => validateThemeCss("#i390l { color: red; }")).toThrow(/临时 ID/);
+  });
+
+  it("accepts same-document SVG fragments without treating them as assets", () => {
+    const css = [
+      '.line { marker-start: url(#dot); marker-end: url("#dot"); }',
+      ".escaped { filter: url(\\23 soft-shadow); }",
+    ].join("\n");
+
+    expect(() => validateThemeCss(css, new Map())).not.toThrow();
+    expect(collectCssAssetUrls(css)).toEqual(new Set());
+
+    for (const unsafe of [
+      "https://example.com/markers.svg#dot",
+      "data:image/svg+xml;base64,AA==#dot",
+      "../markers.svg#dot",
+      "/markers.svg#dot",
+    ]) {
+      expect(() =>
+        validateThemeCss(`.line { marker-start: url("${unsafe}"); }`, new Map()),
+      ).toThrow(/不安全/);
+    }
   });
 
   it("validates the final b19.art against packaged assets", () => {
@@ -202,6 +224,45 @@ describe("theme package validation", () => {
 });
 
 describe("theme package round trip", () => {
+  it("imports and re-exports a page stylesheet with an SVG marker fragment", async () => {
+    const zip = new JSZip();
+    zip.file(
+      "fragment-theme/info.yaml",
+      [
+        'id: "fragment-theme"',
+        'name: "Fragment Theme"',
+        "css:",
+        '  userinfo/userinfo: "userinfo.css"',
+      ].join("\n"),
+    );
+    zip.file(
+      "fragment-theme/userinfo.css",
+      "body .line line { marker-start: url(#dot); }",
+    );
+    const sourceBlob = await zip.generateAsync({ type: "blob" });
+
+    const imported = await importThemePackage(
+      new File([sourceBlob], "fragment-theme.zip", { type: "application/zip" }),
+    );
+    expect(imported.cssByPage["userinfo/userinfo"]).toContain('url("#dot")');
+    expect(imported.assets).toEqual([]);
+
+    const exportedBlob = await exportThemePackage({
+      draft: imported.draft,
+      resources: imported.resources,
+      assets: imported.assets,
+      css: imported.css,
+      cssByPage: imported.cssByPage,
+      cssPaths: { "userinfo/userinfo": "userinfo.css" },
+      customTemplate: imported.customTemplate,
+    });
+    const exportedZip = await JSZip.loadAsync(await exportedBlob.arrayBuffer());
+    const exportedCss = await exportedZip
+      .file("fragment-theme/userinfo.css")!
+      .async("string");
+    expect(exportedCss).toContain('url("#dot")');
+  });
+
   it("exports a directly extractable package and imports it again", async () => {
     const bytes = new Uint8Array([137, 80, 78, 71]);
     const asset: PackageAsset = {

@@ -385,6 +385,10 @@ function normalizeCssUrl(url: string) {
   return decodeCssEscapes(url.trim().replace(/^(['"])(.*)\1$/, "$2"));
 }
 
+function isLocalCssFragment(url: string) {
+  return url.startsWith("#");
+}
+
 function invalidCssUrl(url: string) {
   const normalized = url.replace(/^\.\//, "");
   if (/^(?:data|blob|https?|javascript|file):/i.test(normalized)) return true;
@@ -465,7 +469,9 @@ export function collectCssAssetUrls(css: string) {
   const urls = new Set<string>();
   const root = postcss.parse(css);
   root.walkDecls((declaration) => {
-    walkAssetFunctions(valueParser(declaration.value).nodes, (url) => urls.add(url));
+    walkAssetFunctions(valueParser(declaration.value).nodes, (url) => {
+      if (!isLocalCssFragment(url)) urls.add(url);
+    });
   });
   return urls;
 }
@@ -614,6 +620,9 @@ export function validateThemeCss(
     }
     const parsed = valueParser(declaration.value);
     walkAssetFunctions(parsed.nodes, (url) => {
+      // SVG paint servers, filters and markers use same-document fragments.
+      // They are DOM references rather than files in the theme package.
+      if (isLocalCssFragment(url)) return;
       const path = previewUrlToPath?.get(url) || url;
       if (invalidCssUrl(path)) throw new Error(`CSS 资源路径不安全：${url}`);
       if (
