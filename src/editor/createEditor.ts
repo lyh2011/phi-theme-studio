@@ -555,7 +555,7 @@ export function syncComputedStyleDefaults(editor: Editor) {
     return
   }
 
-  const selector = getRuntimeSelector(component)
+  const selector = effectiveRuntimeSelector(editor, component)
   const target = selector ? getRuntimeOverrideRule(editor, selector) : editor.Styles.getSelected()
   const targetStyle = target?.getStyle() || {}
   const computed = view.getComputedStyle(element)
@@ -582,7 +582,7 @@ function installComputedStyleDefaults(editor: Editor, container: HTMLElement) {
     frame = ownerWindow?.requestAnimationFrame(() => {
       frame = 0
       syncComputedStyleDefaults(editor)
-      const selector = getRuntimeSelector(editor.getSelected())
+      const selector = effectiveRuntimeSelector(editor, editor.getSelected())
       if (selector) container.dataset.phiStyleSelector = selector
       else delete container.dataset.phiStyleSelector
     }) || 0
@@ -776,10 +776,13 @@ export function createShiftAwareSnapGuides(defaults: { x?: number; y?: number } 
   }
 }
 
-// Runtime selectors are deliberately limited to class-backed descendants. This
-// keeps exported rules stable while allowing fine-grained targets such as
-// `.Challenge img` and `.playerId p`.
-const RUNTIME_SELECTOR_RE = /^(?:\.[A-Za-z_][\w-]*|[A-Za-z][\w-]*)(?:(?:\s+)(?:\.[A-Za-z_][\w-]*|[A-Za-z][\w-]*))*$/
+// Runtime selectors are deliberately limited to class/tag descendants and an
+// optional positive :nth-child() index. The structural suffix lets an Alt-drag
+// address one repeated template node without admitting arbitrary pseudo-classes
+// or GrapesJS' temporary IDs into exported CSS.
+const RUNTIME_SELECTOR_PART = String.raw`(?:\.[A-Za-z_][\w-]*|[A-Za-z][\w-]*)(?::nth-child\([1-9]\d*\))?`
+const RUNTIME_SELECTOR_RE = new RegExp(`^${RUNTIME_SELECTOR_PART}(?:\\s+${RUNTIME_SELECTOR_PART})*$`)
+const RUNTIME_SELECTOR_TERMINAL_RE = /(?:^|\s)(\.[A-Za-z_][\w-]*|[A-Za-z][\w-]*)(?::nth-child\([1-9]\d*\))?$/
 const RUNTIME_OVERRIDE_SPECIFICITY_ANCHOR = `:root${Array.from(
   { length: 8 },
   (_, index) => `:is(#phi-theme-studio-override-${index},:root)`,
@@ -847,6 +850,13 @@ function hasDeclaredStyleValue(value: unknown) {
   return value !== undefined && value !== null && String(value).trim() !== ''
 }
 
+function hasDeclaredRuntimeRuleStyle(rule: CssRule | null | undefined) {
+  if (!rule) return false
+  return Object.entries(rule.getStyle()).some(([property, value]) => (
+    !property.startsWith('__') && hasDeclaredStyleValue(value)
+  ))
+}
+
 function normalizeRulePriority(editor: Editor, rule: CssRule) {
   const currentStyle = rule.getStyle()
   const currentImportant = rule.get('important') || false
@@ -899,6 +909,103 @@ function addPrioritizedRuleStyle(rule: CssRule, style: StyleProps) {
 export function getRuntimeSelector(component: Component | undefined) {
   const value = component?.getAttributes()['data-phi-selector']
   return typeof value === 'string' && RUNTIME_SELECTOR_RE.test(value) ? value : ''
+}
+
+function runtimeSelectorForElement(element: Element) {
+  const value = element.getAttribute('data-phi-selector')
+  return typeof value === 'string' && RUNTIME_SELECTOR_RE.test(value) ? value : ''
+}
+
+function terminalRuntimeSelector(selector: string) {
+  return selector.match(RUNTIME_SELECTOR_TERMINAL_RE)?.[1] || ''
+}
+
+function selectorMatchesOnly(document: Document, selector: string, element: Element) {
+  try {
+    const matches = document.querySelectorAll(selector)
+    return matches.length === 1 && matches[0] === element
+  } catch {
+    return false
+  }
+}
+
+function structuralRuntimeSegment(element: Element, selector = runtimeSelectorForElement(element)) {
+  const terminal = terminalRuntimeSelector(selector)
+  const tag = element.localName.toLowerCase()
+  const token = terminal && element.matches(terminal)
+    ? terminal
+    : /^[a-z][\w-]*$/.test(tag)
+      ? tag
+      : ''
+  const parent = element.parentElement
+  if (!token || !parent) return ''
+  const index = Array.prototype.indexOf.call(parent.children, element) + 1
+  return index > 0 ? `${token}:nth-child(${index})` : ''
+}
+
+/**
+ * Build an exportable selector for one instance of a repeated runtime target.
+ * Only curated runtime selector tokens, tag names, and positive child indexes
+ * are used; preview-only classes and generated component IDs are ignored.
+ */
+export function isolatedRuntimeSelector(component: Component | undefined) {
+  const selector = getRuntimeSelector(component)
+  const element = component?.getEl()
+  const document = element?.ownerDocument
+  if (!selector || !element || !document) return ''
+  if (selectorMatchesOnly(document, selector, element)) return selector
+
+  const targetSegment = structuralRuntimeSegment(element, selector)
+  if (!targetSegment) return ''
+  const path = [targetSegment]
+  let ancestor = element.parentElement
+  while (ancestor && ancestor !== document.body && ancestor !== document.documentElement) {
+    // GrapesJS adds this transparent wrapper around the fixed template. It is
+    // absent from phi-plugin, so never encode it into an exported selector.
+    if (ancestor.getAttribute('data-gjs-type') === 'wrapper') break
+
+    const ancestorSelector = runtimeSelectorForElement(ancestor)
+    if (ancestorSelector && selectorMatchesOnly(document, ancestorSelector, ancestor)) {
+      const candidate = `${ancestorSelector} ${path.join(' ')}`
+      if (RUNTIME_SELECTOR_RE.test(candidate) && selectorMatchesOnly(document, candidate, element)) {
+        return candidate
+      }
+    }
+
+    const segment = structuralRuntimeSegment(ancestor, ancestorSelector)
+    if (!segment) break
+    path.unshift(segment)
+    ancestor = ancestor.parentElement
+  }
+
+  const candidate = `body ${path.join(' ')}`
+  return RUNTIME_SELECTOR_RE.test(candidate) && selectorMatchesOnly(document, candidate, element)
+    ? candidate
+    : ''
+}
+
+export function shouldIsolateRuntimeDrag(event: Event | undefined) {
+  return Boolean(event && 'altKey' in event && (event as MouseEvent).altKey)
+}
+
+export function runtimeDragSelector(editor: Editor, component: Component | undefined, isolate = false) {
+  const selector = getRuntimeSelector(component)
+  if (!selector || !component) return ''
+  const isolated = isolatedRuntimeSelector(component)
+  if (!isolated || isolated === selector) return selector
+  // Once an instance has an isolated drag rule, keep later drags on that rule.
+  // Otherwise a regular follow-up drag would move the shared instances while
+  // the selected element remained pinned by its more-specific structural rule.
+  const isolatedRule = getRuntimeOverrideRule(editor, isolated)
+  const isolatedVisibilityRule = getRuntimeVisibilityRule(editor, isolated)
+  const hasIsolatedOverride = hasDeclaredRuntimeRuleStyle(isolatedRule)
+    || hasDeclaredStyleValue(isolatedVisibilityRule?.getStyle().display)
+  return isolate || hasIsolatedOverride ? isolated : selector
+}
+
+/** Resolve the selector currently owning this component's editable overrides. */
+export function effectiveRuntimeSelector(editor: Editor, component: Component | undefined) {
+  return runtimeDragSelector(editor, component)
 }
 
 export function derivedTextRuntimeSelector(tagName: string, parentSelector: string) {
@@ -961,7 +1068,7 @@ export function findVisibleRuntimeComponent(editor: Editor, selector: string) {
 }
 
 export function selectRuntimeStyle(editor: Editor, component: Component | undefined) {
-  const selector = getRuntimeSelector(component)
+  const selector = effectiveRuntimeSelector(editor, component)
   if (!component || !selector) return
   const rule = ensureRuntimeOverrideRule(editor, selector)
   if (editor.Styles.getSelected() !== rule) editor.Styles.select(rule, { component })
@@ -1058,8 +1165,8 @@ export function statsTableControlTargetSelector(component: Component | undefined
   return getRuntimeSelector(statsTableControlTarget(component))
 }
 
-function shapeSelectors(selector: string) {
-  return DIFFICULTY_SHAPE_SELECTORS.includes(selector as (typeof DIFFICULTY_SHAPE_SELECTORS)[number])
+function shapeSelectors(selector: string, semanticSelector = selector) {
+  return DIFFICULTY_SHAPE_SELECTORS.includes(semanticSelector as (typeof DIFFICULTY_SHAPE_SELECTORS)[number])
     ? [...DIFFICULTY_SHAPE_SELECTORS]
     : [selector]
 }
@@ -1070,7 +1177,7 @@ function addRuleStyle(editor: Editor, selector: string, style: StyleProps) {
 
 export function selectedShapeMode(editor: Editor | null): SelectedShapeMode | undefined {
   const component = shapeControlTarget(editor?.getSelected())
-  const selector = getRuntimeSelector(component)
+  const selector = editor ? effectiveRuntimeSelector(editor, component) : ''
   const classes = component ? clippedComponentClasses(component) : []
   const element = component?.getEl()
   const view = element?.ownerDocument.defaultView
@@ -1083,11 +1190,12 @@ export function selectedShapeMode(editor: Editor | null): SelectedShapeMode | un
 
 export function setSelectedShapeMode(editor: Editor, mode: ComponentShapeMode) {
   const component = shapeControlTarget(editor.getSelected())
-  const selector = getRuntimeSelector(component)
+  const semanticSelector = getRuntimeSelector(component)
+  const selector = effectiveRuntimeSelector(editor, component)
   const classes = component ? clippedComponentClasses(component) : []
   if (!component || !selector || !classes.length) return false
   const clipPath = `${clipPathForShape(mode, classes)} !important`
-  for (const target of shapeSelectors(selector)) {
+  for (const target of shapeSelectors(selector, semanticSelector)) {
     addRuleStyle(editor, target, { 'clip-path': clipPath })
   }
   selectRuntimeStyle(editor, component)
@@ -1125,7 +1233,7 @@ function componentName(component: Component) {
 export function describeSelection(editor: Editor | null): SelectionInfo {
   const component = editor?.getSelected()
   if (!editor || !component) return { name: '未选中元素', selector: '', overrides: 0, ancestors: [] }
-  const selector = getRuntimeSelector(component)
+  const selector = effectiveRuntimeSelector(editor, component)
   const style = selector ? getRuntimeOverrideRule(editor, selector)?.getStyle() as StyleProps | undefined : undefined
   const ancestors: SelectionAncestor[] = []
   for (let parent = component.parent(); parent; parent = parent.parent()) {
@@ -1155,7 +1263,7 @@ export function selectAncestor(editor: Editor, id: string) {
 /** Drop every override the theme has declared for the selected runtime selector. */
 export function clearSelectedOverrides(editor: Editor) {
   const component = editor.getSelected()
-  const selector = getRuntimeSelector(component)
+  const selector = effectiveRuntimeSelector(editor, component)
   if (!component || !selector) return 0
   const rule = getRuntimeOverrideRule(editor, selector)
   const cleared = declaredStyleCount(rule?.getStyle() as StyleProps | undefined)
@@ -1179,7 +1287,7 @@ export function setRuntimeComponentVisibility(
   component: Component,
   visible: boolean,
 ) {
-  const selector = getRuntimeSelector(component)
+  const selector = effectiveRuntimeSelector(editor, component)
   if (!selector) return false
 
   const rule = getRuntimeVisibilityRule(editor, selector)
@@ -1208,7 +1316,7 @@ function installStableLayerVisibility(editor: Editor) {
     setRuntimeComponentVisibility(editor, component, value)
   }
   const stableIsVisible: typeof layers.isVisible = (component) => {
-    const selector = getRuntimeSelector(component)
+    const selector = effectiveRuntimeSelector(editor, component)
     if (!selector) return originalIsVisible.call(layers, component)
     const rule = getRuntimeVisibilityRule(editor, selector)
     return styleValueWithoutImportant(String(rule?.getStyle().display || '')) !== 'none'
@@ -1303,7 +1411,7 @@ function cleanNumber(value: number) {
 }
 
 export function moveRuntimeComponent(editor: Editor, component: Component, deltaX: number, deltaY: number) {
-  const selector = getRuntimeSelector(component)
+  const selector = runtimeDragSelector(editor, component)
   if (!selector) return
   const [currentX, currentY] = currentTranslate(component)
   const x = cleanNumber(currentX + deltaX)
@@ -1311,7 +1419,7 @@ export function moveRuntimeComponent(editor: Editor, component: Component, delta
   const rule = ensureRuntimeOverrideRule(editor, selector)
   addPrioritizedRuleStyle(rule, { translate: `${x}px ${y}px` })
   editor.select(component)
-  selectRuntimeStyle(editor, component)
+  if (editor.Styles.getSelected() !== rule) editor.Styles.select(rule, { component })
 }
 
 const NUDGE_DELTAS: Record<string, [number, number]> = {
@@ -1484,7 +1592,7 @@ function installStableStyleBridge(editor: Editor) {
   const stableGetModelToStyle: typeof editor.Styles.getModelToStyle = (model, options) => {
     const component = model as Component
     const selector = typeof component?.getAttributes === 'function'
-      ? getRuntimeSelector(component)
+      ? effectiveRuntimeSelector(editor, component)
       : ''
     if (selector) {
       const rule = options?.skipAdd
@@ -1509,7 +1617,7 @@ function installStableStyleBridge(editor: Editor) {
 
   const temporaryPriorities = new Map<CssRule, Set<string>>()
   const selectedRuntimeRule = () => {
-    const selector = getRuntimeSelector(editor.getSelected())
+    const selector = effectiveRuntimeSelector(editor, editor.getSelected())
     const rule = selector ? getRuntimeOverrideRule(editor, selector) : undefined
     return rule && editor.Styles.getSelected() === rule ? rule : undefined
   }
@@ -1606,7 +1714,51 @@ function installStableStyleBridge(editor: Editor) {
 
   let activeDrag: ActiveDrag | undefined
   let activeResize: ActiveResize | undefined
+  let pendingDragSelector: { component: Component; selector: string } | undefined
+  // GrapesJS copies toolbar mouse events with object spread before starting
+  // `tlb-move`; modifier properties such as `altKey` are non-enumerable and
+  // disappear in that copy. Track the physical key in both documents so the
+  // isolation modifier works for toolbar and direct canvas drags alike.
+  let altPressed = false
+  const modifierDocuments = new Set<Document>()
+  const modifierWindows = new Set<Window>()
+  const updateAltState = (event: KeyboardEvent) => {
+    if (event.type === 'keyup' && event.key === 'Alt') altPressed = false
+    else if (event.type === 'keydown' && (event.key === 'Alt' || event.altKey)) altPressed = true
+  }
+  const resetAltState = () => { altPressed = false }
+  const bindModifierDocument = (ownerDocument: Document | null | undefined, resetOnBlur = false) => {
+    if (!ownerDocument || modifierDocuments.has(ownerDocument)) return
+    modifierDocuments.add(ownerDocument)
+    ownerDocument.addEventListener('keydown', updateAltState, true)
+    ownerDocument.addEventListener('keyup', updateAltState, true)
+    const ownerWindow = ownerDocument.defaultView
+    if (ownerWindow && resetOnBlur && !modifierWindows.has(ownerWindow)) {
+      modifierWindows.add(ownerWindow)
+      ownerWindow.addEventListener('blur', resetAltState)
+    }
+  }
+  const unbindModifierDocuments = () => {
+    for (const ownerDocument of modifierDocuments) {
+      ownerDocument.removeEventListener('keydown', updateAltState, true)
+      ownerDocument.removeEventListener('keyup', updateAltState, true)
+    }
+    for (const ownerWindow of modifierWindows) ownerWindow.removeEventListener('blur', resetAltState)
+    modifierDocuments.clear()
+    modifierWindows.clear()
+  }
+  bindModifierDocument(typeof document === 'undefined' ? undefined : document, true)
+  const bindFrameModifiers = () => bindModifierDocument(editor.Canvas.getDocument())
+  bindFrameModifiers()
+  editor.on('load', bindFrameModifiers)
   editor.on('command:run:before:core:component-drag', ({ options }) => {
+    const component = options.target
+    const selector = runtimeDragSelector(
+      editor,
+      component,
+      shouldIsolateRuntimeDrag(options.event) || altPressed,
+    )
+    pendingDragSelector = component && selector ? { component, selector } : undefined
     const frame = editor.Canvas.getFrameEl()
     const frameDocument = editor.Canvas.getDocument()
     const shiftSnap = createShiftAwareSnapGuides(options.dragger?.snapGuides)
@@ -1633,7 +1785,11 @@ function installStableStyleBridge(editor: Editor) {
     }
   })
   editor.on('component:drag:start', ({ target }: ComponentDragEventData) => {
-    const selector = getRuntimeSelector(target)
+    const pending = pendingDragSelector
+    pendingDragSelector = undefined
+    const selector = pending && pending.component === target
+      ? pending.selector
+      : runtimeDragSelector(editor, target)
     if (!target || !selector) return
     const [startX, startY] = currentTranslate(target)
     const undoWasTracking = Boolean((editor.UndoManager as unknown as { isTracking?: () => boolean }).isTracking?.() ?? true)
@@ -1669,14 +1825,14 @@ function installStableStyleBridge(editor: Editor) {
     addPrioritizedRuleStyle(rule, {
       translate: `${cleanNumber(drag.startX + deltaX)}px ${cleanNumber(drag.startY + deltaY)}px`,
     })
-    selectRuntimeStyle(editor, drag.component)
+    if (editor.Styles.getSelected() !== rule) editor.Styles.select(rule, { component: drag.component })
   })
 
   editor.on('component:resize:start', ({ component }) => {
     // GrapesJS 0.23 also emits resize:start while moving. Keep the snapshot
     // captured by the real initial event until resize:end.
     if (activeResize?.component === component) return
-    const selector = getRuntimeSelector(component)
+    const selector = effectiveRuntimeSelector(editor, component)
     if (!component || !selector) return
     const undoWasTracking = Boolean((editor.UndoManager as unknown as { isTracking?: () => boolean }).isTracking?.() ?? true)
     if (undoWasTracking) editor.UndoManager.stop()
@@ -1725,12 +1881,14 @@ function installStableStyleBridge(editor: Editor) {
   })
 
   editor.on('destroy', () => {
+    unbindModifierDocuments()
     restoreTemporaryPriorities()
     if (editor.Styles.getModelToStyle === stableGetModelToStyle) {
       editor.Styles.getModelToStyle = originalGetModelToStyle
     }
     if (activeDrag?.undoWasTracking) editor.UndoManager.start()
     if (activeResize?.undoWasTracking) editor.UndoManager.start()
+    pendingDragSelector = undefined
     activeDrag = undefined
     activeResize = undefined
   })

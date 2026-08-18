@@ -272,6 +272,112 @@ test('personal info rating cards use the imported S icon resource', async ({ pag
   expect(sources[0]).toMatch(/^blob:/)
 })
 
+test('Alt-dragging a personal info difficulty card isolates its stable selector', async ({ page }) => {
+  test.setTimeout(60_000)
+  await page.goto('/')
+  await page.getByRole('tab', { name: '个人信息', exact: true }).click()
+
+  let frame = await editorFrame(page)
+  const readTranslations = (targetFrame: Frame) => targetFrame
+    .locator('.one-stats-box')
+    .evaluateAll((elements) => elements.map((element) => {
+      const value = getComputedStyle(element).translate
+      const values = value === 'none' ? [] : value.match(/-?(?:\d+\.?\d*|\.\d+)px/g) || []
+      return {
+        rank: (element as HTMLElement).dataset.rank,
+        x: Number.parseFloat(values[0] || '0') || 0,
+        y: Number.parseFloat(values[1] || '0') || 0,
+      }
+    }))
+  const cards = frame.locator('.one-stats-box')
+  await expect(cards).toHaveCount(4)
+  await expect(cards.first()).toBeVisible()
+
+  // The component navigator resolves the shared visual entry to the first
+  // (EZ) card. Dragging the toolbar move handle then preserves that selection
+  // even though the card contains many selectable descendants.
+  await page.getByRole('tab', { name: '组件', exact: true }).click()
+  await page.locator('.component-nav button[title=".one-stats-box"]').click()
+  await expect(page.locator('.topbar-status')).toHaveAttribute('title', '已自动保存')
+  const moveHandle = page.locator('.gjs-toolbar-item[draggable="true"]')
+  await expect(moveHandle).toHaveCount(1)
+  await expect(moveHandle).toBeVisible()
+  const handle = await moveHandle.boundingBox()
+  expect(handle).not.toBeNull()
+  const before = await readTranslations(frame)
+
+  // Start with focus inside the iframe so clicking the external toolbar also
+  // exercises the cross-document modifier tracker.
+  await frame.evaluate(() => window.focus())
+  await page.keyboard.down('Alt')
+  try {
+    await page.mouse.move(handle!.x + handle!.width / 2, handle!.y + handle!.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(handle!.x + handle!.width / 2 + 64, handle!.y + handle!.height / 2 + 32, { steps: 8 })
+    await page.mouse.up()
+  } finally {
+    await page.keyboard.up('Alt')
+  }
+
+  await expect(page.locator('.topbar-status')).toHaveAttribute('title', /有未保存改动|保存中/)
+  await expect(page.locator('.topbar-status')).toHaveAttribute('title', '已自动保存', { timeout: 10_000 })
+
+  const after = await readTranslations(frame)
+  const byRank = new Map(after.map((card) => [card.rank, card]))
+  const beforeByRank = new Map(before.map((card) => [card.rank, card]))
+  const ezBefore = beforeByRank.get('EZ')!
+  const ezAfter = byRank.get('EZ')!
+  expect(Math.abs(ezAfter.x - ezBefore.x) + Math.abs(ezAfter.y - ezBefore.y)).toBeGreaterThan(8)
+  for (const rank of ['HD', 'IN', 'AT']) {
+    const initial = beforeByRank.get(rank)!
+    const current = byRank.get(rank)!
+    expect(current.x, `${rank} translate-x`).toBeCloseTo(initial.x, 1)
+    expect(current.y, `${rank} translate-y`).toBeCloseTo(initial.y, 1)
+  }
+
+  await page.keyboard.press('ArrowRight')
+  await expect.poll(async () => (await readTranslations(frame))[0].x).toBeCloseTo(ezAfter.x + 1, 1)
+  const nudged = await readTranslations(frame)
+  expect(nudged.slice(1)).toEqual(after.slice(1))
+
+  await page.getByTitle('撤销').click()
+  await expect.poll(() => readTranslations(frame)).toEqual(after)
+  await page.getByTitle('撤销').click()
+  await expect.poll(() => readTranslations(frame)).toEqual(before)
+  await page.getByTitle('重做').click()
+  await expect.poll(() => readTranslations(frame)).toEqual(after)
+  await page.getByTitle('重做').click()
+  await expect.poll(() => readTranslations(frame)).toEqual(nudged)
+  await expect(page.locator('.topbar-status')).toHaveAttribute('title', '已自动保存')
+
+  await page.getByRole('tab', { name: '插件设置', exact: true }).click()
+  await page.getByRole('tab', { name: '个人信息', exact: true }).click()
+  frame = await editorFrame(page)
+  await expect(frame.locator('.one-stats-box').first()).toBeVisible()
+  await expect.poll(() => readTranslations(frame)).toEqual(nudged)
+
+  await expect(page.locator('.topbar-status')).toHaveAttribute('title', '已自动保存')
+  await page.reload()
+  await expect(page.locator('.topbar-status')).toHaveAttribute('title', '已自动保存')
+  await page.getByRole('tab', { name: '个人信息', exact: true }).click()
+  frame = await editorFrame(page)
+  await expect(frame.locator('.one-stats-box').first()).toBeVisible()
+  await expect.poll(() => readTranslations(frame)).toEqual(nudged)
+  await page.getByRole('tab', { name: '组件', exact: true }).click()
+  await page.locator('.component-nav button[title=".one-stats-box"]').click()
+  await expect(page.locator('.selection-path code')).toHaveText('.stats-box .one-stats-box:nth-child(1)')
+  await expect(page.locator('.override-reset')).toBeEnabled()
+
+  await page.getByTitle('主题源码').click()
+  const sourceEditor = page.getByRole('textbox', { name: 'CSS 源码' })
+  await expect.poll(() => sourceEditor.inputValue()).toMatch(
+    /\.stats-box \.one-stats-box:nth-child\(1\)\s*\{[^}]*translate:/i,
+  )
+  const css = await sourceEditor.inputValue()
+  expect(css).not.toMatch(/\.one-stats-box\s*\{[^}]*translate:/i)
+  expect(css).not.toMatch(/#[a-z0-9_-]+\s*\{[^}]*translate:/i)
+})
+
 test('layer visibility and trash controls keep template edits exportable', async ({ page }) => {
   test.setTimeout(60_000)
   await page.goto('/')

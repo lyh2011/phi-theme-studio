@@ -1,11 +1,15 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import type { Component } from 'grapesjs'
+import type { Component, Editor } from 'grapesjs'
 import {
   computedStylePlaceholder,
   clipPathForShape,
   colorPickerPopupPosition,
   createShiftAwareSnapGuides,
   derivedTextRuntimeSelector,
+  effectiveRuntimeSelector,
+  getRuntimeSelector,
+  isolatedRuntimeSelector,
   normalizeImportantRuleState,
   normalizeStyleInputUnit,
   nudgeDelta,
@@ -15,10 +19,12 @@ import {
   runtimeOverrideCombinedSelector,
   runtimeOverridePrimarySelector,
   runtimeOverrideTargetSelector,
+  runtimeDragSelector,
   runtimeVisibilityCombinedSelector,
   runtimeVisibilityPrimarySelector,
   runtimeVisibilityTargetSelector,
   shapeControlTargetSelector,
+  shouldIsolateRuntimeDrag,
   statsTableControlTargetSelector,
   statsRowOffsets,
   STYLE_PROPERTY_DEFINITIONS,
@@ -110,6 +116,137 @@ describe('shift precision dragging', () => {
     expect(snap.guides).toEqual({ x: 0, y: 0 })
     snap.update(false)
     expect(snap.guides).toEqual({ x: 8, y: 3 })
+  })
+})
+
+describe('isolated instance dragging', () => {
+  function fixtureDocument(markup: string) {
+    const fixture = window.document.implementation.createHTMLDocument('fixture')
+    fixture.body.innerHTML = markup
+    return fixture
+  }
+
+  function componentFor(element: Element, selector: string) {
+    return {
+      getAttributes: () => ({ 'data-phi-selector': selector }),
+      getEl: () => element,
+    } as unknown as Component
+  }
+
+  it('accepts only controlled positive nth-child runtime selectors', () => {
+    expect(getRuntimeSelector(mockComponent('.stats-box .one-stats-box:nth-child(2)')))
+      .toBe('.stats-box .one-stats-box:nth-child(2)')
+    for (const selector of [
+      '.one-stats-box:nth-child(0)',
+      '.one-stats-box:nth-child(-1)',
+      '.one-stats-box:nth-child(2n+1)',
+      '.one-stats-box:hover',
+      '.stats-box > .one-stats-box:nth-child(1)',
+      '#iwus2o9i',
+    ]) {
+      expect(getRuntimeSelector(mockComponent(selector))).toBe('')
+    }
+  })
+
+  it('targets one stats card by stable parent, template class, and child index', () => {
+    const document = fixtureDocument(`
+      <div class="stats-box" data-phi-selector=".stats-box">
+        <article class="one-stats-box stats-EZ" data-phi-selector=".one-stats-box"></article>
+        <article class="one-stats-box stats-HD" data-phi-selector=".one-stats-box"></article>
+        <article class="one-stats-box stats-IN" data-phi-selector=".one-stats-box"></article>
+        <article class="one-stats-box stats-AT" data-phi-selector=".one-stats-box"></article>
+      </div>
+    `)
+    const card = document.querySelectorAll('.one-stats-box')[1]
+    const selector = isolatedRuntimeSelector(componentFor(card, '.one-stats-box'))
+
+    expect(selector).toBe('.stats-box .one-stats-box:nth-child(2)')
+    expect(document.querySelectorAll(selector)).toHaveLength(1)
+    expect(document.querySelector(selector)).toBe(card)
+    expect(selector).not.toContain('stats-HD')
+    expect(selector).not.toContain('#')
+  })
+
+  it('adds structural indexes for repeated ancestors and skips the editor wrapper', () => {
+    const document = fixtureDocument(`
+      <div data-gjs-type="wrapper">
+        <section class="list" data-phi-selector=".list">
+          <div class="row" data-phi-selector=".row"><span class="value" data-phi-selector=".value"></span></div>
+          <div class="row" data-phi-selector=".row"><span class="value" data-phi-selector=".value"></span></div>
+        </section>
+      </div>
+    `)
+    const value = document.querySelectorAll('.value')[1]
+
+    expect(isolatedRuntimeSelector(componentFor(value, '.value')))
+      .toBe('.list .row:nth-child(2) .value:nth-child(1)')
+  })
+
+  it('keeps an existing isolated rule active on later drags', () => {
+    const document = fixtureDocument(`
+      <div class="stats-box" data-phi-selector=".stats-box">
+        <article class="one-stats-box" data-phi-selector=".one-stats-box"></article>
+        <article class="one-stats-box" data-phi-selector=".one-stats-box"></article>
+      </div>
+    `)
+    const component = componentFor(document.querySelectorAll('.one-stats-box')[1], '.one-stats-box')
+    const isolated = '.stats-box .one-stats-box:nth-child(2)'
+    const combined = runtimeOverrideCombinedSelector(isolated)
+    const withoutRule = { Css: { getRule: () => undefined } } as unknown as Editor
+    const emptyRule = { Css: { getRule: (selector: string) => selector === combined ? { getStyle: () => ({}) } : undefined } } as unknown as Editor
+    const withRule = {
+      Css: {
+        getRule: (selector: string) => selector === combined
+          ? { getStyle: () => ({ translate: '12px 0px' }) }
+          : undefined,
+      },
+    } as unknown as Editor
+
+    expect(runtimeDragSelector(withoutRule, component, false)).toBe('.one-stats-box')
+    expect(runtimeDragSelector(withoutRule, component, true)).toBe(isolated)
+    expect(runtimeDragSelector(emptyRule, component, false)).toBe('.one-stats-box')
+    expect(runtimeDragSelector(withRule, component, false)).toBe(isolated)
+    expect(effectiveRuntimeSelector(withRule, component)).toBe(isolated)
+    expect(shouldIsolateRuntimeDrag({ altKey: true } as unknown as Event)).toBe(true)
+    expect(shouldIsolateRuntimeDrag({ altKey: false } as unknown as Event)).toBe(false)
+  })
+
+  it('keeps structural ownership for non-position and visibility overrides', () => {
+    const document = fixtureDocument(`
+      <div class="stats-box" data-phi-selector=".stats-box">
+        <article class="one-stats-box" data-phi-selector=".one-stats-box"></article>
+        <article class="one-stats-box" data-phi-selector=".one-stats-box"></article>
+      </div>
+    `)
+    const component = componentFor(document.querySelectorAll('.one-stats-box')[1], '.one-stats-box')
+    const isolated = '.stats-box .one-stats-box:nth-child(2)'
+    const combined = runtimeOverrideCombinedSelector(isolated)
+    const visibility = runtimeVisibilityCombinedSelector(isolated)
+    const withColor = {
+      Css: {
+        getRule: (selector: string) => selector === combined
+          ? { getStyle: () => ({ color: 'red' }) }
+          : undefined,
+      },
+    } as unknown as Editor
+    const hidden = {
+      Css: {
+        getRule: (selector: string) => selector === visibility
+          ? { getStyle: () => ({ display: 'none' }) }
+          : undefined,
+      },
+    } as unknown as Editor
+    const empty = {
+      Css: {
+        getRule: (selector: string) => [combined, visibility].includes(selector)
+          ? { getStyle: () => ({}) }
+          : undefined,
+      },
+    } as unknown as Editor
+
+    expect(effectiveRuntimeSelector(withColor, component)).toBe(isolated)
+    expect(effectiveRuntimeSelector(hidden, component)).toBe(isolated)
+    expect(effectiveRuntimeSelector(empty, component)).toBe('.one-stats-box')
   })
 })
 
