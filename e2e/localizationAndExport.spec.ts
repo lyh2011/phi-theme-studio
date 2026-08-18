@@ -566,6 +566,34 @@ test('personal info text and layout controls override imported page selectors', 
   await expect.poll(() => computedStyle(frame, '.Player_profile_box p', 'font-size')).toBe('44px')
 })
 
+test('manual canvas zoom survives personal info element edits', async ({ page }) => {
+  test.setTimeout(60_000)
+  await page.goto('/')
+  await page.getByRole('tab', { name: '个人信息', exact: true }).click()
+
+  const frame = await editorFrame(page)
+  await expect(frame.locator('.userinfo-page')).toBeVisible()
+
+  // Move far enough above the automatic fit cap that a regression which
+  // re-fits after every revision cannot pass by coincidence.
+  const zoomIn = page.getByTitle('放大')
+  await expect(zoomIn).toBeEnabled()
+  for (let index = 0; index < 8; index += 1) await zoomIn.click()
+  const zoomReadout = page.locator('.zoom-readout')
+  await expect(zoomReadout).toHaveText(/^(?:9\d|1\d\d|[2-9]\d\d)%$/)
+  const manualZoom = await zoomReadout.textContent()
+  expect(manualZoom).toMatch(/^\d+%$/)
+
+  await setNumberStyle(page, '.left', 'width', 701)
+  await expect.poll(() => computedStyle(frame, '.left', 'width')).toBe('701px')
+  await expect(page.locator('.topbar-status')).toHaveAttribute(
+    'title',
+    '已自动保存',
+    { timeout: 10_000 },
+  )
+  await expect(zoomReadout).toHaveText(manualZoom!)
+})
+
 async function setNumberStyle(
   page: Page,
   selector: string,

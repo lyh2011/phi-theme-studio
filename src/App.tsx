@@ -278,6 +278,9 @@ function App() {
   const pageCssPathsRef = useRef<Record<string, string>>({})
   const activeTargetRef = useRef<RenderTarget>('b19/b19')
   const measuredCanvasTargetRef = useRef('')
+  // A revision is emitted for every editor mutation. Keep viewport fitting
+  // tied to layout changes instead of letting ordinary edits reset manual zoom.
+  const lastFittedCanvasKeyRef = useRef<string | undefined>(undefined)
   const pageTransitionRef = useRef(false)
   const projectResetRef = useRef(false)
   const previewPageRef = useRef<PreviewPage>(previewPage)
@@ -479,6 +482,8 @@ function App() {
   const handleEditorReady = useCallback((instance: Editor) => {
     const editorGeneration = editorLifecycleRef.current.activate(instance)
     editorInstanceRef.current = instance
+    measuredCanvasTargetRef.current = ''
+    lastFittedCanvasKeyRef.current = undefined
     const isCurrentEditor = () => mountedRef.current && editorGeneration.isCurrent()
     restoredRef.current = false
     instance.on('component:selected', (component) => {
@@ -643,6 +648,8 @@ function App() {
   const handleEditorDispose = useCallback((instance: Editor) => {
     if (!editorLifecycleRef.current.dispose(instance)) return
     if (editorInstanceRef.current === instance) editorInstanceRef.current = null
+    measuredCanvasTargetRef.current = ''
+    lastFittedCanvasKeyRef.current = undefined
     restoredRef.current = false
     if (mountedRef.current) {
       setEditor((current) => current === instance ? null : current)
@@ -730,6 +737,7 @@ function App() {
       ))
     }
     measuredCanvasTargetRef.current = measurementKey
+    const shouldFit = lastFittedCanvasKeyRef.current !== measurementKey
 
     let frame = window.requestAnimationFrame(() => {
       const measured = fixedSize ? fallback : renderedCanvasSize(editor, fallback)
@@ -742,10 +750,13 @@ function App() {
         current.width === measured.width && current.height === measured.height ? current : measured
       ))
       editor.refresh({ tools: true })
-      // `applyPageState` runs before this effect updates the device dimensions.
-      // Re-fit after the current page size reaches the frame; otherwise a long
-      // page inherits the previous page's zoom and its lower half is unreachable.
-      editor.Canvas.fitViewport({ gap: 28, zoom: (value) => Math.min(value, 80) })
+      if (shouldFit && lastFittedCanvasKeyRef.current !== measurementKey) {
+        // `applyPageState` runs before this effect updates the device dimensions.
+        // Re-fit after the current page size reaches the frame; otherwise a long
+        // page inherits the previous page's zoom and its lower half is unreachable.
+        editor.Canvas.fitViewport({ gap: 28, zoom: (value) => Math.min(value, 80) })
+        lastFittedCanvasKeyRef.current = measurementKey
+      }
       frame = window.requestAnimationFrame(() => {
         setZoom(Math.round(editor.Canvas.getZoom()))
       })
