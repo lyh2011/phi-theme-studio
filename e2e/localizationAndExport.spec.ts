@@ -272,6 +272,88 @@ test('personal info rating cards use the imported S icon resource', async ({ pag
   expect(sources[0]).toMatch(/^blob:/)
 })
 
+test('layer visibility and trash controls keep template edits exportable', async ({ page }) => {
+  test.setTimeout(60_000)
+  await page.goto('/')
+  await editorFrame(page)
+
+  const source = new JSZip()
+  source.file('visibility-info/info.yaml', [
+    'name: Visibility Info',
+    'id: visibility-info',
+    'css:',
+    '  userinfo/userinfo: userinfo.css',
+    '',
+  ].join('\n'))
+  source.file('visibility-info/userinfo.css', 'body .Player_data_line-right .Player_data_value { color: #1768ad; }')
+  const buffer = Buffer.from(await source.generateAsync({ type: 'uint8array' }))
+
+  await page.locator('input[type=file][accept*="zip"]').setInputFiles({
+    name: 'visibility-info.zip',
+    mimeType: 'application/zip',
+    buffer,
+  })
+  await expect(page.locator('.brand-block span')).toHaveText('visibility-info')
+  await page.getByRole('tab', { name: '个人信息', exact: true }).click()
+  let frame = await editorFrame(page)
+  const targetSelector = '.Player_data_line-right .Player_data_value'
+  const target = frame.locator(`[data-phi-selector="${targetSelector}"]`)
+  await expect(target).toBeVisible()
+
+  // Selecting first opens the relevant branch in the layer tree.
+  await page.getByRole('tab', { name: '组件', exact: true }).click()
+  await page.getByRole('button', { name: '段位信息区域', exact: true }).click()
+  await page.getByRole('tab', { name: '图层', exact: true }).click()
+  const eye = page.locator(
+    `.gjs-layer:has(> .gjs-layer-item .gjs-layer-title-inn[title="段位信息区域"]) > .gjs-layer-item [data-toggle-visible]`,
+  ).last()
+  await expect(eye).toBeVisible()
+  await eye.click()
+  await expect.poll(() => computedStyle(frame, targetSelector, 'display')).toBe('none')
+  await expect(page.locator('.topbar-status')).toHaveAttribute('title', '已自动保存')
+
+  await page.getByTitle('主题源码').click()
+  const sourceEditor = page.getByRole('textbox', { name: 'CSS 源码' })
+  await expect.poll(() => sourceEditor.inputValue()).toContain('phi-theme-studio-visibility-')
+  const hiddenCss = await sourceEditor.inputValue()
+  expect(hiddenCss).toContain('phi-theme-studio-visibility-')
+  expect(hiddenCss).toMatch(/\.Player_data_line-right \.Player_data_value\s*\{[^}]*display:\s*none\s*!important/i)
+  expect(hiddenCss).not.toMatch(/#[i][a-z0-9]{4,}\s*\{[^}]*display/i)
+  await page.getByRole('button', { name: '取消', exact: true }).click()
+
+  // Restore it before selecting the canvas toolbar target for the separate
+  // trash-button assertion; a hidden canvas node has no visible toolbar.
+  await page.getByRole('tab', { name: '图层', exact: true }).click()
+  await eye.click()
+  await expect.poll(() => computedStyle(frame, targetSelector, 'display')).not.toBe('none')
+  await expect(page.locator('.topbar-status')).toHaveAttribute('title', '已自动保存')
+  await page.getByTitle('主题源码').click()
+  const restoredSourceEditor = page.getByRole('textbox', { name: 'CSS 源码' })
+  await expect.poll(() => restoredSourceEditor.inputValue()).not.toMatch(/\.Player_data_line-right \.Player_data_value\s*\{[^}]*display:\s*none/i)
+  const restoredCss = await restoredSourceEditor.inputValue()
+  expect(restoredCss).not.toMatch(/\.Player_data_line-right \.Player_data_value\s*\{[^}]*display:\s*none/i)
+  await page.getByRole('button', { name: '取消', exact: true }).click()
+
+  // The toolbar trash action hides fixed template nodes and is undoable.
+  await page.getByRole('tab', { name: '组件', exact: true }).click()
+  await page.getByRole('button', { name: '段位信息区域', exact: true }).click()
+  await page.locator('.gjs-toolbar-item').last().click()
+  await expect.poll(() => computedStyle(frame, targetSelector, 'display')).toBe('none')
+  await page.getByTitle('撤销').click()
+  await expect.poll(() => computedStyle(frame, targetSelector, 'display')).not.toBe('none')
+  await page.getByTitle('重做').click()
+  await expect.poll(() => computedStyle(frame, targetSelector, 'display')).toBe('none')
+
+  // Custom elements remain real removable project nodes.
+  await page.getByRole('tab', { name: 'B19 成绩图', exact: true }).click()
+  await page.getByRole('tab', { name: '组件', exact: true }).click()
+  await page.getByRole('button', { name: '文字', exact: true }).click()
+  frame = await editorFrame(page)
+  await expect(frame.locator('[data-phi-custom="text"]')).toHaveCount(1)
+  await page.locator('.gjs-toolbar-item').last().click()
+  await expect(frame.locator('[data-phi-custom="text"]')).toHaveCount(0)
+})
+
 test('personal info text and layout controls override imported page selectors', async ({ page }) => {
   test.setTimeout(60_000)
   await page.goto('/')

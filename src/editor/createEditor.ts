@@ -9,7 +9,12 @@ import grapesjs, {
 import styleBackgroundModule from 'grapesjs-style-bg'
 import valueParser, { type Node as ValueNode } from 'postcss-value-parser'
 import { PREVIEW_MARKUP, PROTECTED_CSS } from './preview'
-import { appendCustomComponent, CUSTOM_ELEMENT_KINDS, type CustomElementKind } from './customElements'
+import {
+  appendCustomComponent,
+  CUSTOM_ELEMENT_KINDS,
+  isCustomComponent,
+  type CustomElementKind,
+} from './customElements'
 import { componentLabelForSelector, localizeComponentName } from './componentLabels'
 
 // The plugin publishes CommonJS plus ESM declarations. Vite exposes the
@@ -779,10 +784,14 @@ const RUNTIME_OVERRIDE_SPECIFICITY_ANCHOR = `:root${Array.from(
   { length: 8 },
   (_, index) => `:is(#phi-theme-studio-override-${index},:root)`,
 ).join('')}`
+const RUNTIME_VISIBILITY_SPECIFICITY_ANCHOR = `${RUNTIME_OVERRIDE_SPECIFICITY_ANCHOR}:is(#phi-theme-studio-visibility,:root)`
+
+function encodedRuntimeSelector(selector: string) {
+  return Array.from(selector, (character) => character.codePointAt(0)!.toString(16)).join('-')
+}
 
 export function runtimeOverridePrimarySelector(selector: string) {
-  const encoded = Array.from(selector, (character) => character.codePointAt(0)!.toString(16)).join('-')
-  return `.phi-theme-studio-override-${encoded}`
+  return `.phi-theme-studio-override-${encodedRuntimeSelector(selector)}`
 }
 
 export function runtimeOverrideTargetSelector(selector: string) {
@@ -791,6 +800,18 @@ export function runtimeOverrideTargetSelector(selector: string) {
 
 export function runtimeOverrideCombinedSelector(selector: string) {
   return `${runtimeOverridePrimarySelector(selector)}, ${runtimeOverrideTargetSelector(selector)}`
+}
+
+export function runtimeVisibilityPrimarySelector(selector: string) {
+  return `.phi-theme-studio-visibility-${encodedRuntimeSelector(selector)}`
+}
+
+export function runtimeVisibilityTargetSelector(selector: string) {
+  return `${RUNTIME_VISIBILITY_SPECIFICITY_ANCHOR} ${selector}`
+}
+
+export function runtimeVisibilityCombinedSelector(selector: string) {
+  return `${runtimeVisibilityPrimarySelector(selector)}, ${runtimeVisibilityTargetSelector(selector)}`
 }
 
 function getRuntimeOverrideRule(editor: Editor, selector: string) {
@@ -802,6 +823,21 @@ function ensureRuntimeOverrideRule(editor: Editor, selector: string) {
   if (!rule) {
     editor.UndoManager.skip(() => {
       rule = editor.Css.setRule(runtimeOverrideCombinedSelector(selector))
+    })
+  }
+  return rule as CssRule
+}
+
+function getRuntimeVisibilityRule(editor: Editor, selector: string) {
+  return editor.Css.getRule(runtimeVisibilityCombinedSelector(selector))
+}
+
+function ensureRuntimeVisibilityRule(editor: Editor, selector: string) {
+  let rule = getRuntimeVisibilityRule(editor, selector)
+  if (!rule) {
+    editor.UndoManager.skip(() => {
+      rule = editor.Css.setRule(runtimeVisibilityCombinedSelector(selector))
+      rule.set('important', ['display'])
     })
   }
   return rule as CssRule
@@ -894,7 +930,8 @@ function lockComponent(component: Component) {
     // Translate mode changes visual position only; the runtime template structure stays fixed.
     draggable: Boolean(runtimeSelector) || isCustom,
     droppable: false,
-    removable: isCustom,
+    // The delete command translates fixed template nodes into a stable hide rule.
+    removable: Boolean(runtimeSelector) || isCustom,
     copyable: isCustom,
     editable: isCustom && customKind === 'text',
     selectable: Boolean(runtimeSelector) || isCustom,
@@ -1130,6 +1167,96 @@ export function clearSelectedOverrides(editor: Editor) {
   if (hasPriority) rule.set('important', [])
   editor.Styles.select(rule, { component })
   return cleared
+}
+
+/**
+ * Keep component visibility edits in the same stable CSS namespace as all
+ * other runtime overrides. The extra specificity makes this temporary editor
+ * state win over a normal display override without changing that override.
+ */
+export function setRuntimeComponentVisibility(
+  editor: Editor,
+  component: Component,
+  visible: boolean,
+) {
+  const selector = getRuntimeSelector(component)
+  if (!selector) return false
+
+  const rule = getRuntimeVisibilityRule(editor, selector)
+  if (visible) {
+    if (!rule || !hasDeclaredStyleValue(rule.getStyle().display)) return false
+    rule.removeStyle('display')
+  } else {
+    const target = rule || ensureRuntimeVisibilityRule(editor, selector)
+    if (styleValueWithoutImportant(String(target.getStyle().display || '')) === 'none') return false
+    addPrioritizedRuleStyle(target, { display: 'none' })
+  }
+
+  editor.Layers.updateLayer(component)
+  editor.trigger('component:toggled', component)
+  return true
+}
+
+function installStableLayerVisibility(editor: Editor) {
+  const layers = editor.Layers
+  const originalSetVisible = layers.setVisible
+  const originalIsVisible = layers.isVisible
+  const stableSetVisible: typeof layers.setVisible = (component, value) => {
+    // Components without a runtime selector are not exportable. Silently
+    // leave them alone rather than letting GrapesJS create an unstable ID rule.
+    if (!getRuntimeSelector(component)) return
+    setRuntimeComponentVisibility(editor, component, value)
+  }
+  const stableIsVisible: typeof layers.isVisible = (component) => {
+    const selector = getRuntimeSelector(component)
+    if (!selector) return originalIsVisible.call(layers, component)
+    const rule = getRuntimeVisibilityRule(editor, selector)
+    return styleValueWithoutImportant(String(rule?.getStyle().display || '')) !== 'none'
+  }
+  layers.setVisible = stableSetVisible
+  layers.isVisible = stableIsVisible
+  editor.on('destroy', () => {
+    if (layers.setVisible === stableSetVisible) layers.setVisible = originalSetVisible
+    if (layers.isVisible === stableIsVisible) layers.isVisible = originalIsVisible
+  })
+}
+
+interface StableDeleteOptions {
+  component?: Component | Component[]
+}
+
+function componentsFromDeleteOptions(editor: Editor, options?: StableDeleteOptions) {
+  const value = options?.component
+  if (Array.isArray(value)) return value
+  if (value) return [value]
+  return editor.getSelectedAll()
+}
+
+function runStableComponentDelete(editor: Editor, options?: StableDeleteOptions) {
+  const hidden: Component[] = []
+  const removed: Component[] = []
+  for (const component of componentsFromDeleteOptions(editor, options)) {
+    if (isCustomComponent(component)) {
+      if (!component.get('removable')) continue
+      component.remove()
+      removed.push(component)
+      continue
+    }
+    if (getRuntimeSelector(component)) {
+      setRuntimeComponentVisibility(editor, component, false)
+      hidden.push(component)
+    }
+  }
+  for (const component of [...hidden, ...removed]) editor.selectRemove(component)
+  return [...hidden, ...removed]
+}
+
+function installStableComponentDelete(editor: Editor) {
+  editor.Commands.add('core:component-delete', {
+    run: (instance, _sender, options?: StableDeleteOptions) => (
+      runStableComponentDelete(instance, options)
+    ),
+  })
 }
 
 /**
@@ -1720,6 +1847,8 @@ export function createPhiEditor(options: CreateEditorOptions) {
   installStyleControlTooltips(options.styles, editor)
   installColorPickerPositioning(options.styles, editor)
   installStableStyleBridge(editor)
+  installStableLayerVisibility(editor)
+  installStableComponentDelete(editor)
   installComputedStyleDefaults(editor, options.styles)
   editor.on('load', () => {
     lockEditorDocument(editor)

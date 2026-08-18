@@ -15,6 +15,9 @@ import {
   runtimeOverrideCombinedSelector,
   runtimeOverridePrimarySelector,
   runtimeOverrideTargetSelector,
+  runtimeVisibilityCombinedSelector,
+  runtimeVisibilityPrimarySelector,
+  runtimeVisibilityTargetSelector,
   shapeControlTargetSelector,
   statsTableControlTargetSelector,
   statsRowOffsets,
@@ -200,6 +203,19 @@ describe('computed style defaults', () => {
     expect(target.match(/:is\(/g)).toHaveLength(8)
     expect(target).toMatch(/ \.Player_profile_box p$/)
     expect(runtimeOverrideCombinedSelector(selector)).toBe(`${primary}, ${target}`)
+  })
+
+  it('uses a separate higher-specificity selector for layer visibility overrides', () => {
+    const selector = '.Player_data_line-right .Player_data_value'
+    const primary = runtimeVisibilityPrimarySelector(selector)
+    const target = runtimeVisibilityTargetSelector(selector)
+
+    expect(primary).toBe(runtimeVisibilityPrimarySelector(selector))
+    expect(primary).toMatch(/^\.phi-theme-studio-visibility-[a-f\d-]+$/)
+    expect(target).toContain(':is(#phi-theme-studio-visibility,:root)')
+    expect(target.match(/:is\(/g)).toHaveLength(9)
+    expect(target).toMatch(/ \.Player_data_line-right \.Player_data_value$/)
+    expect(runtimeVisibilityCombinedSelector(selector)).toBe(`${primary}, ${target}`)
   })
 
   it('derives selectable targets for direct paragraph and span text', () => {
