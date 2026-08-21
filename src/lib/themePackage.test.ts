@@ -805,6 +805,10 @@ describe("theme package round trip", () => {
       sign: "sign.css",
       "setting/userSetting": "setting-userSetting.css",
     });
+    for (const path of ["b19.css", "sign.css", "setting-userSetting.css"]) {
+      const pageCss = await zip.file(`multi-page/${path}`)!.async("string");
+      expect(pageCss).not.toMatch(/@import\s/i);
+    }
     const studio = JSON.parse(
       await zip.file("multi-page/studio.json")!.async("string"),
     );
@@ -1004,7 +1008,7 @@ describe("theme package round trip", () => {
     expect(imported.pages?.["sign/sign"]?.css).toContain("color: blue");
   });
 
-  it("keeps B19 base imports correct for nested stylesheet paths", async () => {
+  it("keeps v2 page styles as overlays for nested stylesheet paths", async () => {
     const input = {
       draft: { ...DEFAULT_DRAFT, id: "nested-b19" },
       resources: DEFAULT_RESOURCES,
@@ -1020,7 +1024,8 @@ describe("theme package round trip", () => {
     const overrideCss = await overrideZip
       .file("nested-b19/pages/b19.css")!
       .async("string");
-    expect(overrideCss).toMatch(/^@import "\.\.\/\.\.\/\.\.\/b19\.css";/);
+    expect(overrideCss).not.toMatch(/@import\s/i);
+    expect(overrideCss).toContain("color: red");
 
     const standaloneBlob = await exportThemePackage({
       ...input,
@@ -1031,9 +1036,9 @@ describe("theme package round trip", () => {
     const standaloneCss = await standaloneZip
       .file("nested-b19-standalone/pages/b19.css")!
       .async("string");
-    expect(standaloneCss).toMatch(
-      /^@import "\.\.\/\.\.\/\.\.\/\.\.\/common\/common\.css";/,
-    );
+    expect(standaloneCss).not.toMatch(/@import\s/i);
+    expect(standaloneCss).not.toContain("phi-theme-studio:base-styles:start");
+    expect(standaloneCss).toContain("color: red");
   });
 
   it("does not collapse two template states into one short app CSS key", async () => {

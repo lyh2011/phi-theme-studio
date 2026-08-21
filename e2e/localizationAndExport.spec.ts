@@ -170,6 +170,8 @@ test('visiting pages does not materialize CSS entries and B19 custom elements st
     css: Record<string, string>
   }
   expect(manifest.css).toEqual({ 'b19/b19': 'b19.css' })
+  const b19Css = await zip.file('my-theme/b19.css')!.async('string')
+  expect(b19Css).not.toMatch(/@import\s/i)
   expect(zip.file('my-theme/pages/userinfo-userinfo.css')).toBeNull()
 
   await page.locator('input[type=file][accept*="zip"]').setInputFiles(path!)
@@ -231,8 +233,10 @@ test('import keeps explicit root page CSS paths without adding visited pages', a
     'b19/b19': 'ocean.css',
     'userinfo/userinfo': 'userinfo.css',
   })
-  expect(zip.file('root-css/ocean.css')).not.toBeNull()
+  const oceanCss = await zip.file('root-css/ocean.css')!.async('string')
+  expect(oceanCss).not.toMatch(/@import\s/i)
   const userinfoCss = await zip.file('root-css/userinfo.css')!.async('string')
+  expect(userinfoCss).not.toMatch(/@import\s/i)
   expect(userinfoCss).toContain('body > .theme-background')
   expect(userinfoCss).toContain('.userinfo-page')
   expect(userinfoCss).not.toContain('[data-gjs-type="wrapper"]')

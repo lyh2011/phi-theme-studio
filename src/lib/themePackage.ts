@@ -119,7 +119,7 @@ export interface ExportThemeInput {
   cssPaths?: Record<string, string>;
   /** Optional v2 page editor states. Their CSS is merged with cssByPage. */
   pages?: Record<RenderTarget, StudioPageState>;
-  /** Defaults to the override mode that keeps themes following upstream. */
+  /** Legacy single-CSS package shape; ignored by v2 page CSS maps. */
   exportMode?: ExportMode;
   customTemplate: string;
   templateSource?: string;
@@ -293,14 +293,19 @@ export function packageCssFor(
   return `${head}\n\n${DIFFICULTY_COLOR_CSS}\n\n${overrides}\n`;
 }
 
-/** Package a page stylesheet. Only B19 needs the plugin base stylesheet import. */
+/**
+ * Package a page stylesheet. Legacy single-page B19 themes need to link the
+ * plugin base stylesheet; v2 page maps are already injected after each page's
+ * original CSS by phi-plugin and must contain only the theme overlay.
+ */
 export function packageCssForPage(
   mode: ExportMode,
   target: string,
   overrides: string,
   cssPath = "b19.css",
+  includeBaseStyles = true,
 ) {
-  if (normalizeRenderTarget(target) === DEFAULT_RENDER_TARGET) {
+  if (includeBaseStyles && normalizeRenderTarget(target) === DEFAULT_RENDER_TARGET) {
     return packageCssFor(mode, overrides, cssPath);
   }
   return `${DIFFICULTY_COLOR_CSS}\n\n${overrides}\n`;
@@ -871,6 +876,21 @@ function cssFilesForInput(input: Pick<ExportThemeInput, "css" | "cssByPage" | "p
   return files;
 }
 
+function usesPageCssMap(
+  input: Pick<ExportThemeInput, "css" | "cssByPage" | "pages" | "cssPaths">,
+  cssFiles = cssFilesForInput(input),
+) {
+  return Boolean(
+    (input.pages && Object.keys(input.pages).length) ||
+    (input.cssByPage && Object.keys(input.cssByPage).length) ||
+    (input.cssPaths && Object.keys(input.cssPaths).length) ||
+    cssFiles.length > 1 ||
+    cssFiles.some(
+      (file) => file.key !== DEFAULT_RENDER_TARGET && file.key !== "b19",
+    ),
+  );
+}
+
 export function manifestFor(input: Omit<ExportThemeInput, "projectData">) {
   const manifest: Record<string, unknown> = {
     name: input.draft.name.trim(),
@@ -1085,6 +1105,7 @@ export function validateTheme(
     }
   }
   const cssFiles = cssFilesForInput(input);
+  const isV2 = usesPageCssMap(input, cssFiles);
   const cssFilePaths = new Set<string>();
   for (const file of cssFiles) {
     if (!normalizePackagePath(file.path)) {
@@ -1189,7 +1210,12 @@ export function validateTheme(
       message: "使用插件内置 B30 模板，可跟随上游结构更新",
     });
   }
-  if ((input.exportMode ?? DEFAULT_EXPORT_MODE) === "standalone") {
+  if (isV2) {
+    issues.push({
+      level: "success",
+      message: "页面 CSS 仅导出主题覆盖层，由 phi-plugin 在原页面 CSS 后加载",
+    });
+  } else if ((input.exportMode ?? DEFAULT_EXPORT_MODE) === "standalone") {
     issues.push({
       level: "warning",
       message: "自包含样式表会固定当前基础布局，不再跟随 phi-plugin 更新",
@@ -1280,16 +1306,16 @@ export async function exportThemePackage(input: ExportThemeInput) {
         throw new Error(`工程包含未打包的资源引用：${url}`);
     }
   }
-  const exportMode = input.exportMode ?? DEFAULT_EXPORT_MODE;
   const cssFiles = cssFilesForInput(input).map((file) => ({
     ...file,
     css: exportedCssByPage[file.key] ?? "",
   }));
-  const hasPageState = Boolean(input.pages && Object.keys(input.pages).length);
-  const hasPageCssMap = Boolean(input.cssByPage && Object.keys(input.cssByPage).length);
-  const hasPageCssPaths = Boolean(input.cssPaths && Object.keys(input.cssPaths).length);
-  const isV2 = hasPageState || hasPageCssMap || hasPageCssPaths || cssFiles.length > 1 ||
-    cssFiles.some((file) => file.key !== DEFAULT_RENDER_TARGET && file.key !== "b19");
+  const isV2 = usesPageCssMap(input, cssFiles);
+  // Page-mapped packages have one runtime shape: every stylesheet is an
+  // overlay. Keep ExportMode only for legacy single-CSS package compatibility.
+  const exportMode = isV2
+    ? DEFAULT_EXPORT_MODE
+    : input.exportMode ?? DEFAULT_EXPORT_MODE;
   const pageStates: Record<string, StudioPageState> = {};
   for (const file of cssFiles) {
     const sourceState = Object.entries(input.pages || {}).find(
@@ -1342,7 +1368,7 @@ export async function exportThemePackage(input: ExportThemeInput) {
   const packageCssFiles = cssFiles.map((file) => [
     file.path,
     packageCssForPath(
-      packageCssForPage(exportMode, file.key, file.css, file.path),
+      packageCssForPage(exportMode, file.key, file.css, file.path, !isV2),
       file.path,
       urlToPath,
       assetPaths,

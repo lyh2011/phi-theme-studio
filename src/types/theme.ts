@@ -41,11 +41,7 @@ export interface ThemeResources {
   icons: Partial<Record<RatingKey, string>>
 }
 
-/**
- * `override` imports phi-plugin's b19.css and only ships the author's changes,
- * so themes follow upstream fixes. `standalone` inlines the base stylesheet the
- * way the bundled `milthm` theme does, pinning the layout against upstream edits.
- */
+/** Legacy single-CSS package shapes retained for import/export compatibility. */
 export const EXPORT_MODES = ['override', 'standalone'] as const
 export type ExportMode = (typeof EXPORT_MODES)[number]
 export const DEFAULT_EXPORT_MODE: ExportMode = 'override'

@@ -119,9 +119,7 @@ import {
 } from './lib/themePackage'
 import {
   DEFAULT_DRAFT,
-  DEFAULT_EXPORT_MODE,
   DEFAULT_RESOURCES,
-  type ExportMode,
   type PackageAsset,
   type PageCssMap,
   type RenderTarget,
@@ -238,7 +236,6 @@ function App() {
   const [resources, setResources] = useState<ThemeResources>(DEFAULT_RESOURCES)
   const [assets, setAssets] = useState<PackageAsset[]>([])
   const [customTemplate, setCustomTemplate] = useState('')
-  const [exportMode, setExportMode] = useState<ExportMode>(DEFAULT_EXPORT_MODE)
   const [leftTab, setLeftTab] = useState<LeftTab>('components')
   const [rightTab, setRightTab] = useState<RightTab>('style')
   const [revision, setRevision] = useState(0)
@@ -513,7 +510,6 @@ function App() {
           assetsRef.current = restoredAssets
           setAssets(restoredAssets)
           setCustomTemplate(sourceTemplateForEditing(persisted.customTemplate))
-          setExportMode(persisted.exportMode || DEFAULT_EXPORT_MODE)
           const restoredTargets = new Set<string>()
           if (persisted.pages) {
             for (const [rawTarget, rawState] of Object.entries(persisted.pages)) {
@@ -616,7 +612,6 @@ function App() {
         resourcesRef.current = DEFAULT_RESOURCES
         setResources(DEFAULT_RESOURCES)
         setCustomTemplate('')
-        setExportMode(DEFAULT_EXPORT_MODE)
         pageTransitionRef.current = true
         try {
           const fallbackPage = pageForTarget('b19/b19')
@@ -811,7 +806,6 @@ function App() {
           resources,
           assets: assets.map(({ previewUrl: _previewUrl, ...asset }) => asset),
           customTemplate,
-          exportMode,
           projectData: persistedPages['b19/b19']?.projectData || currentProjectData,
           cssByPage: persistedManifestCss,
           cssPaths: pageCssPathsRef.current,
@@ -838,7 +832,7 @@ function App() {
       }
     }, 700)
     return () => window.clearTimeout(timeout)
-  }, [activeTarget, editor, draft, resources, assets, customTemplate, exportMode, revision, notify])
+  }, [activeTarget, editor, draft, resources, assets, customTemplate, revision, notify])
 
   const selection = useMemo(
     () => describeSelection(editor),
@@ -967,9 +961,8 @@ function App() {
     cssByPage: exportCssByPage,
     pages: exportPages,
     cssPaths: pageCssPathsForExport(exportCssByPage, pageCssPaths),
-    exportMode,
     customTemplate: effectiveTemplate,
-  }), [draft, resources, assets, canonicalCss, exportCssByPage, exportMode, exportPages, effectiveTemplate, pageCssPaths])
+  }), [draft, resources, assets, canonicalCss, exportCssByPage, exportPages, effectiveTemplate, pageCssPaths])
   const issues = useMemo(() => {
     const result = validateTheme(exportInput)
     const derivedErrors = [canonical.error, effectiveTemplateResult.error]
@@ -1259,7 +1252,6 @@ function App() {
           assetsRef.current = next.assets
           setAssets(next.assets)
           setCustomTemplate(staged.template)
-          setExportMode(next.exportMode)
           const previousAssets = staged.previousAssets
           window.setTimeout(() => revokeAssets(previousAssets), 0)
           setRevision((value) => value + 1)
@@ -1357,7 +1349,6 @@ function App() {
           setResources(DEFAULT_RESOURCES)
           setAssets([])
           setCustomTemplate('')
-          setExportMode(DEFAULT_EXPORT_MODE)
           if (staged.wasPreviewing) setPreviewMode(false)
           setRevision((value) => value + 1)
           setSaveState('dirty')
@@ -1742,11 +1733,6 @@ function App() {
               issues={issues}
               assetCount={assets.length}
               customTemplate={Boolean(effectiveTemplate.trim())}
-              exportMode={exportMode}
-              onExportModeChange={(mode) => {
-                setExportMode(mode)
-                setSaveState('dirty')
-              }}
               onSource={() => setSourceOpen(true)}
               onExport={exportPackage}
             />

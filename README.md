@@ -31,7 +31,7 @@
 - 主题名称、ID、作者、说明及四难度色配置，难度色实时应用到预览
 - 背景、字体和九种评级图标资源管理
 - 导入旧版单页或新版多页面 phi-plugin 主题 ZIP
-- 导出可直接解压到 `resources/html/b19/themes/` 的多页面主题 ZIP，B19 样式表可选「覆盖模式」或「自包含模式」
+- 导出可直接解压到 `resources/html/b19/themes/` 的多页面主题 ZIP，每页样式作为原版 CSS 之后的覆盖层
 - `studio.json` v2 分页保存 CSS 与可编辑配置，ZIP 可再次导入并恢复各页面状态
 - IndexedDB 本地自动保存、撤销/重做、源码高级模式
 - 资源路径、CSS、ZIP Slip、文件数量和大小校验
@@ -53,7 +53,7 @@ npm run dev
 4. 画布放大后，按住鼠标右键拖动以查看超出工作区的区域；点击缩放百分比或“适应画布”可重新居中。
 5. 在左侧“组件”中搜索元素名或选择器快速定位；“自定义元素”区域可添加文字或基础图形，选择“上传图片”可把本地素材加入画布。
 6. 在“主题”和“资源”中配置元数据、颜色、背景、字体与图标。
-7. 在“导出”中选择样式表形态（覆盖 / 自包含），通过校验后生成 ZIP。
+7. 在“导出”中通过校验后生成 ZIP。
 8. 将 ZIP 解压到 phi-plugin 的 `resources/html/b19/themes/`。
 9. 使用 `/myset 主题 <ID>` 选择主题。
 
@@ -81,31 +81,20 @@ my-theme/
         └── phi.png
 ```
 
-### 样式表形态
+### 页面 CSS 覆盖层
 
-在「导出」面板可以选择 `b19.css` 的两种形态，两者在 phi-plugin 中渲染结果一致，区别只在于 B19 基础样式从哪里来。`pages/` 中的其它页面样式始终作为插件原页面 CSS 之上的覆盖层加载。
+新版主题包通过 `info.yaml` 按页面指定样式表：
 
-**覆盖模式（默认）** 只保存你改动的规则，其余样式由 phi-plugin 当前版本提供：
-
-```css
-@import "../../b19.css";
+```yaml
+css:
+  b19: b19.css
+  sign: sign.css
+  setting/userSetting: setting-userSetting.css
 ```
 
-包很小，上游修复基础样式时主题会自动跟进；代价是上游若调整 `b19.css` 结构，主题外观可能随之变化。
+phi-plugin 会先加载页面原版 CSS，再加载命中的主题 CSS。因此导出的页面样式表只包含主题规则，开头不会 `@import` 原版 `b19.css` 或 `common.css`。未配置 CSS 的页面继续使用原版样式和字体；配置了 CSS 的页面才启用主题字体。主题背景、难度色和评级图标仍可用于未配置 CSS 的页面。
 
-**自包含模式** 把基础样式一并写进主题包，与插件内置的 `milthm` 主题一致：
-
-```css
-@import "../../../common/common.css";
-
-/* phi-theme-studio:base-styles:start */
-/* ...phi-plugin 基础样式... */
-/* phi-theme-studio:base-styles:end */
-```
-
-外观被固定下来，不受上游改动影响；代价是拿不到上游改进，需要时得重新导出。生成的基础样式块带有标记注释，再次导入时会被剥离，编辑器里仍然只显示你自己的覆盖规则。
-
-B19 五种状态共用 `b19.css`；其它页面各自保存独立 CSS，切换页面不会混入上一页的规则。`studio.json` v2 记录分页工程状态和所选样式形态，phi-plugin 会忽略该文件；旧版 v1 单页主题仍可导入。
+B19 五种状态共用 `b19.css`；其它页面各自保存独立 CSS，切换页面不会混入上一页的规则。`studio.json` v2 记录分页工程状态，phi-plugin 会忽略该文件；旧版 v1 单页主题仍可导入，其原有 `@import` 或内联基础样式会在导入时作为兼容内容剥离。
 
 难度色、主题字体和背景不写入 CSS——phi-plugin 会依据 `info.yaml` 在 `common/layout/default.art` 中注入 `:root { --AT/--IN/--HD/--EZ }` 与 `@font-face`，所以它们不出现在 `b19.css` 里是正常的。
 

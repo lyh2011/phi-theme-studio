@@ -31,7 +31,7 @@ New here? Open the in-app guide from the question mark button in the toolbar. A 
 - Theme metadata and live AT/IN/HD/EZ preview color controls
 - Background, font, and rating icon asset management
 - Import legacy single-page and current multi-page phi-plugin theme ZIP files
-- Export directly extractable multi-page `resources/html/b19/themes/` packages, with override or self-contained B19 styles
+- Export directly extractable multi-page `resources/html/b19/themes/` packages whose page styles load as overlays
 - Per-page editable state stored in `studio.json` v2 for later re-import
 - IndexedDB autosave, undo/redo, and advanced source editing
 - CSS, asset path, ZIP Slip, file count, and size validation
@@ -77,31 +77,20 @@ my-theme/
         └── phi.png
 ```
 
-### Stylesheet Shape
+### Page CSS Overlays
 
-The Export panel offers two shapes for `b19.css`. Both render identically under phi-plugin; they differ only in where the B19 base styles come from. Stylesheets under `pages/` are always overlays on their corresponding plugin page.
+Current theme packages assign stylesheets per page in `info.yaml`:
 
-**Override mode (default)** ships only your changes and imports the current phi-plugin base stylesheet:
-
-```css
-@import "../../b19.css";
+```yaml
+css:
+  b19: b19.css
+  sign: sign.css
+  setting/userSetting: setting-userSetting.css
 ```
 
-Packages stay tiny and pick up upstream fixes automatically, at the cost of following upstream restructuring of `b19.css`.
+phi-plugin loads the original page CSS first and the matching theme CSS afterward. Exported page stylesheets therefore contain only theme rules and do not start with an `@import` of the original `b19.css` or `common.css`. Pages without a CSS entry retain the original styles and font; the theme font is enabled only on pages with configured CSS. Theme backgrounds, difficulty colors, and rating icons remain available on pages without CSS entries.
 
-**Self-contained mode** inlines the base styles, matching the bundled `milthm` theme:
-
-```css
-@import "../../../common/common.css";
-
-/* phi-theme-studio:base-styles:start */
-/* ...phi-plugin base styles... */
-/* phi-theme-studio:base-styles:end */
-```
-
-The appearance is pinned against upstream edits, at the cost of missing upstream improvements. The generated block is marked with comments and stripped on import, so the editor still shows only your own overrides.
-
-The five B19 states share `b19.css`; every standalone page keeps its own stylesheet, so switching pages cannot leak rules between canvases. `studio.json` v2 records all page states and the chosen shape, and is ignored by phi-plugin. Legacy v1 projects remain importable.
+The five B19 states share `b19.css`; every other page keeps its own stylesheet, so switching pages cannot leak rules between canvases. `studio.json` v2 records all page states and is ignored by phi-plugin. Legacy v1 projects remain importable; their old imports or inlined base blocks are stripped as compatibility content during import.
 
 Difficulty colors, theme fonts, and backgrounds are not written into the CSS: phi-plugin injects `:root { --AT/--IN/--HD/--EZ }` and `@font-face` from `info.yaml` in `common/layout/default.art`.
 
